@@ -3,8 +3,6 @@
 // All of the Node.js APIs are available in this process.
 const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
-const pathLib = require('path')
-const ProtoBuf = require("protobufjs")
 const grpc = require('grpc')
 
 const dirSelect = document.querySelector('#dir-select')
@@ -12,8 +10,6 @@ const dirName = document.querySelector('#dir-name')
 const dirListing = document.querySelector('#dir-listing')
 const fileName = document.querySelector('#file-name')
 const protoListing = document.querySelector('#proto-listing')
-
-const scope = {};
 
 dirSelect.addEventListener('click', event => {
   ipc.send('open-directory-dialog')
@@ -28,12 +24,6 @@ ipc.on('selected-directory', (event, paths) => {
   fileButtons.forEach(fileButton => {
     fileButton.addEventListener('click', event => {
       fileName.innerHTML = fileButton.innerHTML
-      const protoPath = pathLib.join(path, fileButton.innerHTML)
-      const protoDefinition = fsLib.readFileSync(protoPath).toString()
-      fileListing.innerHTML = `<pre>${protoDefinition}</pre>`
-      // const protoBuilder = ProtoBuf.loadProtoFile({root:path,file:fileButton.innerHTML})
-      // console.log(protoBuilder)
-      // console.log(protoBuilder.build())
       let protoModel = ''
       try {
         protoModel = grpc.load({root:path,file:fileButton.innerHTML})
@@ -42,11 +32,41 @@ ipc.on('selected-directory', (event, paths) => {
         alert(e.toString())
       }
 
-      protoListing.innerHTML = `<pre>${JSON.stringify(describeServices(protoModel), undefined, '  ')}</pre>`
+      const services = describeServices(protoModel)
+      protoListing.innerHTML = Object.keys(services).map(serviceKey => {
+        const service = services[serviceKey]
+        const serviceId = serviceKey.replace(/\./gi, '-')
+        return `<div id="${serviceId}" class="service"><h3>${serviceKey}</h3>`+
+                `${Object.keys(service).map(methodKey => {
+                  const method = service[methodKey]
+                  const methodId = methodKey.replace(/\./gi, '-')
+                  return `<div id="${methodId}" class="method"><h4>${method.method}</h4>`+
+                          `<div>${method.requestType}<textarea class="request-json">${JSON.stringify(method.requestSample, undefined, '  ')}</textarea></div>`+
+                          `<button class="request-invoke">Invoke</button>`+
+                        `</div>`
+                }).join('')}`+
+              `</div>`
+      }).join('')
 
-      scope.protoModel = protoModel;
-      scope.described = describeServices(protoModel)
-      console.log(scope)
+      Object.keys(services).map(serviceKey => {
+        const service = services[serviceKey]
+        const serviceId = serviceKey.replace(/\./gi, '-')
+        Object.keys(service).map(methodKey => {
+          const method = service[methodKey]
+          const methodId = methodKey.replace(/\./gi, '-')
+          document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
+            const request = JSON.parse(document.querySelector(`#${serviceId} #${methodId} .request-json`).value)
+            method
+              .invokeRpc('127.0.0.1',12372,request)
+              .then(response => {
+                console.log(response)
+              })
+              .catch(error => {
+                console.error(error.toString(), JSON.stringify(error))
+              })
+          })
+        })
+      })
     })
   })
 })
@@ -75,7 +95,7 @@ function describeServiceMethods(protoService) {
         requestSample: makeFullySpecifiedJsonSample(serviceMethod.requestType),
         responseType: serviceMethod.responseType.name,
         responseSample: makeFullySpecifiedJsonSample(serviceMethod.responseType),
-        makeCallAsync: (host, port, request) => { // here's a function which will call the service! yay
+        invokeRpc: (host, port, request) => { // here's a function which will call the service! yay
           const service = new protoService(`${host}:${port}`, grpc.credentials.createInsecure())
           return new Promise((resolve,reject) => {
             service[serviceMethodKey](request, (err, response) => {
@@ -117,7 +137,3 @@ function makeFullySpecifiedJsonSample(messageType) {
     }
   }))
 }
-
-ipc.on('proto-file-keys', (event, keys) => {
-  protoListing.innerHTML = keys.join('<br />')
-})
