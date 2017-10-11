@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron ."
+    "build": "build"
   },
   "repository": "https://github.com/markosindustries/grpc-gui",
   "keywords": [
@@ -16,7 +17,7 @@
   "author": "markosindustries",
   "devDependencies": {
     "electron": "~1.7.8",
-    "electron-rebuild": "^1.6.0",
-    "grpc": "~1.6.6"
+    "grpc": "~1.6.6",
+    "simulacra": "~2.1.9"
   }
 }

@@ -3,15 +3,28 @@
   <head>
     <meta charset="UTF-8">
     <title>GRPC GUI</title>
+    <style type="text/css">
+      body { display:flex; flex-direction:column; align-self:stretch; justify-content: space-between; position:absolute; top:0px;bottom:0px;left:0px;right:0px; overflow:hidden; }
+      body { font-family: Roboto; font-weight: 200; }
+      body :not(style):not(script) { display:flex; flex-direction:column; justify-content: flex-start; }
+      pre { width:0px; }
+      .dir-listing-entry { cursor:pointer; }
+      .heading { text-transform: uppercase; font-weight:bold; justify-content: center; }
+    </style>
   </head>
   <body>
-    <div><button id="dir-select">Open some BUFFs</button></div>
-    <div id="dir-display"></div>
-    <div id="dir-listing"></div>
-    <div id="file-listing"></div>
-    <div id="proto-listing"></div>
+    <div style="flex-direction:row;height:100%">
+      <div style="flex-direction:column;flex-grow:1;">
+        <div id="dir-name" class="heading"><button id="dir-select">Open some BUFFs</button></div>
+        <div id="dir-listing" style="overflow:scroll;height:100%"></div>
+      </div>
+      <div style="flex-direction:column;flex-grow:5">
+        <div id="file-name" class="heading"></div>
+        <div style="overflow:scrollheight:100%" id="proto-listing"></div>
+      </div>
+    </div>
 
-    <script>
+    <script type="text/javascript">
       require('./renderer.js')
     </script>
   </body>
