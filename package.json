@@ -4,7 +4,7 @@
   "description": "A GUI for GRPC services",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
     "build": "build"
   },
   "repository": "https://github.com/markosindustries/grpc-gui",

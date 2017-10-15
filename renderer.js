@@ -3,30 +3,42 @@
 // All of the Node.js APIs are available in this process.
 const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
+const pathLib = require('path')
 const grpc = require('grpc')
+const JSONEditor = require('jsoneditor')
 
 const dirSelect = document.querySelector('#dir-select')
 const dirName = document.querySelector('#dir-name')
 const dirListing = document.querySelector('#dir-listing')
 const fileName = document.querySelector('#file-name')
 const protoListing = document.querySelector('#proto-listing')
+const responseListing = document.querySelector('#response-listing')
 
 dirSelect.addEventListener('click', event => {
   ipc.send('open-directory-dialog')
 })
 
-ipc.on('selected-directory', (event, paths) => {
-  const [path] = paths
-  dirName.innerHTML = `${path}`
-  dirListing.innerHTML = fsLib.readdirSync(path).map(file => `<div class="dir-listing-entry">${file}</div>`).join('')
+function changeDirectory(path) {
+  document.title = `GRPC GUI - ${path}`
+  dirListing.innerHTML = '<ul class="list-group">'+
+    '<li class="dir-listing-entry list" style="cursor:pointer;padding-left:10px" data-filename="..">..\\</li><hr style="margin:0px"/>'+
+    fsLib.readdirSync(path).map(file => `<li class="dir-listing-entry" style="cursor:pointer;padding-left:10px" data-filename="${file}">${file}</li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
+  '</ul>'
 
   const fileButtons = document.querySelectorAll('#dir-listing .dir-listing-entry')
   fileButtons.forEach(fileButton => {
     fileButton.addEventListener('click', event => {
-      fileName.innerHTML = fileButton.innerHTML
+      const filename = fileButton.attributes["data-filename"].value
+      const filepath = pathLib.join(path, filename)
+      if(fsLib.statSync(filepath).isDirectory()) {
+        return changeDirectory(filepath)
+      }
+
+      fileName.innerHTML = filename
+      protoListing.innerHTML = ''
       let protoModel = ''
       try {
-        protoModel = grpc.load({root:path,file:fileButton.innerHTML})
+        protoModel = grpc.load({root:path,file:filename})
       } catch (e) {
         // TODO: Make this a better error message
         alert(e.toString())
@@ -36,15 +48,19 @@ ipc.on('selected-directory', (event, paths) => {
       protoListing.innerHTML = Object.keys(services).map(serviceKey => {
         const service = services[serviceKey]
         const serviceId = serviceKey.replace(/\./gi, '-')
-        return `<div id="${serviceId}" class="service"><h3>${serviceKey}</h3>`+
-                `${Object.keys(service).map(methodKey => {
+        return `<div id="${serviceId}" class="service"><h4>${serviceKey}</h4>`+
+                Object.keys(service).map(methodKey => {
                   const method = service[methodKey]
                   const methodId = methodKey.replace(/\./gi, '-')
-                  return `<div id="${methodId}" class="method"><h4>${method.method}</h4>`+
-                          `<div>${method.requestType}<textarea class="request-json">${JSON.stringify(method.requestSample, undefined, '  ')}</textarea></div>`+
-                          `<button class="request-invoke">Invoke</button>`+
+                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseType}</var></code></h5>`+
+                          `<div class="form-group">`+
+                            `<div class="request-json" style="width:100%;height:45em"></div>`+
+                            `<span class="input-group-btn">`+
+                              `<button class="request-invoke btn btn-primary" type="button">Invoke</button>`+
+                            `</span>`+
+                          `</div>`+
                         `</div>`
-                }).join('')}`+
+                }).join('<hr/>')+
               `</div>`
       }).join('')
 
@@ -54,14 +70,18 @@ ipc.on('selected-directory', (event, paths) => {
         Object.keys(service).map(methodKey => {
           const method = service[methodKey]
           const methodId = methodKey.replace(/\./gi, '-')
+          const editor = new JSONEditor(document.querySelector(`#${serviceId} #${methodId} .request-json`), {})
+          editor.set(method.requestSample)
           document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
-            const request = JSON.parse(document.querySelector(`#${serviceId} #${methodId} .request-json`).value)
+            const request = JSON.parse(editor.get())
             method
-              .invokeRpc('127.0.0.1',12372,request)
+              .invokeRpc('127.0.0.1',12583,request)
               .then(response => {
+                responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response)}</pre></div>`
                 console.log(response)
               })
               .catch(error => {
+                responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error)}</pre></div>`
                 console.error(error.toString(), JSON.stringify(error))
               })
           })
@@ -69,6 +89,11 @@ ipc.on('selected-directory', (event, paths) => {
       })
     })
   })
+}
+
+ipc.on('selected-directory', (event, paths) => {
+  const [path] = paths
+  changeDirectory(path)
 })
 
 function describeServices(protoModel, namespace=[]) {

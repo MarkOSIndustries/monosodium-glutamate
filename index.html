@@ -3,27 +3,33 @@
   <head>
     <meta charset="UTF-8">
     <title>GRPC GUI</title>
-    <style type="text/css">
-      body { display:flex; flex-direction:column; align-self:stretch; justify-content: space-between; position:absolute; top:0px;bottom:0px;left:0px;right:0px; overflow:hidden; }
-      body { font-family: Roboto; font-weight: 200; }
-      body :not(style):not(script) { display:flex; flex-direction:column; justify-content: flex-start; }
-      pre { width:0px; }
-      .dir-listing-entry { cursor:pointer; }
-      .heading { text-transform: uppercase; font-weight:bold; justify-content: center; }
-      h1,h2,h3,h4,h5,h6 {margin:0px}
-      .service, .method {padding-left:1em}
-      textarea.request-json {height:30em}
-    </style>
+
+    <link rel="stylesheet" href="node_modules/jsoneditor/dist/jsoneditor.min.css" type="text/css" />
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.min.css" type="text/css" />
   </head>
   <body>
-    <div style="flex-direction:row;height:100%">
-      <div style="flex-direction:column;flex-grow:1;">
-        <div id="dir-name" class="heading"><button id="dir-select">Open some BUFFs</button></div>
-        <div id="dir-listing" style="overflow:scroll;height:100%"></div>
+    <div style="position:fixed;bottom: 0px;top: 0px;left:0px;width:350px;overflow-y: scroll;">
+      <div><button id="dir-select" class="btn btn-primary form-control">Open some BUFFs</button></div>
+      <div id="dir-listing"></div>
+    </div>
+    <div style="position:fixed;bottom: 0px;top: 0px;left:350px;right:30%;overflow-y: scroll;">
+      <h3 id="file-name"></h3>
+      <div id="proto-listing"></div>
+    </div>
+    <div style="position:fixed;bottom: 0px;top: 0px;right:0px;width:30%;overflow-y: scroll;overflow-x:hidden">
+      <div class="row">
+        <div class="col-md-6">
+          <label for="server-ip">Host</label>
+          <input id="server-ip" value="127.0.0.1" style="width:100px" />
+        </div>
+        <div class="col-md-6">
+          <label for="server-host">Port</label>
+          <input id="server-host" value="1234" style="width:40px" />
+        </div>
       </div>
-      <div style="flex-direction:column;flex-grow:5">
-        <div id="file-name" class="heading"></div>
-        <div style="overflow:scrollheight:100%" id="proto-listing"></div>
+      <hr/>
+      <div id="response-listing">
       </div>
     </div>
 
