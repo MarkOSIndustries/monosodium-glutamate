@@ -12,7 +12,7 @@ git clone https://github.com/markosindustries/grpc-gui
 # Go into the repository
 cd electron-quick-start
 # Install dependencies and compile native modules like GRPC against electron headers
-npm build
+build
 # Run the app
 npm start
 ```

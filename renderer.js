@@ -5,14 +5,16 @@ const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
 const pathLib = require('path')
 const grpc = require('grpc')
-const JSONEditor = require('jsoneditor')
 
 const dirSelect = document.querySelector('#dir-select')
 const dirName = document.querySelector('#dir-name')
 const dirListing = document.querySelector('#dir-listing')
 const fileName = document.querySelector('#file-name')
 const protoListing = document.querySelector('#proto-listing')
+const requestListing = document.querySelector('#request-listing')
 const responseListing = document.querySelector('#response-listing')
+const serverHost = document.querySelector('#server-host')
+const serverPort = document.querySelector('#server-port')
 
 dirSelect.addEventListener('click', event => {
   ipc.send('open-directory-dialog')
@@ -70,20 +72,36 @@ function changeDirectory(path) {
         Object.keys(service).map(methodKey => {
           const method = service[methodKey]
           const methodId = methodKey.replace(/\./gi, '-')
-          const editor = new JSONEditor(document.querySelector(`#${serviceId} #${methodId} .request-json`), {})
-          editor.set(method.requestSample)
-          document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
-            const request = JSON.parse(editor.get())
-            method
-              .invokeRpc('127.0.0.1',12583,request)
-              .then(response => {
-                responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response)}</pre></div>`
-                console.log(response)
-              })
-              .catch(error => {
-                responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error)}</pre></div>`
-                console.error(error.toString(), JSON.stringify(error))
-              })
+
+          require('monaco-loader')().then(monaco => {
+            const editor = monaco.editor.create(document.querySelector(`#${serviceId} #${methodId} .request-json`), {
+              language: 'json',
+              theme: 'vs-light',
+              automaticLayout: true,
+              value: JSON.stringify(method.requestSample, undefined, '  ')
+            })
+
+            document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
+              const request = {
+                host: serverHost.value,
+                port: serverPort.value,
+                service: serviceKey,
+                method: methodKey,
+                body: JSON.parse(editor.getValue())
+              }
+              requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
+              console.log('Request', request)
+              method
+                .invokeRpc(request.host, request.port, request.body)
+                .then(response => {
+                  responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response, undefined, '  ')}</pre></div>`
+                  console.log('Response', response)
+                })
+                .catch(error => {
+                  responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
+                  console.error('Error', error.toString(), JSON.stringify(error))
+                })
+            })
           })
         })
       })

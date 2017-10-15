@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <title>GRPC GUI</title>
 
-    <link rel="stylesheet" href="node_modules/jsoneditor/dist/jsoneditor.min.css" type="text/css" />
     <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.min.css" type="text/css" />
     <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap-theme.min.css" type="text/css" />
   </head>
@@ -20,15 +19,20 @@
     <div style="position:fixed;bottom: 0px;top: 0px;right:0px;width:30%;overflow-y: scroll;overflow-x:hidden">
       <div class="row">
         <div class="col-md-6">
-          <label for="server-ip">Host</label>
-          <input id="server-ip" value="127.0.0.1" style="width:100px" />
+          <label for="server-host">Host</label>
+          <input id="server-host" value="127.0.0.1" style="width:100px" />
         </div>
         <div class="col-md-6">
-          <label for="server-host">Port</label>
-          <input id="server-host" value="1234" style="width:40px" />
+          <label for="server-port">Port</label>
+          <input id="server-port" value="1234" style="width:40px" />
         </div>
       </div>
       <hr/>
+      <h4>Request</h4>
+      <div id="request-listing">
+      </div>
+      <hr/>
+      <h4>Response</h4>
       <div id="response-listing">
       </div>
     </div>
