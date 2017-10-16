@@ -16,10 +16,6 @@ const responseListing = document.querySelector('#response-listing')
 const serverHost = document.querySelector('#server-host')
 const serverPort = document.querySelector('#server-port')
 
-dirSelect.addEventListener('click', event => {
-  ipc.send('open-directory-dialog')
-})
-
 function changeDirectory(path) {
   document.title = `GRPC GUI - ${path}`
   dirListing.innerHTML = '<ul class="list-group">'+
@@ -56,7 +52,7 @@ function changeDirectory(path) {
                   const methodId = methodKey.replace(/\./gi, '-')
                   return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseType}</var></code></h5>`+
                           `<div class="form-group">`+
-                            `<div class="request-json" style="width:100%;height:45em"></div>`+
+                            `<div class="request-json" style="height:30em"></div>`+
                             `<span class="input-group-btn">`+
                               `<button class="request-invoke btn btn-primary" type="button">Invoke</button>`+
                             `</span>`+
@@ -75,10 +71,14 @@ function changeDirectory(path) {
 
           require('monaco-loader')().then(monaco => {
             const editor = monaco.editor.create(document.querySelector(`#${serviceId} #${methodId} .request-json`), {
+              value: JSON.stringify(method.requestSample, undefined, '  '),
               language: 'json',
               theme: 'vs-light',
               automaticLayout: true,
-              value: JSON.stringify(method.requestSample, undefined, '  ')
+              scrollBeyondLastLine: false,
+              minimap: {
+            		enabled: false
+            	}
             })
 
             document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
@@ -111,6 +111,7 @@ function changeDirectory(path) {
 
 ipc.on('selected-directory', (event, paths) => {
   const [path] = paths
+  console.log('Selected dir', paths)
   changeDirectory(path)
 })
 
