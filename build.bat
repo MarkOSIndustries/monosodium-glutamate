@@ -1,5 +1,3 @@
-REM This is completely untested - todo :P
-
 REM The version of electron
 set npm_config_target=1.7.8
 

@@ -10,7 +10,7 @@ To clone and run this repository you'll need [Git](https://git-scm.com) and [Nod
 # Clone this repository
 git clone https://github.com/markosindustries/grpc-gui
 # Go into the repository
-cd electron-quick-start
+cd grpc-gui
 # Install dependencies and compile native modules like GRPC against electron headers
 build
 # Run the app
