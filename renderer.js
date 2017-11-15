@@ -91,6 +91,7 @@ function changeDirectory(path) {
               }
               requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
               console.log('Request', request)
+              responseListing.innerHTML = '';
               method
                 .invokeRpc(request.host, request.port, request.body)
                 .then(response => {
@@ -157,6 +158,10 @@ function describeServiceMethods(protoService) {
 }
 
 function makeFullySpecifiedJsonSample(messageType) {
+  if(messageType._fields.length === 0) {
+    return {};
+  }
+
   return Object.assign(...messageType._fields.map(field => {
     const wrap = field.repeated ?
       (val => { return { [field.name]: [ val ] } }) :
