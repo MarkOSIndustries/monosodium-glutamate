@@ -51,7 +51,7 @@ function changeDirectory(path) {
                 Object.keys(service).map(methodKey => {
                   const method = service[methodKey]
                   const methodId = methodKey.replace(/\./gi, '-')
-                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseType}</var></code></h5>`+
+                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
                           `<div class="form-group">`+
                             `<div class="request-json" style="height:30em"></div>`+
                             `<span class="input-group-btn">`+
@@ -145,18 +145,28 @@ function describeServiceMethods(protoService) {
         method: serviceMethod.originalName,
         requestType: serviceMethod.requestType.name,
         requestSample: makeFullySpecifiedJsonSample(serviceMethod.requestType),
-        responseType: serviceMethod.responseType.name,
+        responseOf: serviceMethod.responseStream ? "stream of" : "",
+        responseType:  serviceMethod.responseType.name,
         responseSample: makeFullySpecifiedJsonSample(serviceMethod.responseType),
         invokeRpc: (host, port, request) => { // here's a function which will call the service! yay
           const service = new protoService(`${host}:${port}`, grpc.credentials.createInsecure())
           return new Promise((resolve,reject) => {
-            service[serviceMethodKey](request, (err, response) => {
-              if(err) {
-                reject(err)
-              } else {
-                resolve(response)
-              }
-            })
+            if(serviceMethod.responseStream) {
+              const call = service[serviceMethodKey](request);
+              const buffer = [];
+              call.on('data', d => buffer.push(d));
+              call.on('end', () => resolve(buffer));
+              call.on('error', err => reject(err));
+              // call.on('status', status => console.log("Oh look a status!", status)); // TODO: Seems of little value...
+            } else {
+              service[serviceMethodKey](request, (err, response) => {
+                if(err) {
+                  reject(err)
+                } else {
+                  resolve(response)
+                }
+              });
+            }
           })
         }
       }
