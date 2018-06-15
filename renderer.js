@@ -12,6 +12,7 @@ const dirListing = document.querySelector('#dir-listing')
 const fileName = document.querySelector('#file-name')
 const protoListing = document.querySelector('#proto-listing')
 const requestListing = document.querySelector('#request-listing')
+const responseTiming = document.querySelector('#response-timing')
 const responseListing = document.querySelector('#response-listing')
 const serverHost = document.querySelector('#server-host')
 const serverPort = document.querySelector('#server-port')
@@ -92,13 +93,19 @@ function changeDirectory(path) {
               requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
               console.log('Request', request)
               responseListing.innerHTML = '';
+              responseTiming.innerHTML = '<p>Running</p>'
+              var t0 = performance.now();
               method
                 .invokeRpc(request.host, request.port, request.body)
                 .then(response => {
+                  var t1 = performance.now()
+                  responseTiming.innerHTML = `<p>gRPC call - completed in ${(t1-t0).toFixed(3)} milliseconds</p>`
                   responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response, undefined, '  ')}</pre></div>`
                   console.log('Response', response)
                 })
                 .catch(error => {
+                  var t1 = performance.now()
+                  responseTiming.innerHTML = `<p>gRPC call - errored in ${(t1-t0).toFixed(3)} milliseconds</p>`
                   responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
                   console.error('Error', error.toString(), JSON.stringify(error))
                 })
