@@ -12,6 +12,7 @@ const dirListing = document.querySelector('#dir-listing')
 const fileName = document.querySelector('#file-name')
 const protoListing = document.querySelector('#proto-listing')
 const requestListing = document.querySelector('#request-listing')
+const responseTiming = document.querySelector('#response-timing')
 const responseListing = document.querySelector('#response-listing')
 const serverHost = document.querySelector('#server-host')
 const serverPort = document.querySelector('#server-port')
@@ -50,7 +51,7 @@ function changeDirectory(path) {
                 Object.keys(service).map(methodKey => {
                   const method = service[methodKey]
                   const methodId = methodKey.replace(/\./gi, '-')
-                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseType}</var></code></h5>`+
+                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
                           `<div class="form-group">`+
                             `<div class="request-json" style="height:30em"></div>`+
                             `<span class="input-group-btn">`+
@@ -92,13 +93,19 @@ function changeDirectory(path) {
               requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
               console.log('Request', request)
               responseListing.innerHTML = '';
+              responseTiming.innerHTML = '<p>Running</p>'
+              var t0 = performance.now();
               method
                 .invokeRpc(request.host, request.port, request.body)
                 .then(response => {
+                  var t1 = performance.now()
+                  responseTiming.innerHTML = `<p>gRPC call - completed in ${(t1-t0).toFixed(3)} milliseconds</p>`
                   responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response, undefined, '  ')}</pre></div>`
                   console.log('Response', response)
                 })
                 .catch(error => {
+                  var t1 = performance.now()
+                  responseTiming.innerHTML = `<p>gRPC call - errored in ${(t1-t0).toFixed(3)} milliseconds</p>`
                   responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
                   console.error('Error', error.toString(), JSON.stringify(error))
                 })
@@ -138,18 +145,28 @@ function describeServiceMethods(protoService) {
         method: serviceMethod.originalName,
         requestType: serviceMethod.requestType.name,
         requestSample: makeFullySpecifiedJsonSample(serviceMethod.requestType),
-        responseType: serviceMethod.responseType.name,
+        responseOf: serviceMethod.responseStream ? "stream of" : "",
+        responseType:  serviceMethod.responseType.name,
         responseSample: makeFullySpecifiedJsonSample(serviceMethod.responseType),
         invokeRpc: (host, port, request) => { // here's a function which will call the service! yay
           const service = new protoService(`${host}:${port}`, grpc.credentials.createInsecure())
           return new Promise((resolve,reject) => {
-            service[serviceMethodKey](request, (err, response) => {
-              if(err) {
-                reject(err)
-              } else {
-                resolve(response)
-              }
-            })
+            if(serviceMethod.responseStream) {
+              const call = service[serviceMethodKey](request);
+              const buffer = [];
+              call.on('data', d => buffer.push(d));
+              call.on('end', () => resolve(buffer));
+              call.on('error', err => reject(err));
+              // call.on('status', status => console.log("Oh look a status!", status)); // TODO: Seems of little value...
+            } else {
+              service[serviceMethodKey](request, (err, response) => {
+                if(err) {
+                  reject(err)
+                } else {
+                  resolve(response)
+                }
+              });
+            }
           })
         }
       }
