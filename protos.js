@@ -97,28 +97,33 @@ function makeFullySpecifiedJsonSample(messageType) {
       return Object.assign({}, ...Object.keys(messageType.fields).map(fieldKey => {
         const field = messageType.fields[fieldKey];
 
-        const wrap = field.repeated ?
-          (val => { return { [field.name]: [ val ] } }) :
-          (val => { return { [field.name]: val } })
+        const wrap =
+          field.keyType ?
+            (val => { return { [field.name]: { [makeTypeSample(field.keyType, `${field.name}_key`)]: val } } }) :
+          field.repeated ?
+            (val => { return { [field.name]: [ val ] } }) :
+            (val => { return { [field.name]: val } })
 
         if(field.resolvedType) {
-          // console.log(messageType.name, field.name, field.resolvedType);
           return wrap(makeFullySpecifiedJsonSample(field.resolvedType))
         }
 
-        switch(field.type) {
-          case "bool":
-            return wrap(false)
-          case "string":
-            return wrap(`${field.name} ${Math.ceil(1000*Math.random())}`)
-          case "bytes":
-            return wrap(btoa(`${field.name} ${Math.ceil(1000*Math.random())}`))
-          default:
-            // everything else is a number :)
-            // console.log(messageType.name, field.name, field);
-            return wrap(Math.ceil(1000*Math.random()))
-        }
+        return wrap(makeTypeSample(field.type, field.name))
       }))
+  }
+}
+
+function makeTypeSample(fieldType, fieldName) {
+  switch(fieldType) {
+    case "bool":
+      return false
+    case "string":
+      return `${fieldName} ${Math.ceil(1000*Math.random())}`
+    case "bytes":
+      return btoa(`${fieldName} ${Math.ceil(1000*Math.random())}`)
+    default:
+      // everything else is a number :)
+      return Math.ceil(1000*Math.random())
   }
 }
 
