@@ -45,4 +45,4 @@ const menuTemplate = [
 app.on('ready', ()=> {
 const menu = Menu.buildFromTemplate(menuTemplate)
 Menu.setApplicationMenu(menu)
-}) 
+})

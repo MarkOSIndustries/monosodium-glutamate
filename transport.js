@@ -99,48 +99,60 @@ class Http2Channel {
     initHttp2Client()
   }
 
-  request(service, invokeMethod, options) {
-    return new Promise((resolve,reject) => {
-      this.clientClosed.on('closed', () => reject("Connection closed"))
+  rpcImpl(service, options) {
+    return (method, requestBuffer, callback) => {
       this.clientNeeded.emit('needed')
       this.connectClient.then(client => {
-        const serviceImpl = service.create((method, requestBuffer, callback) => {
-          const stream = client.request(this.buildHeaders(service, method, Object.assign(DefaultRequestOptions, options || {})))
-          stream.on('response', (headers, flags) => {
-            // TODO: new up a stream.Readable, resolve with that, and pump decompressed buffers to it
-            if(headers[GRPC_HEADER_STATUS] !== 0) {
-              reject(Object.assign({
-                [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
-              }, headers))
-            }
-            if(flags & http2.constants.NGHTTP2_FLAG_END_STREAM) {
-              stream.destroy()
-              resolve(Buffer.from(""))
-              return
-            }
+        const stream = client.request(this.buildHeaders(service, method, Object.assign(DefaultRequestOptions, options || {})))
 
-            // TODO: read compression/message sizes and build message buffers
-            // This is currently broken for reading responses
-            const chunks = [];
-            stream.on('data', function(chunk) { chunks.push(chunk); })
-            stream.on('end', function() {
-              stream.close()
-              const buffer = Buffer.concat(chunks)
-              resolve(buffer)
-            })
-          })
+        const responseBuffer = Buffer.concat([])
+        function tryCallback() {
+          // TODO: make decompression an external concern, this assumes 'identity'
+          while(responseBuffer.length >= 5) {
+            const compression = responseBuffer.readUInt8(0)
+            const messageSize = responseBuffer.readUInt32BE(1)
 
-          // TODO: make compression an external concern, this assumes 'identity'
-          let lengthPrefixedRequestBuffer = Buffer.alloc(5 + requestBuffer.length);
-          lengthPrefixedRequestBuffer.writeUInt8(0, 0);
-          lengthPrefixedRequestBuffer.writeUInt32BE(requestBuffer.length, 1);
-          requestBuffer.copy(lengthPrefixedRequestBuffer, 5);
-          stream.end(lengthPrefixedRequestBuffer)
+            if(responseBuffer.length > 5 + messageSize) {
+              callback(null, responseBuffer.slice(5, messageSize))
+              responseBuffer = responseBuffer.slice(5 + messageSize)
+            }
+          }
+        }
+
+        function endStream(err) {
+          tryCallback()
+          callback(err || null, null) // tell protobufjs we're finished
+          // stream.close()
+          stream.destroy()
+        }
+
+        this.clientClosed.on('closed', () => endStream('Connection closed'))
+
+        stream.on('response', (headers, flags) => {
+          if(headers[GRPC_HEADER_STATUS] !== 0) {
+            endStream(Object.assign({
+              [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
+            }, headers))
+          }
         })
+        stream.on('data', nextBuffer => {
+          responseBuffer = Buffer.concat([responseBuffer, nextBuffer])
+          tryCallback()
+        })
+        stream.on('end', () => endStream())
 
-        invokeMethod(serviceImpl)
-      }).catch(reject)
-    })
+        // TODO: allow streaming requests
+        // TODO: make compression an external concern, this assumes 'identity'
+        let lengthPrefixedRequestBuffer = Buffer.alloc(5 + requestBuffer.length)
+        lengthPrefixedRequestBuffer.writeUInt8(0, 0)
+        lengthPrefixedRequestBuffer.writeUInt32BE(requestBuffer.length, 1)
+        requestBuffer.copy(lengthPrefixedRequestBuffer, 5)
+        // TODO: check request size and break into allowable chunks using stream.write
+        stream.end(lengthPrefixedRequestBuffer)
+      }).catch(err => {
+        callback(err)
+      })
+    }
   }
 
   buildHeaders(service, method, options) {

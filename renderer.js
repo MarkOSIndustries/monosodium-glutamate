@@ -84,23 +84,28 @@ function changeDirectory(path) {
             console.log('Request', request)
             responseListing.innerHTML = '';
             responseTiming.innerHTML = '<p>Running</p>'
-            var t0 = performance.now();
+            const t0 = performance.now();
             const http2Channel = new transport.Http2Channel(request.host, request.port)
-            method
+            const responses = []
+            const responseStream = method
               .invokeWith(http2Channel, request.body)
-              // .invokeRpc(request.host, request.port, request.body)
-              .then(response => {
-                var t1 = performance.now()
-                responseTiming.innerHTML = `<p>Call duration ${(t1-t0).toFixed(3)} milliseconds</p>`
-                responseListing.innerHTML = `<div class="alert alert-success" role="alert">Response<hr/><pre>${JSON.stringify(response, undefined, '  ')}</pre></div>`
-                console.log('Response', response)
-              })
-              .catch(error => {
-                var t1 = performance.now()
-                responseTiming.innerHTML = `<p>Call duration ${(t1-t0).toFixed(3)} milliseconds</p>`
-                responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
-                console.error('Error', error)
-              })
+            responseStream.on('data', response => {
+              console.log('Response', response)
+              responses.push(response)
+              responseListing.innerHTML = responseListing.innerHTML + `<div class="alert alert-success" role="alert">Response<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
+            })
+            responseStream.on('end', () => {
+              const t1 = performance.now()
+              const duration = t1-t0
+              console.log('Response completed in', duration)
+              responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+            })
+            responseStream.on('error', error => {
+              var t1 = performance.now()
+              responseTiming.innerHTML = `<p>Call duration ${(t1-t0).toFixed(3)} milliseconds</p>`
+              responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
+              console.error('Error', error)
+            })
           })
         })
       })

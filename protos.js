@@ -78,7 +78,11 @@ function describeServiceMethods(service) {
         responseType:  serviceMethod.responseType,
         responseSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedResponseType),
         invokeWith: (http2Connection, requestObject, options) => {
-          return http2Connection.request(service, svc => svc[serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())](requestObject), options)
+          const svc = service.create(http2Connection.rpcImpl(service, options))
+          const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
+          // const responseStream = new stream.PassThrough({objectMode: true})
+          svc[svcMethodKey](requestObject)
+          return svc // svc implements stream.Readable
         }
       }
     }
