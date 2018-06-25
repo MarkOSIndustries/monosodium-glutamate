@@ -15,7 +15,6 @@
   ],
   "author": "markosindustries",
   "devDependencies": {
-    "@grpc/grpc-js": "^0.2.0",
     "bootstrap": "~3.3.7",
     "electron": "~2.0.2",
     "monaco-loader": "^0.8.2",
