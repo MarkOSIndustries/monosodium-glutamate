@@ -26,7 +26,7 @@ function changeDirectory(path) {
 
 // TODO: split into service and message listings
   dirListing.innerHTML = '<ul class="list-group">'+
-    Object.keys(messagesIndex.services).map(fqServiceName => `<li class="dir-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}">${fqServiceName}</li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
+    Object.keys(messagesIndex.services).map(fqServiceName => `<li class="dir-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
   '</ul>'
 
   const protoButtons = document.querySelectorAll('#dir-listing .dir-listing-entry')
@@ -41,7 +41,7 @@ function changeDirectory(path) {
       const serviceDescription = protos.describeServiceMethods(service)
       fileNameDOM.innerHTML = service.filename
       protoListing.innerHTML =
-             `<div id="${serviceId}" class="service"><h4>${fqServiceName}</h4>`+
+             `<div id="${serviceId}" class="service"><h4><code>${fqServiceName}</code></h4>`+
                 Object.keys(serviceDescription).map(methodKey => {
                   const method = serviceDescription[methodKey]
                   const methodId = methodKey.replace(/\./gi, '-')
