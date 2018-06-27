@@ -1,16 +1,12 @@
 const http2 = require('http2')
 const protobuf = require('protobufjs')
 const stream = require('stream')
-
+const encoding = require('./transport.encoding.js')
 // Simple Impl of:
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
 
-const GRPCEncodingType = {
-  Identity: 'identity',
-  GZIP: 'gzip',
-  Deflate: 'deflate',
-  Snappy: 'snappy',
-}
+const MaxFrameSize = 16379
+
 const TimeoutUnits = {
   Hour: 'H',
   Minute: 'M',
@@ -22,6 +18,8 @@ const TimeoutUnits = {
 const DefaultRequestOptions = {
   timeoutValue: 5,
   timeoutUnit: TimeoutUnits.Minute,
+  requestEncoding: encoding.GZIPEncoding,
+  responseEncoding: encoding.GZIPEncoding,
 }
 
 const {
@@ -78,7 +76,7 @@ class Http2Channel {
       self.connectClient = new Promise((resolve,reject) => {
         let connected = false
         self.clientNeeded.on('needed', () => {
-          if(connected || closed) return
+          if(connected) return
           connected = true
 
           const client = http2.connect(self.address)
@@ -100,39 +98,51 @@ class Http2Channel {
   }
 
   rpcImpl(service, options) {
+    const self = this
+    const requestOptions = Object.assign(DefaultRequestOptions, options || {})
+
     return (method, requestBuffer, callback) => {
       this.clientNeeded.emit('needed')
       this.connectClient.then(client => {
-        const stream = client.request(this.buildHeaders(service, method, Object.assign(DefaultRequestOptions, options || {})))
+        let responseBuffer = Buffer.concat([])
 
-        const responseBuffer = Buffer.concat([])
+        const stream = client.request(this.buildHeaders(service, method, requestOptions))
+
         function tryCallback() {
-          // TODO: make decompression an external concern, this assumes 'identity'
-          while(responseBuffer.length >= 5) {
-            const compression = responseBuffer.readUInt8(0)
-            const messageSize = responseBuffer.readUInt32BE(1)
-
-            if(responseBuffer.length > 5 + messageSize) {
-              callback(null, responseBuffer.slice(5, messageSize))
-              responseBuffer = responseBuffer.slice(5 + messageSize)
-            }
-          }
+          responseBuffer = self.unpackMessages(requestOptions.responseEncoding, responseBuffer, message => callback(null, message))
         }
 
         function endStream(err) {
           tryCallback()
           callback(err || null, null) // tell protobufjs we're finished
-          // stream.close()
           stream.destroy()
         }
 
-        this.clientClosed.on('closed', () => endStream('Connection closed'))
+        self.clientClosed.on('closed', () => endStream('Connection closed'))
 
         stream.on('response', (headers, flags) => {
-          if(headers[GRPC_HEADER_STATUS] !== 0) {
+          if(headers[GRPC_HEADER_STATUS] != 0) {
             endStream(Object.assign({
               [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
             }, headers))
+          }
+          if(headers.hasOwnProperty(GRPC_HEADER_ACCEPT_MESSAGE_ENCODING)) {
+            const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING];
+            if(!encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
+              endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
+              return
+            }
+            requestOptions.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
+            console.log("Request encoding negotatiated", requestOptions.requestEncoding.name)
+          }
+          if(headers.hasOwnProperty(GRPC_HEADER_MESSAGE_ENCODING)) {
+            const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
+            if(!encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
+              endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
+              return
+            }
+            requestOptions.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
+            console.log("Response encoding negotatiated", requestOptions.responseEncoding.name)
           }
         })
         stream.on('data', nextBuffer => {
@@ -142,13 +152,8 @@ class Http2Channel {
         stream.on('end', () => endStream())
 
         // TODO: allow streaming requests
-        // TODO: make compression an external concern, this assumes 'identity'
-        let lengthPrefixedRequestBuffer = Buffer.alloc(5 + requestBuffer.length)
-        lengthPrefixedRequestBuffer.writeUInt8(0, 0)
-        lengthPrefixedRequestBuffer.writeUInt32BE(requestBuffer.length, 1)
-        requestBuffer.copy(lengthPrefixedRequestBuffer, 5)
-        // TODO: check request size and break into allowable chunks using stream.write
-        stream.end(lengthPrefixedRequestBuffer)
+        self.packMessage(requestOptions.requestEncoding, requestBuffer, chunk => stream.write(chunk))
+          .then(() => stream.end())
       }).catch(err => {
         callback(err)
       })
@@ -165,9 +170,39 @@ class Http2Channel {
       [GRPC_HEADER_TIMEOUT]: `${options.timeoutValue}${options.timeoutUnit}`,
       [HTTP2_HEADER_CONTENT_TYPE]: 'application/grpc+proto',
       [GRPC_HEADER_MESSAGE_TYPE]: method.resolvedRequestType.fullName,
-      [GRPC_HEADER_MESSAGE_ENCODING]: GRPCEncodingType.Identity,
-      [GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]: GRPCEncodingType.Identity,
+      [GRPC_HEADER_MESSAGE_ENCODING]: options.requestEncoding.name,
+      [GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]: options.responseEncoding.name,
     }
+  }
+
+  packMessage(encoding, buffer, fnChunkPacked) {
+    return encoding.encode(buffer).then(encodedBuffer => {
+      while(encodedBuffer.length > 0) {
+        const chunk = encodedBuffer.slice(0, MaxFrameSize)
+        encodedBuffer = encodedBuffer.slice(MaxFrameSize)
+
+        const packed = Buffer.alloc(5 + chunk.length)
+        packed.writeUInt8(encoding.compressed, 0)
+        packed.writeUInt32BE(chunk.length, 1)
+        chunk.copy(packed, 5)
+        fnChunkPacked(packed)
+      }
+    })
+  }
+
+  unpackMessages(encoding, buffer, fnMessageUnpacked) {
+    if(buffer.length >= 5) {
+      const compression = buffer.readUInt8(0)
+      const messageSize = buffer.readUInt32BE(1)
+
+      if(buffer.length > (5 + messageSize)) {
+        const bufferRemaining =
+        fnBufferAltered(bufferRemaining)
+        encoding.decode(buffer.slice(5, messageSize)).then(fnMessageUnpacked)
+        return this.unpackMessages(buffer.slice(5 + messageSize))
+      }
+    }
+    return buffer
   }
 
   close() {
@@ -176,8 +211,9 @@ class Http2Channel {
   }
 }
 
-
-
+class Http2Request {
+  // TODO: move request logic in here
+}
 
 module.exports = {
   TimeoutUnits,
