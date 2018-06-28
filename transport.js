@@ -99,66 +99,76 @@ class Http2Channel {
 
   rpcImpl(service, options) {
     const self = this
-    const requestOptions = Object.assign(DefaultRequestOptions, options || {})
 
     return (method, requestBuffer, callback) => {
       this.clientNeeded.emit('needed')
       this.connectClient.then(client => {
-        let responseBuffer = Buffer.concat([])
-
-        const stream = client.request(this.buildHeaders(service, method, requestOptions))
-
-        function tryCallback() {
-          responseBuffer = self.unpackMessages(requestOptions.responseEncoding, responseBuffer, message => callback(null, message))
-        }
-
-        function endStream(err) {
-          tryCallback()
-          callback(err || null, null) // tell protobufjs we're finished
-          stream.destroy()
-        }
-
-        self.clientClosed.on('closed', () => endStream('Connection closed'))
-
-        stream.on('response', (headers, flags) => {
-          const status = headers[GRPC_HEADER_STATUS] || 0
-          if(status != 0) {
-            endStream(Object.assign({
-              [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
-            }, headers))
-          }
-          const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]
-          if(newRequestEncoding) {
-            if(!encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
-              endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
-            } else {
-              requestOptions.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
-              console.log("Request encoding negotatiated", requestOptions.requestEncoding.name)
-            }
-          }
-          const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
-          if(newResponseEncoding) {
-            if(!encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
-              endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
-            } else {
-              requestOptions.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
-              console.log("Response encoding negotatiated", requestOptions.responseEncoding.name)
-            }
-          }
-        })
-        stream.on('data', nextBuffer => {
-          responseBuffer = Buffer.concat([responseBuffer, nextBuffer])
-          tryCallback()
-        })
-        stream.on('end', () => endStream())
-
-        // TODO: allow streaming requests
-        self.packMessage(requestOptions.requestEncoding, requestBuffer, chunk => stream.write(chunk))
-          .then(() => stream.end())
+        const request = new Http2Request(service, method, client, callback, Object.assign(DefaultRequestOptions, options || {}))
+        self.clientClosed.on('closed', () => request.abort('Connection closed'))
+        request.send(requestBuffer)
       }).catch(err => {
         callback(err)
       })
     }
+  }
+
+  close() {
+    this.closed = true
+    this.connectClient.then(client => client.close())
+  }
+}
+
+class Http2Request {
+  constructor(service, method, client, callback, options) {
+    const self = this
+
+    this.responseBuffer = Buffer.from([])
+    this.stream = client.request(this.buildHeaders(service, method, options))
+    this.callback = callback
+    this.options = options
+
+    this.stream.on('response', (headers, flags) => {
+      const status = headers[GRPC_HEADER_STATUS] || 0
+      if(status != 0) {
+        self.abort(Object.assign({
+          [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
+        }, headers))
+      }
+      const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]
+      if(newRequestEncoding) {
+        if(!encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
+          self.abort(new Error(`Encoding ${newRequestEncoding} is not supported`))
+        } else {
+          self.options.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
+          console.log("Request encoding negotatiated", self.options.requestEncoding.name)
+        }
+      }
+      const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
+      if(newResponseEncoding) {
+        if(!encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
+          self.abort(new Error(`Encoding ${newRequestEncoding} is not supported`))
+        } else {
+          self.options.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
+          console.log("Response encoding negotatiated", self.options.responseEncoding.name)
+        }
+      }
+    })
+    this.stream.on('data', chunk => {
+      self.responseBuffer = self.unpackMessages(self.options.responseEncoding, Buffer.concat([self.responseBuffer, chunk]), msg => self.callback(null, msg))
+    })
+    this.stream.on('end', () => self.abort(null))
+  }
+
+  abort(err) {
+    this.callback(err, null)
+    this.stream.destroy()
+  }
+
+  send(requestBuffer) {
+    const self = this
+    // TODO: allow streaming requests
+    this.packMessage(this.options.requestEncoding, requestBuffer, chunk => self.stream.write(chunk))
+      .then(() => self.stream.end())
   }
 
   buildHeaders(service, method, options) {
@@ -206,15 +216,6 @@ class Http2Channel {
     }
     return buffer
   }
-
-  close() {
-    this.closed = true
-    this.connectClient.then(client => client.close())
-  }
-}
-
-class Http2Request {
-  // TODO: move request logic in here
 }
 
 module.exports = {
