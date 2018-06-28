@@ -121,28 +121,29 @@ class Http2Channel {
         self.clientClosed.on('closed', () => endStream('Connection closed'))
 
         stream.on('response', (headers, flags) => {
-          if(headers[GRPC_HEADER_STATUS] != 0) {
+          const status = headers[GRPC_HEADER_STATUS] || 0
+          if(status != 0) {
             endStream(Object.assign({
               [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
             }, headers))
           }
-          if(headers.hasOwnProperty(GRPC_HEADER_ACCEPT_MESSAGE_ENCODING)) {
-            const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING];
+          const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]
+          if(newRequestEncoding) {
             if(!encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
               endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
-              return
+            } else {
+              requestOptions.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
+              console.log("Request encoding negotatiated", requestOptions.requestEncoding.name)
             }
-            requestOptions.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
-            console.log("Request encoding negotatiated", requestOptions.requestEncoding.name)
           }
-          if(headers.hasOwnProperty(GRPC_HEADER_MESSAGE_ENCODING)) {
-            const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
+          const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
+          if(newResponseEncoding) {
             if(!encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
               endStream(new Error(`Encoding ${newRequestEncoding} is not supported`))
-              return
+            } else {
+              requestOptions.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
+              console.log("Response encoding negotatiated", requestOptions.responseEncoding.name)
             }
-            requestOptions.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
-            console.log("Response encoding negotatiated", requestOptions.responseEncoding.name)
           }
         })
         stream.on('data', nextBuffer => {
@@ -193,12 +194,13 @@ class Http2Channel {
   unpackMessages(encoding, buffer, fnMessageUnpacked) {
     if(buffer.length >= 5) {
       const compression = buffer.readUInt8(0)
+      if(compression != encoding.compressed) {
+        console.log('Message compression mismatch, expect decoding issues...')
+      }
       const messageSize = buffer.readUInt32BE(1)
 
       if(buffer.length > (5 + messageSize)) {
-        const bufferRemaining =
-        fnBufferAltered(bufferRemaining)
-        encoding.decode(buffer.slice(5, messageSize)).then(fnMessageUnpacked)
+        encoding.decode(buffer.slice(5, 5 + messageSize)).then(fnMessageUnpacked)
         return this.unpackMessages(buffer.slice(5 + messageSize))
       }
     }

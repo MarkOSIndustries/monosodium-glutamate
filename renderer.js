@@ -92,7 +92,7 @@ function changeDirectory(path) {
             responseStream.on('data', response => {
               console.log('Response', response)
               responses.push(response)
-              responseListing.innerHTML = responseListing.innerHTML + `<div class="alert alert-success" role="alert">Response<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
+              responseListing.innerHTML = `<div class="alert alert-success" role="alert">Responses<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
             })
             responseStream.on('end', () => {
               const t1 = performance.now()
@@ -101,8 +101,9 @@ function changeDirectory(path) {
               responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
             })
             responseStream.on('error', error => {
-              var t1 = performance.now()
-              responseTiming.innerHTML = `<p>Call duration ${(t1-t0).toFixed(3)} milliseconds</p>`
+              const t1 = performance.now()
+              const duration = t1-t0
+              responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
               responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
               console.error('Error', error)
             })
