@@ -7,16 +7,36 @@ const pathLib = require('path')
 const protos = require('./protos.js')
 const transport = require('./transport.js')
 
-const dirSelect = document.querySelector('#dir-select')
-const dirName = document.querySelector('#dir-name')
-const dirListing = document.querySelector('#dir-listing')
-const fileNameDOM = document.querySelector('#file-name')
-const protoListing = document.querySelector('#proto-listing')
-const requestListing = document.querySelector('#request-listing')
-const responseTiming = document.querySelector('#response-timing')
-const responseListing = document.querySelector('#response-listing')
-const serverHost = document.querySelector('#server-host')
-const serverPort = document.querySelector('#server-port')
+const dom = {
+  serviceListing: document.querySelector('#service-listing'),
+  fileName: document.querySelector('#file-name'),
+  protoListing: document.querySelector('#proto-listing'),
+  requestListing: document.querySelector('#request-listing'),
+  responseTiming: document.querySelector('#response-timing'),
+  responseListing: document.querySelector('#response-listing'),
+  serverHost: document.querySelector('#server-host'),
+  serverPort: document.querySelector('#server-port'),
+  serverStatus: document.querySelector('#server-status'),
+  serverDetails: document.querySelector('#server-details'),
+}
+
+const channelManager = new transport.ChannelManager(newChannel => {
+  newChannel.on('connecting', () => {
+    dom.serverDetails.setAttribute('data-state', 'connecting')
+    dom.serverStatus.innerHTML = 'Connecting'
+  })
+  newChannel.on('connect', () => {
+    dom.serverDetails.setAttribute('data-state', 'connected')
+    dom.serverStatus.innerHTML = 'Connected'
+  })
+  newChannel.on('receiving', () => {
+    dom.serverStatus.innerHTML = 'Receiving'
+  })
+  newChannel.on('disconnect', () => {
+    dom.serverDetails.setAttribute('data-state', 'disconnected')
+    dom.serverStatus.innerHTML = 'Disconnected'
+  })
+})
 
 function changeDirectory(path) {
   document.title = `GRPC GUI - ${path}`
@@ -25,22 +45,20 @@ function changeDirectory(path) {
   const messagesIndex = protos.makeFlatIndex(messages)
 
 // TODO: split into service and message listings
-  dirListing.innerHTML = '<ul class="list-group">'+
-    Object.keys(messagesIndex.services).map(fqServiceName => `<li class="dir-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
+  dom.serviceListing.innerHTML = '<ul class="list-group">'+
+    Object.keys(messagesIndex.services).map(fqServiceName => `<li class="service-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
   '</ul>'
 
-  const protoButtons = document.querySelectorAll('#dir-listing .dir-listing-entry')
+  const protoButtons = document.querySelectorAll('#service-listing .service-listing-entry')
   protoButtons.forEach(protoButton => {
     protoButton.addEventListener('click', event => {
       const fqServiceName = protoButton.attributes["data-fq-service-name"].value
 
-
       const service = messagesIndex.services[fqServiceName]
-      // const client = messagesIndex.clients[fqServiceName]
       const serviceId = fqServiceName.replace(/\./gi, '-')
       const serviceDescription = protos.describeServiceMethods(service)
-      fileNameDOM.innerHTML = service.filename
-      protoListing.innerHTML =
+      dom.fileName.innerHTML = service.filename
+      dom.protoListing.innerHTML =
              `<div id="${serviceId}" class="service"><h4><code>${fqServiceName}</code></h4>`+
                 Object.keys(serviceDescription).map(methodKey => {
                   const method = serviceDescription[methodKey]
@@ -74,37 +92,37 @@ function changeDirectory(path) {
 
           document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
             const request = {
-              host: serverHost.value,
-              port: serverPort.value,
+              host: dom.serverHost.value,
+              port: dom.serverPort.value,
               service: fqServiceName,
               method: methodKey,
               body: JSON.parse(editor.getValue())
             }
-            requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
+            dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
             console.log('Request', request)
-            responseListing.innerHTML = '';
-            responseTiming.innerHTML = '<p>Running</p>'
+            dom.responseListing.innerHTML = '';
+            dom.responseTiming.innerHTML = '<p>Running</p>'
             const t0 = performance.now();
-            const http2Channel = new transport.Http2Channel(request.host, request.port)
+            const channel = channelManager.getChannel(request.host, request.port)
             const responses = []
             const responseStream = method
-              .invokeWith(http2Channel, request.body)
+              .invokeWith(channel, request.body)
             responseStream.on('data', response => {
               console.log('Response', response)
               responses.push(response)
-              responseListing.innerHTML = `<div class="alert alert-success" role="alert">Responses<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
+              dom.responseListing.innerHTML = `<div class="alert alert-success" role="alert">Responses<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
             })
             responseStream.on('end', () => {
               const t1 = performance.now()
               const duration = t1-t0
               console.log('Response completed in', duration)
-              responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+              dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
             })
             responseStream.on('error', error => {
               const t1 = performance.now()
               const duration = t1-t0
-              responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
-              responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
+              dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+              dom.responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
               console.error('Error', error)
             })
           })

@@ -61,55 +61,76 @@ const GrpcStatusNames = [
   'UNAUTHENTICATED',
 ]
 
+class ChannelManager {
+  constructor(fnInitChannel) {
+    this.channels = {}
+    this.fnInitChannel = fnInitChannel || (() => {})
+  }
+
+  getChannel(host, port, scheme) {
+    scheme = scheme || 'http'
+    this.channels[host] = this.channels[host] || {}
+    this.channels[host][port] = this.channels[host][port] || {}
+    if(!this.channels[host][port][scheme]) {
+      this.channels[host][port][scheme] = new Http2Channel(host,port,scheme)
+      this.fnInitChannel(this.channels[host][port][scheme])
+    }
+    return this.channels[host][port][scheme]
+  }
+}
+
 class Http2Channel {
   constructor(host, port, scheme) {
     const self = this
     this.host = host
     this.port = port
-    this.scheme = scheme || 'http'
+    this.scheme = scheme
     this.address = `${this.scheme}://${this.host}:${this.port}`
     this.closed = false
 
-    function initHttp2Client() {
-      self.clientNeeded = new stream.Readable()
-      self.clientClosed = new stream.Readable()
-      self.connectClient = new Promise((resolve,reject) => {
-        let connected = false
-        self.clientNeeded.on('needed', () => {
-          if(connected) return
-          connected = true
+    this.events = new stream.Readable()
+    console.log("New http2 channel", this.host, this.port, this.scheme)
+    self.connected = false
+    this.events.on('request', () => {
+      if(!self.connected) {
+        self.connect()
+      }
+    })
+  }
 
-          const client = http2.connect(self.address)
-          client.on('ping', (pingBuffer) => client.ping(pingBuffer))
-          client.on('goaway', () => console.log('Http2Channel server requested channel shutdown'))
-          client.on('close', () => {
-            self.clientClosed.emit('closed')
-            console.log('Http2Channel closed. Will reconnect when needed')
-          })
-          // client.on('stream', () => console.log('Http2Channel stream initiated'))
-          client.on('error', err => console.error('Http2Channel error', err))
-          client.on('connect', () => console.log('Http2Channel connected', self.address))
-          resolve(client)
-        })
-      })
-    }
-
-    initHttp2Client()
+  connect() {
+    this.events.emit('connecting')
+    const self = this
+    this.client = http2.connect(self.address)
+    this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer))
+    this.client.on('goaway', () => console.log('Http2Channel server requested channel shutdown'))
+    this.client.on('close', () => {
+      self.connected = false
+      self.events.emit('disconnect')
+      console.log('Http2Channel closed. Will reconnect when needed')
+    })
+    // client.on('stream', () => console.log('Http2Channel stream initiated'))
+    this.client.on('error', err => console.error('Http2Channel error', err))
+    this.client.on('connect', () => {
+      console.log('Http2Channel connected', self.address)
+      self.events.emit('connect')
+    })
+    this.connected = true
   }
 
   rpcImpl(service, options) {
     const self = this
 
     return (method, requestBuffer, callback) => {
-      this.clientNeeded.emit('needed')
-      this.connectClient.then(client => {
-        const request = new Http2Request(service, method, client, callback, Object.assign(DefaultRequestOptions, options || {}))
-        self.clientClosed.on('closed', () => request.abort('Connection closed'))
-        request.send(requestBuffer)
-      }).catch(err => {
-        callback(err)
-      })
+      this.events.emit('request')
+      const request = new Http2Request(service, method, this.client, callback, Object.assign(DefaultRequestOptions, options || {}))
+      self.events.on('disconnect', () => request.abort('Connection closed'))
+      request.send(requestBuffer)
     }
+  }
+
+  on(eventName, fnHandle) {
+    this.events.on(eventName, fnHandle)
   }
 
   close() {
@@ -155,6 +176,7 @@ class Http2Request {
     })
     this.stream.on('data', chunk => {
       self.responseBuffer = self.unpackMessages(self.options.responseEncoding, Buffer.concat([self.responseBuffer, chunk]), msg => self.callback(null, msg))
+      this.events.emit('receiving')
     })
     this.stream.on('end', () => self.abort(null))
   }
@@ -220,5 +242,5 @@ class Http2Request {
 
 module.exports = {
   TimeoutUnits,
-  Http2Channel,
+  ChannelManager,
 }
