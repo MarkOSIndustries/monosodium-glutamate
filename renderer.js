@@ -29,9 +29,6 @@ const channelManager = new transport.ChannelManager(newChannel => {
     dom.serverDetails.setAttribute('data-state', 'connected')
     dom.serverStatus.innerHTML = 'Connected'
   })
-  newChannel.on('receiving', () => {
-    dom.serverStatus.innerHTML = 'Receiving'
-  })
   newChannel.on('disconnect', () => {
     dom.serverDetails.setAttribute('data-state', 'disconnected')
     dom.serverStatus.innerHTML = 'Disconnected'
@@ -46,7 +43,10 @@ function changeDirectory(path) {
 
 // TODO: split into service and message listings
   dom.serviceListing.innerHTML = '<ul class="list-group">'+
-    Object.keys(messagesIndex.services).map(fqServiceName => `<li class="service-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
+    Object.keys(messagesIndex.services).map(fqServiceName => {
+      const service = messagesIndex.services[fqServiceName]
+      return `<li class="service-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`
+    }).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
   '</ul>'
 
   const protoButtons = document.querySelectorAll('#service-listing .service-listing-entry')
@@ -59,6 +59,7 @@ function changeDirectory(path) {
       const serviceDescription = protos.describeServiceMethods(service)
       dom.fileName.innerHTML = service.filename
       dom.protoListing.innerHTML =
+        // `<div id="${serviceId}">` +
              `<div id="${serviceId}" class="service"><h4><code>${fqServiceName}</code></h4>`+
                 Object.keys(serviceDescription).map(methodKey => {
                   const method = serviceDescription[methodKey]
@@ -104,19 +105,33 @@ function changeDirectory(path) {
             dom.responseTiming.innerHTML = '<p>Running</p>'
             const t0 = performance.now();
             const channel = channelManager.getChannel(request.host, request.port)
-            const responses = []
             const responseStream = method
               .invokeWith(channel, request.body)
+            const responses = []
+            const responseRenderInterval = setInterval(() => {
+              if(!responses.length) {
+                return
+              }
+
+              var fragment = document.createDocumentFragment()
+              while(responses.length) {
+                const response = responses.shift()
+                const responseElement = document.createElement('pre')
+                responseElement.innerText = JSON.stringify(response, undefined, '  ')
+                fragment.appendChild(responseElement)
+                fragment.appendChild(document.createElement('hr'))
+              }
+              dom.responseListing.appendChild(fragment)
+            }, 300)
             responseStream.on('data', response => {
-              console.log('Response', response)
               responses.push(response)
-              dom.responseListing.innerHTML = `<div class="alert alert-success" role="alert">Responses<hr/><pre>${JSON.stringify(responses, undefined, '  ')}</pre></div>`
             })
             responseStream.on('end', () => {
               const t1 = performance.now()
               const duration = t1-t0
               console.log('Response completed in', duration)
               dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+              clearInterval(responseRenderInterval)
             })
             responseStream.on('error', error => {
               const t1 = performance.now()

@@ -122,8 +122,15 @@ class Http2Channel {
     const self = this
 
     return (method, requestBuffer, callback) => {
-      this.events.emit('request')
-      const request = new Http2Request(service, method, this.client, callback, Object.assign(DefaultRequestOptions, options || {}))
+      this.events.emit('request', requestBuffer)
+      const request = new Http2Request(service, method, this.client, (err, responseBuffer) => {
+        if(responseBuffer == null) {
+          self.events.emit('idle')
+        } else {
+          self.events.emit('response', responseBuffer)
+        }
+        callback(err, responseBuffer)
+      }, Object.assign(DefaultRequestOptions, options || {}))
       self.events.on('disconnect', () => request.abort('Connection closed'))
       request.send(requestBuffer)
     }
@@ -176,7 +183,6 @@ class Http2Request {
     })
     this.stream.on('data', chunk => {
       self.responseBuffer = self.unpackMessages(self.options.responseEncoding, Buffer.concat([self.responseBuffer, chunk]), msg => self.callback(null, msg))
-      this.events.emit('receiving')
     })
     this.stream.on('end', () => self.abort(null))
   }
@@ -231,9 +237,9 @@ class Http2Request {
       }
       const messageSize = buffer.readUInt32BE(1)
 
-      if(buffer.length > (5 + messageSize)) {
+      if(buffer.length >= (5 + messageSize)) {
         encoding.decode(buffer.slice(5, 5 + messageSize)).then(fnMessageUnpacked)
-        return this.unpackMessages(buffer.slice(5 + messageSize))
+        return this.unpackMessages(encoding, buffer.slice(5 + messageSize), fnMessageUnpacked)
       }
     }
     return buffer
