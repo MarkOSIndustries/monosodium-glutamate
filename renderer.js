@@ -108,6 +108,8 @@ function changeDirectory(path) {
             const responseStream = method
               .invokeWith(channel, request.body)
             const responses = []
+            let responseDone = false
+            let responseCount = 0
             const responseRenderInterval = setInterval(() => {
               if(!responses.length) {
                 return
@@ -122,16 +124,21 @@ function changeDirectory(path) {
                 fragment.appendChild(document.createElement('hr'))
               }
               dom.responseListing.appendChild(fragment)
+              if(responseDone) {
+                clearInterval(responseRenderInterval)
+              }
             }, 300)
             responseStream.on('data', response => {
               responses.push(response)
+              responseCount++
             })
             responseStream.on('end', () => {
               const t1 = performance.now()
               const duration = t1-t0
               console.log('Response completed in', duration)
+              console.log('Response count', responseCount)
               dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
-              clearInterval(responseRenderInterval)
+              responseDone = true
             })
             responseStream.on('error', error => {
               const t1 = performance.now()
