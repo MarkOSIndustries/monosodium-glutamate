@@ -99,21 +99,21 @@ class Http2Channel {
   }
 
   connect() {
-    this.events.emit('connecting')
     const self = this
+    this.events.emit('connecting', this)
     this.client = http2.connect(self.address)
     this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer))
     this.client.on('goaway', () => console.log('Http2Channel server requested channel shutdown'))
     this.client.on('close', () => {
       self.connected = false
-      self.events.emit('disconnect')
+      self.events.emit('disconnect', this)
       console.log('Http2Channel closed. Will reconnect when needed')
     })
     // client.on('stream', () => console.log('Http2Channel stream initiated'))
     this.client.on('error', err => console.error('Http2Channel error', err))
     this.client.on('connect', () => {
       console.log('Http2Channel connected', self.address)
-      self.events.emit('connect')
+      self.events.emit('connect', this)
     })
     this.connected = true
   }

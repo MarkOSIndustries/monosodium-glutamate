@@ -8,9 +8,8 @@ const protos = require('./protos.js')
 const transport = require('./transport.js')
 
 const dom = {
-  serviceListing: document.querySelector('#service-listing'),
-  fileName: document.querySelector('#file-name'),
-  protoListing: document.querySelector('#proto-listing'),
+  methodListing: document.querySelector('#method-listing'),
+  methodDetails: document.querySelector('#method-details'),
   requestListing: document.querySelector('#request-listing'),
   responseTiming: document.querySelector('#response-timing'),
   responseListing: document.querySelector('#response-listing'),
@@ -20,18 +19,47 @@ const dom = {
   serverDetails: document.querySelector('#server-details'),
 }
 
-const channelManager = new transport.ChannelManager(newChannel => {
-  newChannel.on('connecting', () => {
-    dom.serverDetails.setAttribute('data-state', 'connecting')
-    dom.serverStatus.innerHTML = 'Connecting'
-  })
-  newChannel.on('connect', () => {
-    dom.serverDetails.setAttribute('data-state', 'connected')
-    dom.serverStatus.innerHTML = 'Connected'
-  })
-  newChannel.on('disconnect', () => {
-    dom.serverDetails.setAttribute('data-state', 'disconnected')
-    dom.serverStatus.innerHTML = 'Disconnected'
+const selected = {
+  service: null,
+  serviceName: '',
+  method: null,
+  methodName: '',
+  methodCount: 0,
+}
+
+const globals = {
+  requestEditor: {},
+  channelManager: new transport.ChannelManager(newChannel => {
+    newChannel.on('connecting', channel => {
+      dom.serverDetails.setAttribute('data-state', 'connecting')
+      dom.serverStatus.innerHTML = `Connecting to ${channel.address}`
+    })
+    newChannel.on('connect', channel => {
+      dom.serverDetails.setAttribute('data-state', 'connected')
+      dom.serverStatus.innerHTML = `Connected to ${channel.address}`
+      localStorage.setItem('last-connected-host', channel.host)
+      localStorage.setItem('last-connected-port', channel.port)
+    })
+    newChannel.on('disconnect', channel => {
+      dom.serverDetails.setAttribute('data-state', 'disconnected')
+      dom.serverStatus.innerHTML = 'Disconnected'
+    })
+  }),
+}
+
+dom.serverHost.value = localStorage.getItem('last-connected-host')
+dom.serverPort.value = localStorage.getItem('last-connected-port')
+
+require('monaco-loader')().then(monaco => {
+  globals.requestEditor = monaco.editor.create(document.querySelector(`.request-json`), {
+    value: '{}',
+    language: 'json',
+    theme: 'vs-light',
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    minimap: {
+      enabled: false
+    }
   })
 })
 
@@ -41,117 +69,160 @@ function changeDirectory(path) {
 
   const messagesIndex = protos.makeFlatIndex(messages)
 
+  selected.methodCount = 0
 // TODO: split into service and message listings
-  dom.serviceListing.innerHTML = '<ul class="list-group">'+
+  dom.methodListing.innerHTML = '<ul class="entry-list">'+
     Object.keys(messagesIndex.services).map(fqServiceName => {
-      const service = messagesIndex.services[fqServiceName]
-      return `<li class="service-listing-entry" style="cursor:pointer;padding-left:10px" data-fq-service-name="${fqServiceName}"><code>${fqServiceName}</code></li>`
-    }).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
-  '</ul>'
-
-  const protoButtons = document.querySelectorAll('#service-listing .service-listing-entry')
-  protoButtons.forEach(protoButton => {
-    protoButton.addEventListener('click', event => {
-      const fqServiceName = protoButton.attributes["data-fq-service-name"].value
-
       const service = messagesIndex.services[fqServiceName]
       const serviceId = fqServiceName.replace(/\./gi, '-')
       const serviceDescription = protos.describeServiceMethods(service)
-      dom.fileName.innerHTML = service.filename
-      dom.protoListing.innerHTML =
-        // `<div id="${serviceId}">` +
-             `<div id="${serviceId}" class="service"><h4><code>${fqServiceName}</code></h4>`+
-                Object.keys(serviceDescription).map(methodKey => {
-                  const method = serviceDescription[methodKey]
-                  const methodId = methodKey.replace(/\./gi, '-')
-                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
-                          `<div class="form-group">`+
-                            `<div class="request-json" style="height:30em"></div>`+
-                            `<span class="input-group-btn">`+
-                              `<button class="request-invoke btn btn-primary" type="button">Invoke</button>`+
-                            `</span>`+
-                          `</div>`+
-                        `</div>`
-                }).join('<hr/>')+
-              `</div>`
 
-      Object.keys(serviceDescription).map(methodKey => {
-        const method = serviceDescription[methodKey]
-        const methodId = methodKey.replace(/\./gi, '-')
+      return Object.keys(serviceDescription).map((methodName, methodIndex) => {
+          const method = serviceDescription[methodName]
+          const methodId = methodName.replace(/\./gi, '-')
+          selected.methodCount = selected.methodCount+1
+          return `<li id="${methodId}" class="method-listing-entry clickable-entry tab" data-fq-service-name="${fqServiceName}" data-method-name="${methodName}" data-index="${methodIndex}">`+
+            `<div class="layout layout-row" style="justify-content:space-between;padding-right:0.2em">`+
+              `<h4><code>${method.method}</code></h4>`+
+              `<h6><code>${fqServiceName}</code></h6>`+
+            `</div>`+
+            `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
+          `</li>`
+        }).join('<hr style="margin-top:2px;margin-bottom:2px"/>')
+    }).join('')+
+  '</ul>'
 
-        require('monaco-loader')().then(monaco => {
-          const editor = monaco.editor.create(document.querySelector(`#${serviceId} #${methodId} .request-json`), {
-            value: JSON.stringify(method.requestSample, undefined, '  '),
-            language: 'json',
-            theme: 'vs-light',
-            automaticLayout: true,
-            scrollBeyondLastLine: false,
-            minimap: {
-          		enabled: false
-          	}
-          })
+  const methodButtons = document.querySelectorAll('#method-listing .method-listing-entry')
+  methodButtons.forEach(methodButton => {
+    const fqServiceName = methodButton.attributes["data-fq-service-name"].value
 
-          document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
-            const request = {
-              host: dom.serverHost.value,
-              port: dom.serverPort.value,
-              service: fqServiceName,
-              method: methodKey,
-              body: JSON.parse(editor.getValue())
-            }
-            dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
-            console.log('Request', request)
-            dom.responseListing.innerHTML = '';
-            dom.responseTiming.innerHTML = '<p>Running</p>'
-            const t0 = performance.now();
-            const channel = channelManager.getChannel(request.host, request.port)
-            const responseStream = method
-              .invokeWith(channel, request.body)
-            const responses = []
-            let responseDone = false
-            let responseCount = 0
-            const responseRenderInterval = setInterval(() => {
-              if(!responses.length) {
-                return
-              }
+    const service = messagesIndex.services[fqServiceName]
+    const serviceId = fqServiceName.replace(/\./gi, '-')
+    const serviceDescription = protos.describeServiceMethods(service)
 
-              var fragment = document.createDocumentFragment()
-              while(responses.length) {
-                const response = responses.shift()
-                const responseElement = document.createElement('pre')
-                responseElement.innerText = JSON.stringify(response, undefined, '  ')
-                fragment.appendChild(responseElement)
-                fragment.appendChild(document.createElement('hr'))
-              }
-              dom.responseListing.appendChild(fragment)
-              if(responseDone) {
-                clearInterval(responseRenderInterval)
-              }
-            }, 300)
-            responseStream.on('data', response => {
-              responses.push(response)
-              responseCount++
-            })
-            responseStream.on('end', () => {
-              const t1 = performance.now()
-              const duration = t1-t0
-              console.log('Response completed in', duration)
-              console.log('Response count', responseCount)
-              dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
-              responseDone = true
-            })
-            responseStream.on('error', error => {
-              const t1 = performance.now()
-              const duration = t1-t0
-              dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
-              dom.responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
-              console.error('Error', error)
-            })
-          })
-        })
-      })
+    const methodName = methodButton.attributes["data-method-name"].value
+    const method = serviceDescription[methodName]
+    const methodId = methodName.replace(/\./gi, '-')
+
+    methodButton.addEventListener('click', methodButtonClickEvent => {
+      const lastSelectedMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+      if(lastSelectedMethodButton) {
+        lastSelectedMethodButton.classList.remove('selected')
+      }
+      methodButton.classList.add('selected')
+
+      selected.service = service
+      selected.serviceName = fqServiceName
+      selected.method = method
+      selected.methodName = methodName
+
+      globals.requestEditor.setValue(localStorage.getItem(`${selected.serviceName}-${selected.methodName}-request`) || JSON.stringify(selected.method.requestSample, undefined, '  '))
+      globals.requestEditor.focus()
     })
   })
+  selectFirstMethod()
+}
+
+function invokeServiceMethod() {
+  if(!selected.method) {
+    return
+  }
+
+  localStorage.setItem(`${selected.serviceName}-${selected.methodName}-request`, globals.requestEditor.getValue())
+  const request = {
+    host: dom.serverHost.value,
+    port: dom.serverPort.value,
+    service: selected.serviceName,
+    method: selected.methodName,
+    body: JSON.parse(globals.requestEditor.getValue())
+  }
+  dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
+  console.log('Request', request)
+  dom.responseListing.innerHTML = '';
+  dom.responseTiming.innerHTML = '<p>Running</p>'
+  const t0 = performance.now();
+  const channel = globals.channelManager.getChannel(request.host, request.port)
+  const responseStream = selected.method.invokeWith(channel, request.body)
+  const responses = []
+  let responseDone = false
+  let responseCount = 0
+  const responseRenderInterval = setInterval(() => {
+    if(!responses.length) {
+      return
+    }
+
+    var fragment = document.createDocumentFragment()
+    while(responses.length) {
+      const response = responses.shift()
+      const responseElement = document.createElement('pre')
+      responseElement.innerText = JSON.stringify(response, undefined, '  ')
+      fragment.appendChild(responseElement)
+      fragment.appendChild(document.createElement('hr'))
+    }
+    dom.responseListing.appendChild(fragment)
+    if(responseDone) {
+      clearInterval(responseRenderInterval)
+    }
+  }, 300)
+  responseStream.on('data', response => {
+    responses.push(response)
+    responseCount++
+  })
+  responseStream.on('end', () => {
+    const t1 = performance.now()
+    const duration = t1-t0
+    console.log('Response completed in', duration)
+    console.log('Response count', responseCount)
+    dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+    responseDone = true
+  })
+  responseStream.on('error', error => {
+    const t1 = performance.now()
+    const duration = t1-t0
+    dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+    dom.responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
+    console.error('Error', error)
+  })
+}
+
+function previousServiceMethod() {
+  const currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  if(currentMethodButton) {
+    const methodIndex = Number(currentMethodButton.attributes['data-index'].value)
+    const previousMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${methodIndex-1}"]`)
+    if(previousMethodButton) {
+      previousMethodButton.click()
+      return
+    }
+  }
+  selectLastMethod()
+}
+
+function nextServiceMethod() {
+  const currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  if(currentMethodButton) {
+    const methodIndex = Number(currentMethodButton.attributes['data-index'].value)
+    const nextMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${methodIndex+1}"]`)
+    if(nextMethodButton) {
+      nextMethodButton.click()
+      return
+    }
+  }
+  selectFirstMethod()
+}
+
+function selectFirstMethod() {
+  const firstMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="0"]`)
+  if(firstMethodButton) {
+    firstMethodButton.click()
+  }
+}
+
+function selectLastMethod() {
+  const lastMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${selected.methodCount-1}"]`)
+  if(lastMethodButton) {
+    lastMethodButton.click()
+  }
 }
 
 ipc.on('selected-directory', (event, paths) => {
@@ -159,3 +230,6 @@ ipc.on('selected-directory', (event, paths) => {
   console.log('Selected dir', paths)
   changeDirectory(path)
 })
+ipc.on('invoke-service-method', invokeServiceMethod)
+ipc.on('next-service-method', nextServiceMethod)
+ipc.on('previous-service-method', previousServiceMethod)
