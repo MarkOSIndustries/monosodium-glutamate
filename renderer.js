@@ -176,6 +176,7 @@ function invokeServiceMethod() {
   console.log('Request', request)
   dom.responseListing.innerHTML = '';
   dom.responseTiming.innerHTML = '<p>Running</p>'
+  dom.responseListing.className = 'running'
   const t0 = performance.now();
   const channel = globals.channelManager.getChannel(request.host, request.port)
   const responseStream = selected.method.invokeWith(channel, request.body)
@@ -203,6 +204,7 @@ function invokeServiceMethod() {
   responseStream.on('data', response => {
     responses.push(response)
     responseCount++
+    dom.responseListing.className = 'success'
   })
   responseStream.on('end', () => {
     const t1 = performance.now()
@@ -213,10 +215,8 @@ function invokeServiceMethod() {
     responseDone = true
   })
   responseStream.on('error', error => {
-    const t1 = performance.now()
-    const duration = t1-t0
-    dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
-    dom.responseListing.innerHTML = `<div class="alert alert-danger" role="alert">Error<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
+    dom.responseListing.innerHTML = `<pre>Error</pre>\n<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
+    dom.responseListing.className = 'failure'
     console.error('Error', error)
   })
 }

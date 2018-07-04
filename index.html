@@ -33,6 +33,12 @@
       #server-details label, #server-details h4 { text-transform: uppercase; }
       #server-details label { margin-left:3em; }
 
+      #response-listing { border-left-width:1em; border-left-style: solid; }
+      #response-listing.running { border-color: rgb(255,180,80) }
+      #response-listing.success { border-color: rgb(80,190,80) }
+      #response-listing.failure { border-color: rgb(230,120,120) }
+
+      #request-listing { padding-left: 1em; }
     </style>
   </head>
   <body>
@@ -62,9 +68,10 @@
         </div>
         <div class="layout layout-col layout-moves-right layout-vscroll" style="flex-basis:30em;min-height:100%">
           <h4>Response</h4>
-          <div id="response-timing"></div>
           <div id="response-listing">
-            <span>Use CTRL-ALT-ENTER to send current request and get a response here</span>
+          </div>
+          <div id="response-timing">
+            <code>Use CTRL-ALT-ENTER to send current request and get a response here</code>
           </div>
           <hr/>
           <h4>Request</h4>
