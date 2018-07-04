@@ -20,6 +20,40 @@ const menuTemplate = [
     ]
   },
   {
+    label: 'Service',
+    submenu: [
+      {
+        label: 'Invoke method',
+        accelerator: 'CmdOrCtrl+Alt+Enter',
+        click() {
+          mainWindow.webContents.send('invoke-service-method')
+        }
+      },
+      {type: 'separator'},
+      {
+        label: 'Next method',
+        accelerator: 'CmdOrCtrl+Tab',
+        click() {
+          mainWindow.webContents.send('next-service-method')
+        }
+      },
+      {
+        label: 'Previous method',
+        accelerator: 'CmdOrCtrl+Shift+Tab',
+        click() {
+          mainWindow.webContents.send('previous-service-method')
+        }
+      },
+      {
+        label: 'Find method',
+        accelerator: 'CmdOrCtrl+Shift+F',
+        click() {
+          mainWindow.webContents.send('find-service-method')
+        }
+      }
+    ]
+  },
+  {
     label: 'View',
     submenu: [
       {role: 'reload'},
@@ -45,4 +79,4 @@ const menuTemplate = [
 app.on('ready', ()=> {
 const menu = Menu.buildFromTemplate(menuTemplate)
 Menu.setApplicationMenu(menu)
-}) 
+})

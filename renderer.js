@@ -4,117 +4,253 @@
 const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
 const pathLib = require('path')
-const grpc = require('grpc')
+const protos = require('./protos.js')
+const transport = require('./transport.js')
 
-const dirSelect = document.querySelector('#dir-select')
-const dirName = document.querySelector('#dir-name')
-const dirListing = document.querySelector('#dir-listing')
-const fileName = document.querySelector('#file-name')
-const protoListing = document.querySelector('#proto-listing')
-const requestListing = document.querySelector('#request-listing')
-const responseTiming = document.querySelector('#response-timing')
-const responseListing = document.querySelector('#response-listing')
-const serverHost = document.querySelector('#server-host')
-const serverPort = document.querySelector('#server-port')
+const dom = {
+  methodSearch: document.querySelector('#method-search'),
+  methodListing: document.querySelector('#method-listing'),
+  methodDetails: document.querySelector('#method-details'),
+  requestListing: document.querySelector('#request-listing'),
+  responseTiming: document.querySelector('#response-timing'),
+  responseListing: document.querySelector('#response-listing'),
+  serverHost: document.querySelector('#server-host'),
+  serverPort: document.querySelector('#server-port'),
+  serverStatus: document.querySelector('#server-status'),
+  serverDetails: document.querySelector('#server-details'),
+}
+
+const selected = {
+  service: null,
+  serviceName: '',
+  method: null,
+  methodName: '',
+  methodCount: 0,
+}
+
+const globals = {
+  requestEditor: {},
+  channelManager: new transport.ChannelManager(newChannel => {
+    newChannel.on('connecting', channel => {
+      dom.serverDetails.setAttribute('data-state', 'connecting')
+      dom.serverStatus.innerHTML = `Connecting to ${channel.address}`
+    })
+    newChannel.on('connect', channel => {
+      dom.serverDetails.setAttribute('data-state', 'connected')
+      dom.serverStatus.innerHTML = `Connected to ${channel.address}`
+      localStorage.setItem('last-connected-host', channel.host)
+      localStorage.setItem('last-connected-port', channel.port)
+    })
+    newChannel.on('disconnect', channel => {
+      dom.serverDetails.setAttribute('data-state', 'disconnected')
+      dom.serverStatus.innerHTML = 'Disconnected'
+    })
+  }),
+}
+
+dom.serverHost.value = localStorage.getItem('last-connected-host')
+dom.serverPort.value = localStorage.getItem('last-connected-port')
+
+function searchUpdated() {
+  document.querySelectorAll('#method-listing .method-listing-entry').forEach(methodButton => {
+    const fqServiceName = methodButton.attributes["data-fq-service-name"].value
+    const methodName = methodButton.attributes["data-method-name"].value
+    if(dom.methodSearch.value == '' || -1 < fqServiceName.indexOf(dom.methodSearch.value) || -1 < methodName.indexOf(dom.methodSearch.value)) {
+      methodButton.classList.remove('hidden')
+    } else {
+      methodButton.classList.add('hidden')
+    }
+  })
+}
+
+dom.methodSearch.addEventListener('keydown', event => {
+  var key = event.which || event.keyCode;
+  switch(key) {
+    case 13: // Enter
+    case 27: // Esc
+      dom.methodSearch.value = ''
+      globals.requestEditor.focus()
+      return event.preventDefault()
+    case 38: // Up
+      previousServiceMethod()
+      return event.preventDefault()
+    case 40: // Down
+      nextServiceMethod()
+      return event.preventDefault()
+    default:
+      setTimeout(() => searchUpdated(), 0)
+  }
+})
+dom.methodSearch.addEventListener('blur', event => {
+  searchUpdated()
+})
+
+require('monaco-loader')().then(monaco => {
+  globals.requestEditor = monaco.editor.create(document.querySelector(`.request-json`), {
+    value: '{}',
+    language: 'json',
+    theme: 'vs-light',
+    automaticLayout: true,
+    scrollBeyondLastLine: false,
+    minimap: {
+      enabled: false
+    }
+  })
+})
 
 function changeDirectory(path) {
   document.title = `GRPC GUI - ${path}`
-  dirListing.innerHTML = '<ul class="list-group">'+
-    '<li class="dir-listing-entry list" style="cursor:pointer;padding-left:10px" data-filename="..">..\\</li><hr style="margin:0px"/>'+
-    fsLib.readdirSync(path).map(file => `<li class="dir-listing-entry" style="cursor:pointer;padding-left:10px" data-filename="${file}">${file}</li>`).join('<hr style="margin-top:2px;margin-bottom:2px"/>')+
+  const messages = protos.loadDirectory(path)
+
+  const messagesIndex = protos.makeFlatIndex(messages)
+
+  selected.methodCount = 0
+// TODO: split into service and message listings
+  dom.methodListing.innerHTML = '<ul class="entry-list">'+
+    Object.keys(messagesIndex.services).map(fqServiceName => {
+      const service = messagesIndex.services[fqServiceName]
+      const serviceId = fqServiceName.replace(/\./gi, '-')
+      const serviceDescription = protos.describeServiceMethods(service)
+
+      return Object.keys(serviceDescription).map((methodName) => {
+          const method = serviceDescription[methodName]
+          const methodId = methodName.replace(/\./gi, '-')
+          selected.methodCount = selected.methodCount+1
+          return `<li id="${methodId}" class="method-listing-entry clickable-entry tab" data-fq-service-name="${fqServiceName}" data-method-name="${methodName}">`+
+            `<div class="layout layout-row" style="justify-content:space-between;padding-right:0.2em">`+
+              `<h4><code>${method.method}</code></h4>`+
+              `<h6><code>${fqServiceName}</code></h6>`+
+            `</div>`+
+            `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
+            `<hr style="margin-top:2px;margin-bottom:2px"/>`+
+          `</li>`
+        }).join('')
+    }).join('')+
   '</ul>'
 
-  const fileButtons = document.querySelectorAll('#dir-listing .dir-listing-entry')
-  fileButtons.forEach(fileButton => {
-    fileButton.addEventListener('click', event => {
-      const filename = fileButton.attributes["data-filename"].value
-      const filepath = pathLib.join(path, filename)
-      if(fsLib.statSync(filepath).isDirectory()) {
-        return changeDirectory(filepath)
+  const methodButtons = document.querySelectorAll('#method-listing .method-listing-entry')
+  methodButtons.forEach(methodButton => {
+    const fqServiceName = methodButton.attributes["data-fq-service-name"].value
+
+    const service = messagesIndex.services[fqServiceName]
+    const serviceId = fqServiceName.replace(/\./gi, '-')
+    const serviceDescription = protos.describeServiceMethods(service)
+
+    const methodName = methodButton.attributes["data-method-name"].value
+    const method = serviceDescription[methodName]
+    const methodId = methodName.replace(/\./gi, '-')
+
+    methodButton.addEventListener('click', methodButtonClickEvent => {
+      const lastSelectedMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+      if(lastSelectedMethodButton) {
+        lastSelectedMethodButton.classList.remove('selected')
       }
+      methodButton.classList.add('selected')
 
-      fileName.innerHTML = filename
-      protoListing.innerHTML = ''
-      let protoModel = ''
-      try {
-        protoModel = grpc.load({root:path,file:filename})
-      } catch (e) {
-        // TODO: Make this a better error message
-        alert(e.toString())
-      }
+      selected.service = service
+      selected.serviceName = fqServiceName
+      selected.method = method
+      selected.methodName = methodName
 
-      const services = describeServices(protoModel)
-      protoListing.innerHTML = Object.keys(services).map(serviceKey => {
-        const service = services[serviceKey]
-        const serviceId = serviceKey.replace(/\./gi, '-')
-        return `<div id="${serviceId}" class="service"><h4>${serviceKey}</h4>`+
-                Object.keys(service).map(methodKey => {
-                  const method = service[methodKey]
-                  const methodId = methodKey.replace(/\./gi, '-')
-                  return `<div id="${methodId}" class="method"><h5><code>${method.method}(<var>${method.requestType}</var>) => <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
-                          `<div class="form-group">`+
-                            `<div class="request-json" style="height:30em"></div>`+
-                            `<span class="input-group-btn">`+
-                              `<button class="request-invoke btn btn-primary" type="button">Invoke</button>`+
-                            `</span>`+
-                          `</div>`+
-                        `</div>`
-                }).join('<hr/>')+
-              `</div>`
-      }).join('')
-
-      Object.keys(services).map(serviceKey => {
-        const service = services[serviceKey]
-        const serviceId = serviceKey.replace(/\./gi, '-')
-        Object.keys(service).map(methodKey => {
-          const method = service[methodKey]
-          const methodId = methodKey.replace(/\./gi, '-')
-
-          require('monaco-loader')().then(monaco => {
-            const editor = monaco.editor.create(document.querySelector(`#${serviceId} #${methodId} .request-json`), {
-              value: JSON.stringify(method.requestSample, undefined, '  '),
-              language: 'json',
-              theme: 'vs-light',
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              minimap: {
-            		enabled: false
-            	}
-            })
-
-            document.querySelector(`#${serviceId} #${methodId} .request-invoke`).addEventListener('click', event => {
-              const request = {
-                host: serverHost.value,
-                port: serverPort.value,
-                service: serviceKey,
-                method: methodKey,
-                body: JSON.parse(editor.getValue())
-              }
-              requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
-              console.log('Request', request)
-              responseListing.innerHTML = '';
-              responseTiming.innerHTML = '<p>Running</p>'
-              var t0 = performance.now();
-              method
-                .invokeRpc(request.host, request.port, request.body)
-                .then(response => {
-                  var t1 = performance.now()
-                  responseTiming.innerHTML = `<p>gRPC call - completed in ${(t1-t0).toFixed(3)} milliseconds</p>`
-                  responseListing.innerHTML = `<div class="alert alert-success" role="alert"><pre>${JSON.stringify(response, undefined, '  ')}</pre></div>`
-                  console.log('Response', response)
-                })
-                .catch(error => {
-                  var t1 = performance.now()
-                  responseTiming.innerHTML = `<p>gRPC call - errored in ${(t1-t0).toFixed(3)} milliseconds</p>`
-                  responseListing.innerHTML = `<div class="alert alert-danger" role="alert">${error.toString()}<hr/><pre>${JSON.stringify(error, undefined, '  ')}</pre></div>`
-                  console.error('Error', error.toString(), JSON.stringify(error))
-                })
-            })
-          })
-        })
-      })
+      globals.requestEditor.setValue(localStorage.getItem(`${selected.serviceName}-${selected.methodName}-request`) || JSON.stringify(selected.method.requestSample, undefined, '  '))
     })
   })
+  nextServiceMethod()
+  globals.requestEditor.focus()
+}
+
+function invokeServiceMethod() {
+  if(!selected.method) {
+    return
+  }
+
+  localStorage.setItem(`${selected.serviceName}-${selected.methodName}-request`, globals.requestEditor.getValue())
+  const request = {
+    host: dom.serverHost.value,
+    port: dom.serverPort.value,
+    service: selected.serviceName,
+    method: selected.methodName,
+    body: JSON.parse(globals.requestEditor.getValue())
+  }
+  dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
+  console.log('Request', request)
+  dom.responseListing.innerHTML = '';
+  dom.responseTiming.innerHTML = '<p>Running</p>'
+  dom.responseListing.className = 'running'
+  const t0 = performance.now();
+  const channel = globals.channelManager.getChannel(request.host, request.port)
+  const responseStream = selected.method.invokeWith(channel, request.body)
+  const responses = []
+  let responseDone = false
+  let responseCount = 0
+  const responseRenderInterval = setInterval(() => {
+    if(!responses.length) {
+      return
+    }
+
+    var fragment = document.createDocumentFragment()
+    while(responses.length) {
+      const response = responses.shift()
+      const responseElement = document.createElement('pre')
+      responseElement.innerText = JSON.stringify(response, undefined, '  ')
+      fragment.appendChild(responseElement)
+      fragment.appendChild(document.createElement('hr'))
+    }
+    dom.responseListing.appendChild(fragment)
+    if(responseDone) {
+      clearInterval(responseRenderInterval)
+    }
+  }, 300)
+  responseStream.on('data', response => {
+    responses.push(response)
+    responseCount++
+    dom.responseListing.className = 'success'
+  })
+  responseStream.on('end', () => {
+    const t1 = performance.now()
+    const duration = t1-t0
+    console.log('Response completed in', duration)
+    console.log('Response count', responseCount)
+    dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+    responseDone = true
+  })
+  responseStream.on('error', error => {
+    dom.responseListing.innerHTML = `<pre>Error</pre>\n<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
+    dom.responseListing.className = 'failure'
+    console.error('Error', error)
+  })
+}
+
+function previousServiceMethod() {
+  let currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  do {
+    if(currentMethodButton) {
+      currentMethodButton = currentMethodButton.previousElementSibling
+    }
+    if(!currentMethodButton) {
+      currentMethodButton = document.querySelector('#method-listing .method-listing-entry:last-child')
+    }
+  } while(currentMethodButton && !currentMethodButton.classList.contains('selected') && (currentMethodButton.classList.contains('hidden') || !currentMethodButton.classList.contains('method-listing-entry')))
+
+  if(currentMethodButton) {
+    currentMethodButton.click()
+  }
+}
+
+function nextServiceMethod() {
+  let currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  do {
+    if(currentMethodButton) {
+      currentMethodButton = currentMethodButton.nextElementSibling
+    }
+    if(!currentMethodButton) {
+      currentMethodButton = document.querySelector('#method-listing .method-listing-entry:first-child')
+    }
+  } while(currentMethodButton && !currentMethodButton.classList.contains('selected') && (currentMethodButton.classList.contains('hidden') || !currentMethodButton.classList.contains('method-listing-entry')))
+
+  if(currentMethodButton) {
+    currentMethodButton.click()
+  }
 }
 
 ipc.on('selected-directory', (event, paths) => {
@@ -122,84 +258,13 @@ ipc.on('selected-directory', (event, paths) => {
   console.log('Selected dir', paths)
   changeDirectory(path)
 })
-
-function describeServices(protoModel, namespace=[]) {
-  return Object.assign(...Object.keys(protoModel).map(key => {
-    const child = protoModel[key]
-    const childNamespace = namespace.concat(key)
-    if(typeof(child) === "function" && child.name === "ServiceClient") {
-      return { [childNamespace.join('.')]: describeServiceMethods(child) }
-    }
-    if(typeof(child) === "object" && !child.hasOwnProperty('$options')) {
-      return describeServices(child, childNamespace)
-    }
-    return {}
-  }))
-}
-
-function describeServiceMethods(protoService) {
-  return Object.assign(...Object.keys(protoService.service).map(serviceMethodKey => {
-    const serviceMethod = protoService.service[serviceMethodKey]
-    return {
-      [serviceMethodKey]: {
-        method: serviceMethod.originalName,
-        requestType: serviceMethod.requestType.name,
-        requestSample: makeFullySpecifiedJsonSample(serviceMethod.requestType),
-        responseOf: serviceMethod.responseStream ? "stream of" : "",
-        responseType:  serviceMethod.responseType.name,
-        responseSample: makeFullySpecifiedJsonSample(serviceMethod.responseType),
-        invokeRpc: (host, port, request) => { // here's a function which will call the service! yay
-          const service = new protoService(`${host}:${port}`, grpc.credentials.createInsecure())
-          return new Promise((resolve,reject) => {
-            if(serviceMethod.responseStream) {
-              const call = service[serviceMethodKey](request);
-              const buffer = [];
-              call.on('data', d => buffer.push(d));
-              call.on('end', () => resolve(buffer));
-              call.on('error', err => reject(err));
-              // call.on('status', status => console.log("Oh look a status!", status)); // TODO: Seems of little value...
-            } else {
-              service[serviceMethodKey](request, (err, response) => {
-                if(err) {
-                  reject(err)
-                } else {
-                  resolve(response)
-                }
-              });
-            }
-          })
-        }
-      }
-    }
-  }))
-}
-
-function makeFullySpecifiedJsonSample(messageType) {
-  if(messageType._fields.length === 0) {
-    return {};
-  }
-
-  return Object.assign(...messageType._fields.map(field => {
-    const wrap = field.repeated ?
-      (val => { return { [field.name]: [ val ] } }) :
-      (val => { return { [field.name]: val } })
-    switch(field.type.name) {
-      case "bool":
-        return wrap(false)
-      case "string":
-        return wrap(`${field.name} ${Math.ceil(1000*Math.random())}`)
-      case "bytes":
-        return wrap(btoa(`${field.name} ${Math.ceil(1000*Math.random())}`))
-      case "enum":
-        return wrap(Object.keys(field.resolvedType.object).join('|'))
-
-      case "group":
-      case "message":
-        return wrap(makeFullySpecifiedJsonSample(field.resolvedType))
-
-      // everything else is a number :)
-      default:
-        return wrap(Math.ceil(1000*Math.random()))
-    }
-  }))
-}
+ipc.on('invoke-service-method', invokeServiceMethod)
+ipc.on('next-service-method', () => {
+  nextServiceMethod()
+  globals.requestEditor.focus()
+})
+ipc.on('previous-service-method', () => {
+  previousServiceMethod()
+  globals.requestEditor.focus()
+})
+ipc.on('find-service-method', () => dom.methodSearch.focus())
