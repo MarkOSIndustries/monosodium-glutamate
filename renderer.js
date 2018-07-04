@@ -55,7 +55,8 @@ function searchUpdated() {
   document.querySelectorAll('#method-listing .method-listing-entry').forEach(methodButton => {
     const fqServiceName = methodButton.attributes["data-fq-service-name"].value
     const methodName = methodButton.attributes["data-method-name"].value
-    if(dom.methodSearch.value == '' || -1 < fqServiceName.indexOf(dom.methodSearch.value) || -1 < methodName.indexOf(dom.methodSearch.value)) {
+    const searchRegex = new RegExp(dom.methodSearch.value, "i")
+    if(dom.methodSearch.value == '' || -1 < fqServiceName.search(searchRegex) || -1 < methodName.search(searchRegex)) {
       methodButton.classList.remove('hidden')
     } else {
       methodButton.classList.add('hidden')
