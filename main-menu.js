@@ -29,6 +29,7 @@ const menuTemplate = [
           mainWindow.webContents.send('invoke-service-method')
         }
       },
+      {type: 'separator'},
       {
         label: 'Next method',
         accelerator: 'CmdOrCtrl+Tab',
@@ -41,6 +42,13 @@ const menuTemplate = [
         accelerator: 'CmdOrCtrl+Shift+Tab',
         click() {
           mainWindow.webContents.send('previous-service-method')
+        }
+      },
+      {
+        label: 'Find method',
+        accelerator: 'CmdOrCtrl+Shift+F',
+        click() {
+          mainWindow.webContents.send('find-service-method')
         }
       }
     ]

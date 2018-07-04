@@ -21,6 +21,8 @@
       li.clickable-entry { cursor:pointer;padding-left:10px; list-style:none; background-color: white; color:black; }
       li.clickable-entry.selected { background-color: black; color:white; }
 
+      .hidden { display:none; }
+
       .service { width:100%; }
 
       #server-details[data-state=connecting] { background-color: rgb(255,180,80) }
@@ -47,8 +49,11 @@
         </div>
       </div>
       <div class="layout layout-row" style="height:100%">
-        <ul id="method-listing" class="layout layout-col layout-moves-left layout-vscroll" style="flex-basis:25em">
-        </ul>
+        <div class="layout layout-col layout-moves-left" style="flex-basis:25em">
+          <input id="method-search" type="search" value="" />
+          <ul id="method-listing" class="layout layout-col layout-vscroll">
+          </ul>
+        </div>
         <div class="layout layout-col layout-fills-middle">
           <div id="method-details"></div>
           <div id="proto-listing" class="layout">

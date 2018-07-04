@@ -8,6 +8,7 @@ const protos = require('./protos.js')
 const transport = require('./transport.js')
 
 const dom = {
+  methodSearch: document.querySelector('#method-search'),
   methodListing: document.querySelector('#method-listing'),
   methodDetails: document.querySelector('#method-details'),
   requestListing: document.querySelector('#request-listing'),
@@ -50,6 +51,40 @@ const globals = {
 dom.serverHost.value = localStorage.getItem('last-connected-host')
 dom.serverPort.value = localStorage.getItem('last-connected-port')
 
+function searchUpdated() {
+  document.querySelectorAll('#method-listing .method-listing-entry').forEach(methodButton => {
+    const fqServiceName = methodButton.attributes["data-fq-service-name"].value
+    const methodName = methodButton.attributes["data-method-name"].value
+    if(dom.methodSearch.value == '' || -1 < fqServiceName.indexOf(dom.methodSearch.value) || -1 < methodName.indexOf(dom.methodSearch.value)) {
+      methodButton.classList.remove('hidden')
+    } else {
+      methodButton.classList.add('hidden')
+    }
+  })
+}
+
+dom.methodSearch.addEventListener('keydown', event => {
+  var key = event.which || event.keyCode;
+  switch(key) {
+    case 13: // Enter
+    case 27: // Esc
+      dom.methodSearch.value = ''
+      globals.requestEditor.focus()
+      return event.preventDefault()
+    case 38: // Up
+      previousServiceMethod()
+      return event.preventDefault()
+    case 40: // Down
+      nextServiceMethod()
+      return event.preventDefault()
+    default:
+      setTimeout(() => searchUpdated(), 0)
+  }
+})
+dom.methodSearch.addEventListener('blur', event => {
+  searchUpdated()
+})
+
 require('monaco-loader')().then(monaco => {
   globals.requestEditor = monaco.editor.create(document.querySelector(`.request-json`), {
     value: '{}',
@@ -77,18 +112,19 @@ function changeDirectory(path) {
       const serviceId = fqServiceName.replace(/\./gi, '-')
       const serviceDescription = protos.describeServiceMethods(service)
 
-      return Object.keys(serviceDescription).map((methodName, methodIndex) => {
+      return Object.keys(serviceDescription).map((methodName) => {
           const method = serviceDescription[methodName]
           const methodId = methodName.replace(/\./gi, '-')
           selected.methodCount = selected.methodCount+1
-          return `<li id="${methodId}" class="method-listing-entry clickable-entry tab" data-fq-service-name="${fqServiceName}" data-method-name="${methodName}" data-index="${methodIndex}">`+
+          return `<li id="${methodId}" class="method-listing-entry clickable-entry tab" data-fq-service-name="${fqServiceName}" data-method-name="${methodName}">`+
             `<div class="layout layout-row" style="justify-content:space-between;padding-right:0.2em">`+
               `<h4><code>${method.method}</code></h4>`+
               `<h6><code>${fqServiceName}</code></h6>`+
             `</div>`+
             `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
+            `<hr style="margin-top:2px;margin-bottom:2px"/>`+
           `</li>`
-        }).join('<hr style="margin-top:2px;margin-bottom:2px"/>')
+        }).join('')
     }).join('')+
   '</ul>'
 
@@ -117,10 +153,10 @@ function changeDirectory(path) {
       selected.methodName = methodName
 
       globals.requestEditor.setValue(localStorage.getItem(`${selected.serviceName}-${selected.methodName}-request`) || JSON.stringify(selected.method.requestSample, undefined, '  '))
-      globals.requestEditor.focus()
     })
   })
-  selectFirstMethod()
+  nextServiceMethod()
+  globals.requestEditor.focus()
 }
 
 function invokeServiceMethod() {
@@ -186,42 +222,34 @@ function invokeServiceMethod() {
 }
 
 function previousServiceMethod() {
-  const currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
-  if(currentMethodButton) {
-    const methodIndex = Number(currentMethodButton.attributes['data-index'].value)
-    const previousMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${methodIndex-1}"]`)
-    if(previousMethodButton) {
-      previousMethodButton.click()
-      return
+  let currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  do {
+    if(currentMethodButton) {
+      currentMethodButton = currentMethodButton.previousElementSibling
     }
+    if(!currentMethodButton) {
+      currentMethodButton = document.querySelector('#method-listing .method-listing-entry:last-child')
+    }
+  } while(currentMethodButton && !currentMethodButton.classList.contains('selected') && (currentMethodButton.classList.contains('hidden') || !currentMethodButton.classList.contains('method-listing-entry')))
+
+  if(currentMethodButton) {
+    currentMethodButton.click()
   }
-  selectLastMethod()
 }
 
 function nextServiceMethod() {
-  const currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
-  if(currentMethodButton) {
-    const methodIndex = Number(currentMethodButton.attributes['data-index'].value)
-    const nextMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${methodIndex+1}"]`)
-    if(nextMethodButton) {
-      nextMethodButton.click()
-      return
+  let currentMethodButton = document.querySelector('#method-listing .method-listing-entry.selected')
+  do {
+    if(currentMethodButton) {
+      currentMethodButton = currentMethodButton.nextElementSibling
     }
-  }
-  selectFirstMethod()
-}
+    if(!currentMethodButton) {
+      currentMethodButton = document.querySelector('#method-listing .method-listing-entry:first-child')
+    }
+  } while(currentMethodButton && !currentMethodButton.classList.contains('selected') && (currentMethodButton.classList.contains('hidden') || !currentMethodButton.classList.contains('method-listing-entry')))
 
-function selectFirstMethod() {
-  const firstMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="0"]`)
-  if(firstMethodButton) {
-    firstMethodButton.click()
-  }
-}
-
-function selectLastMethod() {
-  const lastMethodButton = document.querySelector(`#method-listing .method-listing-entry[data-index="${selected.methodCount-1}"]`)
-  if(lastMethodButton) {
-    lastMethodButton.click()
+  if(currentMethodButton) {
+    currentMethodButton.click()
   }
 }
 
@@ -231,5 +259,12 @@ ipc.on('selected-directory', (event, paths) => {
   changeDirectory(path)
 })
 ipc.on('invoke-service-method', invokeServiceMethod)
-ipc.on('next-service-method', nextServiceMethod)
-ipc.on('previous-service-method', previousServiceMethod)
+ipc.on('next-service-method', () => {
+  nextServiceMethod()
+  globals.requestEditor.focus()
+})
+ipc.on('previous-service-method', () => {
+  previousServiceMethod()
+  globals.requestEditor.focus()
+})
+ipc.on('find-service-method', () => dom.methodSearch.focus())
