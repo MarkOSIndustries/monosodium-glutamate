@@ -8,15 +8,33 @@
       * { box-sizing: border-box; margin:0px; padding:0px; }
       body { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1.25em; }
       input { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1em; }
-      code, pre { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:1em; }
-      .layout { display:flex; flex-grow:1; flex-shrink:1; position:relative; justify-content: flex-start; }
-      .layout.root { width:100%; height:100%; overflow:hidden; position:fixed; margin:0px; padding:0px; }
-      .layout-row { flex-flow: row nowrap; }
-      .layout-col { flex-flow: column nowrap; }
-      .layout-vscroll { height:100%; overflow-y:scroll; }
-      .layout-moves-left {  }
-      .layout-fills-middle { flex-grow: 10; }
-      .layout-moves-right {  }
+      code, pre { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:0.8em; }
+
+      #root {
+        display:grid;
+        grid-template-columns: 3fr 5fr 4fr;
+        grid-template-rows: 10fr 6fr 1fr;
+        grid-template-areas:
+          'services editor response'
+          'services editor request'
+          'server server server';
+        grid-gap: 4px;
+        background-color: rgb(60,60,60);
+        position:absolute;
+        width:100%;
+        height:100%;
+        overflow:hidden;
+      }
+      #root > * { background-color: rgb(220,220,220); }
+      #root > * > * { width:100%; }
+
+      #editor-area { grid-area: editor; }
+      #request-area { grid-area: request; }
+      #response-area { grid-area: response; }
+      #server-area { grid-area: server; }
+      #services-area { grid-area: services; }
+
+      .vscroll { width:100%;height:100%; overflow-y:scroll; overflow-x: hidden; position:absolute; }
 
       li.clickable-entry { cursor:pointer;padding-left:10px; list-style:none; background-color: white; color:black; }
       li.clickable-entry.selected { background-color: black; color:white; }
@@ -25,25 +43,52 @@
 
       .service { width:100%; }
 
-      #server-details[data-state=connecting] { background-color: rgb(255,180,80) }
-      #server-details[data-state=connected] { background-color: rgb(80,190,80) }
-      #server-details[data-state=disconnected] { background-color: rgb(230,120,120) }
+      #server-area[data-state=connecting] { background-color: rgb(255,180,80) }
+      #server-area[data-state=connected] { background-color: rgb(80,190,80) }
+      #server-area[data-state=disconnected] { background-color: rgb(230,120,120) }
 
-      #server-details { padding: 0.5em; }
-      #server-details label, #server-details h4 { text-transform: uppercase; }
-      #server-details label { margin-left:3em; }
+      #server-area { display:flex; justify-content:space-between; padding: 0.5em; }
+      #server-area label, #server-area h4 { text-transform: uppercase; }
+      #server-area label { margin-left:3em; }
 
-      #response-listing { border-left-width:1em; border-left-style: solid; }
+      #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
+
+      #response-listing { border-left-width:8px; border-left-style: solid; }
+      #response-listing pre { padding-left:4px; }
       #response-listing.running { border-color: rgb(255,180,80) }
       #response-listing.success { border-color: rgb(80,190,80) }
       #response-listing.failure { border-color: rgb(230,120,120) }
 
-      #request-listing { padding-left: 1em; }
+      #request-listing { margin-left: 8px; }
+      #request-listing pre { padding-left:4px; }
     </style>
   </head>
   <body>
-    <div class="root layout layout-col">
-      <div class="layout layout-row" id="server-details" data-state="disconnected" style="justify-content:space-between">
+    <div id="root">
+      <div id="services-area" class="vscroll">
+        <input id="method-search" type="search" value="" placeholder="Ctrl-Shift-F to filter" style="font-size:0.8em;position:sticky;top:0px;" />
+        <ul id="method-listing">
+          <li>Ctrl-O to open your protobuf directory</li>
+        </ul>
+      </div>
+      <div id="editor-area">
+        <div id="method-details"></div>
+        <div id="proto-listing" style="height:100%">
+          <div class="request-json" style="height:100%"></div>
+        </div>
+      </div>
+      <div id="request-area" class="vscroll">
+        <h5>Request</h5>
+        <div id="request-listing">
+          <code>Use CTRL-ALT-ENTER to send current request</code>
+        </div>
+      </div>
+      <div id="response-area" class="vscroll">
+        <h5>Response (<span id="response-outcome"></span> in <span id="response-timing"></span>)</h5>
+        <div id="response-listing">
+        </div>
+      </div>
+      <div id="server-area" data-state="disconnected">
         <div>
           <h4 id="server-status" class="disconnected">Disconnected</h4>
         </div>
@@ -52,30 +97,6 @@
           <input id="server-host" value="localhost" style="width:10em" />
           <label for="server-port">Port</label>
           <input id="server-port" value="1234" style="width:5em" />
-        </div>
-      </div>
-      <div class="layout layout-row" style="height:100%">
-        <div class="layout layout-col layout-moves-left" style="flex-basis:25em">
-          <input id="method-search" type="search" value="" />
-          <ul id="method-listing" class="layout layout-col layout-vscroll">
-          </ul>
-        </div>
-        <div class="layout layout-col layout-fills-middle">
-          <div id="method-details"></div>
-          <div id="proto-listing" class="layout">
-            <div class="request-json" style="width:100%"></div>
-          </div>
-        </div>
-        <div class="layout layout-col layout-moves-right layout-vscroll" style="flex-basis:30em;min-height:100%">
-          <h4>Response</h4>
-          <div id="response-listing">
-          </div>
-          <div id="response-timing">
-            <code>Use CTRL-ALT-ENTER to send current request and get a response here</code>
-          </div>
-          <hr/>
-          <h4>Request</h4>
-          <div id="request-listing"></div>
         </div>
       </div>
     </div>

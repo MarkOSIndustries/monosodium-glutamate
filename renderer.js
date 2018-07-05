@@ -14,10 +14,11 @@ const dom = {
   requestListing: document.querySelector('#request-listing'),
   responseTiming: document.querySelector('#response-timing'),
   responseListing: document.querySelector('#response-listing'),
+  responseOutcome: document.querySelector('#response-outcome'),
   serverHost: document.querySelector('#server-host'),
   serverPort: document.querySelector('#server-port'),
   serverStatus: document.querySelector('#server-status'),
-  serverDetails: document.querySelector('#server-details'),
+  serverDetails: document.querySelector('#server-area'),
 }
 
 const selected = {
@@ -97,6 +98,10 @@ require('monaco-loader')().then(monaco => {
       enabled: false
     }
   })
+
+  if(localStorage.getItem('last-selected-directory')) {
+    changeDirectory(localStorage.getItem('last-selected-directory'));
+  }
 })
 
 function changeDirectory(path) {
@@ -123,8 +128,7 @@ function changeDirectory(path) {
               `<h6><code>${fqServiceName}</code></h6>`+
             `</div>`+
             `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
-            `<hr style="margin-top:2px;margin-bottom:2px"/>`+
-          `</li>`
+          `</li><hr />`
         }).join('')
     }).join('')+
   '</ul>'
@@ -175,8 +179,9 @@ function invokeServiceMethod() {
   }
   dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
   console.log('Request', request)
-  dom.responseListing.innerHTML = '';
-  dom.responseTiming.innerHTML = '<p>Running</p>'
+  dom.responseListing.innerHTML = ''
+  dom.responseOutcome.innerHTML = 'Running'
+  dom.responseTiming.innerHTML = '...'
   dom.responseListing.className = 'running'
   const t0 = performance.now();
   const channel = globals.channelManager.getChannel(request.host, request.port)
@@ -205,6 +210,7 @@ function invokeServiceMethod() {
   responseStream.on('data', response => {
     responses.push(response)
     responseCount++
+    dom.responseOutcome.innerHTML = 'Success'
     dom.responseListing.className = 'success'
   })
   responseStream.on('end', () => {
@@ -212,11 +218,12 @@ function invokeServiceMethod() {
     const duration = t1-t0
     console.log('Response completed in', duration)
     console.log('Response count', responseCount)
-    dom.responseTiming.innerHTML = `<p>Call duration ${duration.toFixed(3)} milliseconds</p>`
+    dom.responseTiming.innerHTML = `${duration.toFixed(3)} milliseconds`
     responseDone = true
   })
   responseStream.on('error', error => {
-    dom.responseListing.innerHTML = `<pre>Error</pre>\n<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
+    dom.responseOutcome.innerHTML = 'Error'
+    dom.responseListing.innerHTML = `<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
     dom.responseListing.className = 'failure'
     console.error('Error', error)
   })
@@ -256,8 +263,8 @@ function nextServiceMethod() {
 
 ipc.on('selected-directory', (event, paths) => {
   const [path] = paths
-  console.log('Selected dir', paths)
   changeDirectory(path)
+  localStorage.setItem('last-selected-directory', path)
 })
 ipc.on('invoke-service-method', invokeServiceMethod)
 ipc.on('next-service-method', () => {
