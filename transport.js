@@ -162,23 +162,23 @@ class Http2Request {
           [GRPC_HEADER_STATUS_NAME]: GrpcStatusNames[headers[GRPC_HEADER_STATUS]]
         }, headers))
       }
-      const newRequestEncoding = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]
-      if(newRequestEncoding) {
-        if(!encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
-          self.abort(new Error(`Encoding ${newRequestEncoding} is not supported`))
-        } else {
-          self.options.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
-          console.log("Request encoding negotatiated", self.options.requestEncoding.name)
-        }
+      const acceptedRequestEncodings = headers[GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]
+      if(acceptedRequestEncodings) {
+        acceptedRequestEncodings.split(',').forEach(newRequestEncoding => {
+          if(encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
+            self.options.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
+            console.log("Request encoding negotatiated", self.options.requestEncoding.name)
+          }
+        })
       }
-      const newResponseEncoding = headers[GRPC_HEADER_MESSAGE_ENCODING];
-      if(newResponseEncoding) {
-        if(!encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
-          self.abort(new Error(`Encoding ${newRequestEncoding} is not supported`))
-        } else {
-          self.options.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
-          console.log("Response encoding negotatiated", self.options.responseEncoding.name)
-        }
+      const acceptedResponseEncodings = headers[GRPC_HEADER_MESSAGE_ENCODING]
+      if(acceptedResponseEncodings) {
+        acceptedResponseEncodings.forEach(newResponseEncoding => {
+          if(encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
+            self.options.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
+            console.log("Response encoding negotatiated", self.options.responseEncoding.name)
+          }
+        })
       }
     })
     this.stream.on('data', chunk => {
@@ -214,14 +214,14 @@ class Http2Request {
     }
   }
 
-  packMessage(encoding, buffer, fnChunkPacked) {
-    return encoding.encode(buffer).then(encodedBuffer => {
+  packMessage(requestEncoding, buffer, fnChunkPacked) {
+    return requestEncoding.encode(buffer).then(encodedBuffer => {
       while(encodedBuffer.length > 0) {
         const chunk = encodedBuffer.slice(0, MaxFrameSize)
         encodedBuffer = encodedBuffer.slice(MaxFrameSize)
 
         const packed = Buffer.alloc(5 + chunk.length)
-        packed.writeUInt8(encoding.compressed, 0)
+        packed.writeUInt8(requestEncoding.compressed, 0)
         packed.writeUInt32BE(chunk.length, 1)
         chunk.copy(packed, 5)
         fnChunkPacked(packed)
@@ -229,17 +229,22 @@ class Http2Request {
     })
   }
 
-  unpackMessages(encoding, buffer, fnMessageUnpacked) {
+  unpackMessages(responseEncoding, buffer, fnMessageUnpacked) {
     if(buffer.length >= 5) {
       const compression = buffer.readUInt8(0)
-      if(compression != encoding.compressed) {
-        console.log('Message compression mismatch, expect decoding issues...')
+      if(compression != responseEncoding.compressed) {
+        console.log('Message compression mismatch, guessing...')
+        if(compression === 0) {
+          responseEncoding = encoding.IdentityEncoding
+        } else {
+          responseEncoding = encoding.GZIPEncoding
+        }
       }
       const messageSize = buffer.readUInt32BE(1)
 
       if(buffer.length >= (5 + messageSize)) {
-        encoding.decode(buffer.slice(5, 5 + messageSize)).then(fnMessageUnpacked)
-        return this.unpackMessages(encoding, buffer.slice(5 + messageSize), fnMessageUnpacked)
+        responseEncoding.decode(buffer.slice(5, 5 + messageSize)).then(fnMessageUnpacked)
+        return this.unpackMessages(responseEncoding, buffer.slice(5 + messageSize), fnMessageUnpacked)
       }
     }
     return buffer
