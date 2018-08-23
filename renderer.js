@@ -128,7 +128,7 @@ function changeDirectory(path) {
               `<h6><code>${fqServiceName}</code></h6>`+
             `</div>`+
             `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
-          `</li><hr />`
+          `</li>`
         }).join('')
     }).join('')+
   '</ul>'
