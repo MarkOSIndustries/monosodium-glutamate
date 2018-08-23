@@ -47,6 +47,12 @@ const globals = {
       dom.serverStatus.innerHTML = 'Disconnected'
     })
   }),
+  loadSampleRequest: () => {
+    alert('Please select a service method first');
+  },
+  loadLastSentRequest: () => {
+    alert('Please select a service method first');
+  }
 }
 
 dom.serverHost.value = localStorage.getItem('last-connected-host')
@@ -158,6 +164,8 @@ function changeDirectory(path) {
       selected.methodName = methodName
 
       globals.requestEditor.setValue(localStorage.getItem(`${selected.serviceName}-${selected.methodName}-request`) || JSON.stringify(selected.method.requestSample, undefined, '  '))
+      globals.loadLastSentRequest = () => globals.requestEditor.setValue(localStorage.getItem(`${selected.serviceName}-${selected.methodName}-request`))
+      globals.loadSampleRequest = () => globals.requestEditor.setValue(JSON.stringify(selected.method.requestSample, undefined, '  '))
     })
   })
   nextServiceMethod()
@@ -276,3 +284,5 @@ ipc.on('previous-service-method', () => {
   globals.requestEditor.focus()
 })
 ipc.on('find-service-method', () => dom.methodSearch.focus())
+ipc.on('generate-request-body', () => globals.loadSampleRequest())
+ipc.on('load-last-request-body', () => globals.loadLastSentRequest())

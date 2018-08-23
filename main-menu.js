@@ -29,6 +29,20 @@ const menuTemplate = [
           mainWindow.webContents.send('invoke-service-method')
         }
       },
+      {
+        label: 'Regenerate request body',
+        accelerator: 'CmdOrCtrl+Alt+G',
+        click() {
+          mainWindow.webContents.send('generate-request-body')
+        }
+      },
+      {
+        label: 'Load last sent request body',
+        accelerator: 'CmdOrCtrl+Alt+L',
+        click() {
+          mainWindow.webContents.send('load-last-request-body')
+        }
+      },
       {type: 'separator'},
       {
         label: 'Next method',
