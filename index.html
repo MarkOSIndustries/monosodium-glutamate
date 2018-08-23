@@ -34,7 +34,8 @@
       #server-area { grid-area: server; }
       #services-area { grid-area: services; }
 
-      .vscroll { width:100%;height:100%; overflow-y:scroll; overflow-x: hidden; position:absolute; }
+      .y-scroll { width:100%;height:100%; overflow-y:scroll; position:absolute; }
+      .y-scroll.no-x-scroll { overflow-x: hidden; }
 
       li.clickable-entry { cursor:pointer;padding-left:10px; list-style:none; background-color: white; color:black; border-bottom:1px solid black; }
       li.clickable-entry.selected { background-color: black; color:white; }
@@ -65,7 +66,7 @@
   </head>
   <body>
     <div id="root">
-      <div id="services-area" class="vscroll">
+      <div id="services-area" class="y-scroll">
         <input id="method-search" type="search" value="" placeholder="Ctrl-Shift-F to filter" style="font-size:0.8em;position:sticky;top:0px;" />
         <ul id="method-listing">
           <li>Ctrl-O to open your protobuf directory</li>
@@ -77,13 +78,13 @@
           <div class="request-json" style="height:100%"></div>
         </div>
       </div>
-      <div id="request-area" class="vscroll">
+      <div id="request-area" class="y-scroll no-x-scroll">
         <h5>Request</h5>
         <div id="request-listing">
           <code>Use CTRL-ALT-ENTER to send current request</code>
         </div>
       </div>
-      <div id="response-area" class="vscroll">
+      <div id="response-area" class="y-scroll">
         <h5>Response (<span id="response-outcome"></span> in <span id="response-timing"></span>)</h5>
         <div id="response-listing">
         </div>
