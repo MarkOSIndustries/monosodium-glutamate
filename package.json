@@ -16,7 +16,7 @@
   "author": "markosindustries",
   "devDependencies": {
     "bootstrap": "~3.3.7",
-    "electron": "~2.0.2",
+    "electron": "^2.0.8",
     "monaco-loader": "^0.8.2",
     "protobufjs": "^6.8.6"
   }
