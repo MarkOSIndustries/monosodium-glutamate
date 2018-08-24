@@ -80,8 +80,7 @@ function describeServiceMethods(service) {
         invokeWith: (http2Connection, requestObject, options) => {
           const svc = service.create(http2Connection.rpcImpl(service, options))
           const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
-          // const responseStream = new stream.PassThrough({objectMode: true})
-          svc[svcMethodKey](requestObject)
+          svc[svcMethodKey](serviceMethod.resolvedRequestType.fromObject(requestObject))
           return svc // svc implements stream.Readable
         }
       }

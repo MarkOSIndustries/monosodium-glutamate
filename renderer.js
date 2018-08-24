@@ -216,7 +216,7 @@ function invokeServiceMethod() {
     }
   }, 300)
   responseStream.on('data', response => {
-    responses.push(response)
+    responses.push(response.toJSON())
     responseCount++
     dom.responseOutcome.innerHTML = 'Success'
     dom.responseListing.className = 'success'
