@@ -1,23 +1,39 @@
 {
-  "name": "grpc-gui",
+  "name": "monosodium-glutamate",
   "version": "1.0.0",
-  "description": "A GUI for GRPC services",
-  "main": "main.js",
+  "description": "Collection of protobuf utilities",
   "scripts": {
-    "start": "electron ."
+    "grpc-gui": "electron ./grpc-gui",
+    "kafka-cli": "node kafka-cli/index.js",
+    "kafka-gui": "electron ./kafka-gui",
+    "proto-cli": "node proto-cli/index.js"
   },
-  "repository": "https://github.com/markosindustries/grpc-gui",
+  "bin": {
+    "kafka-cli": "./proto-cli/index.js",
+    "proto-cli": "./proto-cli/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markosindustries/monosodium-glutamate.git"
+  },
   "keywords": [
-    "GRPC",
-    "Client",
-    "GUI",
-    "Electron"
+    "protobuf",
+    "grpc",
+    "electron",
+    "gui",
+    "cli"
   ],
   "author": "markosindustries",
-  "devDependencies": {
-    "bootstrap": "~3.3.7",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/markosindustries/monosodium-glutamate/issues"
+  },
+  "homepage": "https://github.com/markosindustries/monosodium-glutamate#readme",
+  "dependencies": {
     "electron": "^2.0.8",
+    "kafka-node": "^2.6.1",
     "monaco-loader": "^0.8.2",
-    "protobufjs": "^6.8.6"
+    "protobufjs": "^6.8.6",
+    "yargs": "^12.0.1"
   }
 }

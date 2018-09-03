@@ -1,19 +1,12 @@
-# GRPC GUI
+# MSG - Monosodium Glutamate
 
-A GUI for invoking GRPC services. Built with electron
+A collection of tools for working with protobuf messages in datastores, over GRPC, and in Kafka.
 
-## To Use
+## Index
+- [GRPC-GUI](grpc-gui/README.md) See and type JSON, send/receive GRPC protobufs
+- [Kafka-GUI](kafka-gui/README.md) Run live queries over protobufs in Kafka topics
+- [Kafka-CLI](kafka-cli/README.md) Produce/consume to/from kafka via piped stdin/out
+- [Proto-CLI](proto-cli/README.md) Encode/decode JSON to/from protobufs using various encodings
 
-To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js v10.x](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer.
-
-Now, this should work regardless of platform:
-```bash
-# Clone this repository
-git clone https://github.com/markosindustries/grpc-gui
-# Go into the repository
-cd grpc-gui
-# Install dependencies and compile native modules like GRPC against electron headers
-npm install
-# Run the app
-npm start
-```
+## Why Javascript/Node?
+ProtobufJS has the amazing power to load protobuf schemas without a compilation step, so it works really well when your schemas change all the time and you don't want to have to recompile your tools.

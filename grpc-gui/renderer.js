@@ -4,8 +4,8 @@
 const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
 const pathLib = require('path')
-const protos = require('./protos.js')
-const transport = require('./transport.js')
+const protobuf = require('../protobuf.js')
+const transport = require('../grpc.transport.js')
 
 const dom = {
   methodSearch: document.querySelector('#method-search'),
@@ -112,9 +112,9 @@ require('monaco-loader')().then(monaco => {
 
 function changeDirectory(path) {
   document.title = `GRPC GUI - ${path}`
-  const messages = protos.loadDirectory(path)
+  const messages = protobuf.loadDirectory(path)
 
-  const messagesIndex = protos.makeFlatIndex(messages)
+  const messagesIndex = protobuf.makeFlatIndex(messages)
 
   selected.methodCount = 0
 // TODO: split into service and message listings
@@ -122,7 +122,7 @@ function changeDirectory(path) {
     Object.keys(messagesIndex.services).map(fqServiceName => {
       const service = messagesIndex.services[fqServiceName]
       const serviceId = fqServiceName.replace(/\./gi, '-')
-      const serviceDescription = protos.describeServiceMethods(service)
+      const serviceDescription = protobuf.describeServiceMethods(service)
 
       return Object.keys(serviceDescription).map((methodName) => {
           const method = serviceDescription[methodName]
@@ -145,7 +145,7 @@ function changeDirectory(path) {
 
     const service = messagesIndex.services[fqServiceName]
     const serviceId = fqServiceName.replace(/\./gi, '-')
-    const serviceDescription = protos.describeServiceMethods(service)
+    const serviceDescription = protobuf.describeServiceMethods(service)
 
     const methodName = methodButton.attributes["data-method-name"].value
     const method = serviceDescription[methodName]

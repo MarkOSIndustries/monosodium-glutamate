@@ -1,6 +1,11 @@
 const fsLib = require('fs')
 const pathLib = require('path')
-const protobuf = require('protobufjs')
+const protobufjs = require('protobufjs')
+
+// TODO: Remove this hack - not sure why this is broken. I think a newer Long.js might have renamed fromValue...
+if(!protobufjs.util.Long.hasOwnProperty('fromValue')) {
+  protobufjs.util.Long.fromValue = protobufjs.util.Long.fromNumber
+}
 
 function populate(messages, directoryPath) {
   // TODO: use custom resolver to load google protobufs from here rather than requiring them
@@ -26,7 +31,7 @@ function populate(messages, directoryPath) {
 }
 
 function loadDirectory(directoryPath) {
-  const messages = populate(new protobuf.Root(), directoryPath)
+  const messages = populate(new protobufjs.Root(), directoryPath)
 
   // Important - ensures that fields like resolvedType contain a value
   messages.resolveAll()
