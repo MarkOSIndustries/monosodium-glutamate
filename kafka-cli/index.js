@@ -4,11 +4,8 @@ const {produce} = require('./produce')
 const env = require('../env')
 
 const yargs = require('yargs') // eslint-disable-line
-  .command('consume <topic> <schema> [seek] [timestamp]', 'consume messages from kafka', (argsSpec) => {
+  .command('consume <schema> [seek] [timestamp]', 'consume messages from kafka', (argsSpec) => {
     argsSpec
-      .positional('topic', {
-        describe: 'kafka topic to consume from',
-      })
       .positional('schema', {
         describe: 'protobuf schema to decode messages with',
       })
@@ -24,8 +21,12 @@ const yargs = require('yargs') // eslint-disable-line
       .positional('timestamp', {
         describe: 'timestamp (ms) to use when seeking by timestamp',
       })
+      .option('topic', {
+        describe: `kafka topic to consume from ('__' will be replaced with fully qualified schema name)`,
+        default: '__',
+      })
   }, (argv) => {
-    consume(argv.kafkaBrokers, argv.protobufs, [argv.topic], argv.schema, argv.seek, argv.timestamp)
+    consume(argv.kafkaBrokers, argv.protobufs, [argv.topic.replace('__',argv.schema)], argv.schema, argv.seek, argv.timestamp)
   })
   .command('produce <topic> <schema>', 'produce messages to kafka', (argsSpec) => {
     argsSpec
