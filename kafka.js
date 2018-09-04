@@ -55,32 +55,6 @@ function getOffsetsAtTime(client, topics, time) {
   })
 }
 
-function getOffsetsAtTime(client, topics, time) {
-  return new Promise((resolve,reject) => {
-    const offset = new kafka.Offset(client)
-
-    const fetchRequests = []
-    topics.forEach(topic => {
-      fetchRequests.push(...Object.keys(client.topicMetadata[topic]).map(partition => ({ topic, partition, time, maxNum: 1 })))
-    })
-
-    offset.fetch(fetchRequests, (err, offsets) => {
-      if(err) {
-        reject(err)
-      } else {
-        const topicPartitionOffsets = []
-        topics.forEach(topic => {
-          topicPartitionOffsets.push(...Object.keys(offsets[topic])
-                .map(partition => Number(partition))
-                .filter(partition => !Number.isNaN(partition))
-                .map(partition => ({ topic, partition: Number(partition), offset: offsets[topic][partition][0] })))
-        })
-        resolve(topicPartitionOffsets)
-      }
-    })
-  })
-}
-
 function getLatestOffsets(client, topics) {
   return getOffsetsAtTime(client, topics, -1)
 }
