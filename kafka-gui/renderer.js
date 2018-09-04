@@ -88,7 +88,9 @@ function changeDirectory(path) {
       selected.schemaName = fqSchemaName
 
       globals.queryEditor.setValue(localStorage.getItem(`${selected.schemaName}-query`) || '{}')
-      // TODO: select matching topic if any?
+      Object.values(document
+        .querySelectorAll('#topic-listing select option')).filter(option => option.value.toLowerCase().indexOf(fqSchemaName.toLowerCase()) > -1)
+        .forEach(x => { console.log('Auto selecting topic', x); x.selected = true })
     })
 
     domEntryList.appendChild(domEntry)
