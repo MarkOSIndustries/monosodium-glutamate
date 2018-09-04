@@ -116,25 +116,28 @@ function consumeFromOffsets(client, topicPartitionOffsets, messageCallback) {
   })
 }
 
-function produceRandomlyAcrossPartitions(client, topic, messages) {
-  return new Promise((resolve,reject) => {
-    const producer = new kafka.Producer(client, {
-      requireAcks: 1,
-      ackTimeoutMs: 100,
-      // Partitioner type (default = 0, random = 1, cyclic = 2, keyed = 3, custom = 4), default 0
-      partitionerType: 1
-    })
-
-    producer.send([{
-      topic,
-      messages
-    }], (err, data) => {
-      console.log('Produce callback', err, data)
-      if(err) {
-        reject(err)
-      } else {
-        resolve()
-      }
-    })
+function produceRandomlyAcrossPartitions(client, topic) {
+  const producer = new kafka.Producer(client, {
+    requireAcks: 1,
+    ackTimeoutMs: 100,
+    // Partitioner type (default = 0, random = 1, cyclic = 2, keyed = 3, custom = 4), default 0
+    partitionerType: 1
   })
+
+  return {
+    produce: function(messages) {
+      return new Promise((resolve,reject) => {
+        producer.send([{
+          topic,
+          messages
+        }], (err, data) => {
+          if(err) {
+            reject(err)
+          } else {
+            resolve()
+          }
+        })
+      })
+    }
+  }
 }

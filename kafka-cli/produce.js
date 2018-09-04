@@ -8,6 +8,7 @@ module.exports = {
 async function produce(kafkaBrokers, protobufPath, topic, schemaName) {
   const kafkaClient = await kafka.getKafkaClient(kafkaBrokers)
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
+  const producer = kafka.produceRandomlyAcrossPartitions(kafkaClient, topic)
 
   process.stdin.setEncoding('utf8')
 
@@ -17,7 +18,8 @@ async function produce(kafkaBrokers, protobufPath, topic, schemaName) {
       buffer += chunk
       const lines = buffer.split(/[\r\n]/)
       buffer = lines.pop() // will be empty string if end char was newline
-      kafka.produceRandomlyAcrossPartitions(kafkaClient, topic, lines.filter(l => l!=='').map(jsonMessage => {
+
+      producer.produce(lines.filter(l => l!=='').map(jsonMessage => {
         return schema.encode(schema.fromObject(JSON.parse(jsonMessage))).finish()
       }))
     }
