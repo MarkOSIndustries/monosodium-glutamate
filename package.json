@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Collection of protobuf utilities",
   "scripts": {
-    "grpc-gui": "electron ./grpc-gui",
+    "grpc-gui": "electron ./grpc-gui/main.js",
     "kafka-cli": "node kafka-cli/index.js",
-    "kafka-gui": "electron ./kafka-gui",
+    "kafka-gui": "electron ./kafka-gui/main.js",
     "proto-cli": "node proto-cli/index.js"
   },
   "bin": {
