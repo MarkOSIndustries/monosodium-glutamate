@@ -20,10 +20,15 @@ const dom = {
   brokerStatus: document.querySelector('#broker-status'),
   brokerListing: document.querySelector('#broker-listing'),
   flowStartTime: document.querySelector('#flow-start-time'),
+  flowEndTime: document.querySelector('#flow-end-time'),
   flowMaxMessages: document.querySelector('#flow-max-messages'),
   flowStart: document.querySelector('#flow-start'),
   flowStop: document.querySelector('#flow-stop'),
 }
+
+const now = Date.now()
+dom.flowStartTime.valueAsNumber = (now - now%(1000*60*60*24)) // start of today UTC
+dom.flowEndTime.valueAsNumber = (now - now%(60*1000)) // start of this minute
 
 const selected = {
   topic: null,
@@ -123,42 +128,54 @@ dom.brokerPort.addEventListener('blur', refreshTopics)
 refreshTopics()
 
 async function runQuery() {
-  const topics = [ document.querySelector('#topic-select').value ]
-  const tableBody = dom.streamListing.querySelector('tbody')
-  tableBody.innerHTML = ''
-  const kafkaClient = await kafka.getKafkaClient([{host: dom.brokerHost.value, port: dom.brokerPort.value}]) // TODO: make this happen only when fields change
-  const topicPartitionOffsets = await kafka.getEarliestOffsets(kafkaClient, topics) // TODO: use date selector
-  const maxMessages = dom.flowMaxMessages.value
-  let messageCount = 0
-  await kafka.consumeFromOffsets(kafkaClient, topicPartitionOffsets, (message) => {
-    messageCount += 1
-    if(messageCount > maxMessages) {
-      return false
-    }
+  try {
+    const topics = [ document.querySelector('#topic-select').value ]
+    const tableBody = dom.streamListing.querySelector('tbody')
 
-    const row = document.createElement('tr')
-    let decoded
-    try {
-      decoded = selected.schema.decode(message.value)
-    } catch(ex) {
-      decoded = {
-        error: ex.toString(),
-        schema: selected.schemaName,
-        message: message.value.toString('hex'),
+    const kafkaClient = await kafka.getKafkaClient([{host: dom.brokerHost.value, port: dom.brokerPort.value}]) // TODO: make this happen only when fields change
+    console.log('got client')
+    const topicPartitionOffsets = await kafka.getOffsetsAtTime(kafkaClient, topics, dom.flowStartTime.valueAsNumber)
+    console.log('got offsets', topicPartitionOffsets, dom.flowStartTime.valueAsNumber)
+    const maxMessages = dom.flowMaxMessages.value
+    const messageRows = []
+    const domUpdateInterval = setTimeout(() => {
+      tableBody.innerHTML = ''
+      // TODO: measure perf against a high volume topic - might be worth trying to insert in order...
+      messageRows.sort((r1,r2) => r1.ts-r2.ts).forEach(row => tableBody.appendChild(row.domRow))
+    }, 100)
+    await kafka.consumeFromOffsets(kafkaClient, topicPartitionOffsets, (message) => {
+      console.log(message.timestamp.getTime(), dom.flowEndTime.valueAsNumber)
+      if(message.timestamp.getTime() < dom.flowEndTime.valueAsNumber && message.timestamp.getTime() >= dom.flowStartTime.valueAsNumber) {
+        const domRow = document.createElement('tr')
+        let decoded
+        try {
+          decoded = selected.schema.decode(message.value)
+        } catch(ex) {
+          decoded = {
+            _error: ex.toString(),
+            _schema: selected.schemaName,
+            _message: message.value.toString('hex'),
+          }
+        }
+
+        domRow.innerHTML =
+        `<td>${message.partition}</td>`+
+        `<td>${message.offset}</td>`+
+        `<td>${message.timestamp.toISOString()}</td>`+
+        `<td>${message.key}</td>`+
+        `<td><pre>${JSON.stringify(decoded, undefined, '  ')}</pre></td>`
+
+        messageRows.push({ts: message.timestamp.getTime(), domRow })
       }
-    }
 
-    row.innerHTML =
-    `<td>${message.partition}</td>`+
-    `<td>${message.offset}</td>`+
-    `<td>${message.timestamp.toISOString()}</td>`+
-    `<td>${message.key}</td>`+
-    `<td><pre>${JSON.stringify(decoded, undefined, '  ')}</pre></td>`
-    tableBody.appendChild(row)
-
-    return true
-  })
-  kafkaClient.close()
+      return (messageRows.length < maxMessages)
+    })
+    console.log('clearing')
+    clearInterval(domUpdateInterval)
+    kafkaClient.close()
+  } catch(ex) {
+    console.error(`Couldn't run query`, ex)
+  }
 }
 
 dom.flowStart.addEventListener('click', runQuery)

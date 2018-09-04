@@ -29,7 +29,7 @@ function getKafkaClient(brokers) {
   })
 }
 
-function getOffsetsAtTime(client, topics, time) {
+function _getOffsets(client, topics, time) {
   return new Promise((resolve,reject) => {
     const offset = new kafka.Offset(client)
 
@@ -42,25 +42,41 @@ function getOffsetsAtTime(client, topics, time) {
       if(err) {
         reject(err)
       } else {
-        const topicPartitionOffsets = []
-        topics.forEach(topic => {
-          topicPartitionOffsets.push(...Object.keys(offsets[topic])
-                .map(partition => Number(partition))
-                .filter(partition => !Number.isNaN(partition))
-                .map(partition => ({ topic, partition: Number(partition), offset: offsets[topic][partition][0] })))
-        })
-        resolve(topicPartitionOffsets)
+        // Filter out topics with 'null' partition results - these indicate failure and mean the numbers wont make sense
+        resolve(Object.assign({}, ...Object.keys(offsets).filter(topic => !offsets[topic].hasOwnProperty('null')).map(topic => ({[topic]:offsets[topic]}))))
       }
     })
   })
 }
 
-function getLatestOffsets(client, topics) {
-  return getOffsetsAtTime(client, topics, -1)
+async function _flattenToTopicPartitionOffsets(offsets) {
+  const topicPartitionOffsets = []
+  Object.keys(offsets).forEach(topic => {
+    topicPartitionOffsets.push(...Object.keys(offsets[topic])
+          .map(partition => Number(partition))
+          .filter(partition => !Number.isNaN(partition))
+          .map(partition => ({ topic, partition: Number(partition), offset: offsets[topic][partition][0] })))
+  })
+  return topicPartitionOffsets
 }
 
-function getEarliestOffsets(client, topics) {
-  return getOffsetsAtTime(client, topics, -2)
+const OFFSET_EARLIEST = -2
+const OFFSET_LATEST = -1
+
+async function getOffsetsAtTime(client, topics, time) {
+  const [timeBasedOffsets, earliestOffsets] = await Promise.all([_getOffsets(client, topics, time), _getOffsets(client, topics, OFFSET_EARLIEST)])
+  // Merge time-based with earliest, preferrin time-based
+  return _flattenToTopicPartitionOffsets(
+    Object.assign({}, ...topics.map(topic => ({[topic]: Object.assign({}, earliestOffsets[topic], timeBasedOffsets[topic])})))
+  )
+}
+
+async function getLatestOffsets(client, topics) {
+  return _flattenToTopicPartitionOffsets(await _getOffsets(client, topics, OFFSET_LATEST))
+}
+
+async function getEarliestOffsets(client, topics) {
+  return _flattenToTopicPartitionOffsets(await _getOffsets(client, topics, OFFSET_EARLIEST))
 }
 
 function consumeFromOffsets(client, topicPartitionOffsets, messageCallback) {
