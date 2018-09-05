@@ -1,5 +1,6 @@
 const kafka = require('kafka-node')
 const { rng } = require('crypto')
+const stream = require('stream')
 
 module.exports = {
   getKafkaClient,
@@ -42,7 +43,7 @@ function _getOffsets(client, topics, time) {
       if(err) {
         reject(err)
       } else {
-        // Filter out topics with 'null' partition results - these indicate failure and mean the numbers wont make sense
+        // Filter out topics with 'null' partition results - these occur because of a bug in handling empty offset responses in kafka-node
         resolve(Object.assign({}, ...Object.keys(offsets).filter(topic => !offsets[topic].hasOwnProperty('null')).map(topic => ({[topic]:offsets[topic]}))))
       }
     })
@@ -81,28 +82,39 @@ async function getEarliestOffsets(client, topics) {
 
 function consumeFromOffsets(client, topicPartitionOffsets, messageCallback) {
   return new Promise((resolve,reject) => {
-    const consumer = new kafka.Consumer(
-        client,
-        topicPartitionOffsets,
-        {
-            groupId: `${clientId}-${rng(4).readUInt32LE()}`,
-            autoCommit: false,
-            fromOffset: true,
-            encoding: 'buffer',
-            keyEncoding: 'buffer' // also supports 'utf8', probably others
-        }
-    )
+    const msgs = new stream.Writable()
+    msgs.options = { encoding: 'buffer', keyEncoding: 'buffer' } // make it look like a consumer
 
-    consumer.on('message', (message) => {
-      try {
-        if(!messageCallback(message)) {
-          consumer.close()
-          resolve()
-        }
-      } catch(ex) {
-        reject(ex)
+    const fetchMaxWaitMs = 100
+    const fetchMinBytes = 1
+    const fetchMaxBytes = 1024 * 1024 // 1Mb
+    const fetchRequestsByTopicByPartition = {}
+    topicPartitionOffsets.forEach(tpo => {
+      tpo.maxBytes = fetchMaxBytes
+
+      fetchRequestsByTopicByPartition[tpo.topic] = fetchRequestsByTopicByPartition[tpo.topic] || {}
+      fetchRequestsByTopicByPartition[tpo.topic][tpo.partition] = tpo
+    })
+
+    const updateOffset = (msg) => fetchRequestsByTopicByPartition[msg.topic][msg.partition].offset = msg.offset+1
+    const getMoreMessages = () => { client.sendFetchRequest(msgs, topicPartitionOffsets, fetchMaxWaitMs, fetchMinBytes) }
+    var keepGoing = true
+    var messageCount = 0
+    msgs.on('message', (message) => {
+      if(!keepGoing) return
+      messageCount+=1
+      updateOffset(message)
+      keepGoing = Boolean(messageCallback(message))
+    })
+    msgs.on('done', () => {
+      if(keepGoing) {
+        getMoreMessages()
+      } else {
+        resolve({messageCount})
       }
     })
+
+    getMoreMessages()
   })
 }
 
