@@ -13,7 +13,7 @@ To clone and run this you'll need [Git](https://git-scm.com) and [Node.js v10.x]
 # Clone this repository
 git clone https://github.com/markosindustries/monosodium-glutamate
 # Go into the repository
-cd monosodium-glutamate/grpc-gui
+cd monosodium-glutamate/msg
 # Install globally
 npm install -g
 ```
@@ -21,7 +21,7 @@ npm install -g
 After that - use from any directory containing protos:
 ```bash
 > msg usage
-> echo "{ \"thing_id\": 123, \"thing_name\": \"test\" }" | node msg/index.js encode my.protobuf.package.MyMessage base64
+> echo "{ \"thing_id\": 123, \"thing_name\": \"test\" }" | msg encode my.protobuf.package.MyMessage base64
 CHsSBHRlc3Q=
 ```
 
