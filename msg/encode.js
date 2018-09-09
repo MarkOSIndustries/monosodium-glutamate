@@ -1,4 +1,4 @@
-const protobuf = require('../protobuf')
+const protobuf = require('../protobuf')(require('protobufjs'))
 const { SchemaConverter } = require('../protobuf.convert')
 const { readUTF8Lines } = require('../streams')
 
