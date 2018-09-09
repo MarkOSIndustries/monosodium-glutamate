@@ -4,8 +4,8 @@
 const ipc = require('electron').ipcRenderer
 const fsLib = require('fs')
 const pathLib = require('path')
-const protobuf = require('../protobuf.js')
-const transport = require('../grpc.transport.js')
+const protobuf = require('../protobuf')(require('protobufjs'))
+const transport = require('../grpc.transport')
 
 const dom = {
   methodSearch: document.querySelector('#method-search'),

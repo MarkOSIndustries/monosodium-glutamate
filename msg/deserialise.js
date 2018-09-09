@@ -1,6 +1,7 @@
 const protobuf = require('../protobuf')
 const { SchemaConverter } = require('../protobuf.convert')
 const { readLengthPrefixedBuffers } = require('../streams')
+const {inspect} = require('util')
 
 module.exports = {
   deserialise,
@@ -11,10 +12,14 @@ function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath) {
   const converter = new SchemaConverter(schema)
 
   const prefixedBinaryStream = readLengthPrefixedBuffers(process.stdin, prefixFormat)
+  const serialiseJsonObject = process.stdout.isTTY ? x=>inspect(x, {
+    colors: true,
+    depth: null,
+  }) : x=>JSON.stringify(x)
 
   prefixedBinaryStream.on('data', binaryBuffer => {
     const jsonObject = converter.binary_buffer_to_json_object(binaryBuffer)
-    process.stdout.write(JSON.stringify(jsonObject))
+    process.stdout.write(serialiseJsonObject(jsonObject))
     process.stdout.write(delimiterBuffer)
   })
 

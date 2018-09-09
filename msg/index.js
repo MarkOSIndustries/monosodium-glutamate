@@ -59,8 +59,13 @@ const yargs = require('yargs') // eslint-disable-line
   })
   .option('prefix', {
     describe: 'length prefix format',
-    default: 'UInt32LE',
+    default: 'Int32BE',
     choices: [
+      'Int32LE',
+      'Int32BE',
+      'Int16LE',
+      'Int16BE',
+      'Int8',
       'UInt32LE',
       'UInt32BE',
       'UInt16LE',

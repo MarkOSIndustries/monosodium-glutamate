@@ -30,6 +30,11 @@ function readUTF8Lines(inStream) {
 }
 
 const prefixSizeByFormat = {
+  'Int32LE': 4,
+  'Int32BE': 4,
+  'Int16LE': 2,
+  'Int16BE': 2,
+  'Int8': 1,
   'UInt32LE': 4,
   'UInt32BE': 4,
   'UInt16LE': 2,

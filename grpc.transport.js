@@ -1,7 +1,6 @@
 const http2 = require('http2')
-const protobuf = require('protobufjs')
 const stream = require('stream')
-const encoding = require('./transport.encoding.js')
+const encoding = require('./grpc.transport.encoding.js')
 // Simple Impl of:
 // https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md
 
