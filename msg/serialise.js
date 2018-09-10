@@ -1,12 +1,13 @@
 const protobuf = require('../protobuf')(require('protobufjs'))
 const { SchemaConverter } = require('../protobuf.convert')
 const { readUTF8Lines, writeLengthPrefixedBuffers } = require('../streams')
+const { matchesFilter } = require('./filter')
 
 module.exports = {
   serialise,
 }
 
-function serialise(schemaName, prefixFormat, protobufPath) {
+function serialise(schemaName, prefixFormat, protobufPath, filterJsonObject) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -15,8 +16,10 @@ function serialise(schemaName, prefixFormat, protobufPath) {
 
   lineStream.on('line', line => {
     const jsonObject = JSON.parse(line)
-    const binaryBuffer = converter.json_object_to_binary_buffer(jsonObject)
-    prefixedBinaryStream.write(binaryBuffer)
+    if(matchesFilter(jsonObject, filterJsonObject)) {
+      const binaryBuffer = converter.json_object_to_binary_buffer(jsonObject)
+      prefixedBinaryStream.write(binaryBuffer)
+    }
   })
 
   if(process.stdin.isTTY) {

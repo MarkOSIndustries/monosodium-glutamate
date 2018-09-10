@@ -1,13 +1,13 @@
 const protobuf = require('../protobuf')(require('protobufjs'))
 const { SchemaConverter } = require('../protobuf.convert')
 const { readLengthPrefixedBuffers } = require('../streams')
-const {inspect} = require('util')
-
+const { matchesFilter } = require('./filter')
+const { inspect } = require('util')
 module.exports = {
   deserialise,
 }
 
-function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath) {
+function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath, filterJsonObject) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -19,8 +19,10 @@ function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath) {
 
   prefixedBinaryStream.on('data', binaryBuffer => {
     const jsonObject = converter.binary_buffer_to_json_object(binaryBuffer)
-    process.stdout.write(serialiseJsonObject(jsonObject))
-    process.stdout.write(delimiterBuffer)
+    if(matchesFilter(jsonObject, filterJsonObject)) {
+      process.stdout.write(serialiseJsonObject(jsonObject))
+      process.stdout.write(delimiterBuffer)
+    }
   })
 
   if(process.stdin.isTTY) {

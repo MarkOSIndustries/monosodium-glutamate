@@ -19,8 +19,8 @@ const yargs = require('yargs') // eslint-disable-line
         default: 'hex',
         choices: ['base64', 'hex'],
       })
-  }, ({schema, encoding, delimiter, protobufs}) => {
-    encode(schema, encoding, delimiter, protobufs)
+  }, ({schema, encoding, delimiter, protobufs, filter}) => {
+    encode(schema, encoding, delimiter, protobufs, filter)
   })
   .command('decode <schema> [encoding]', 'line-delimited, string-encoded protobuf binary records => delimited json strings', (argsSpec) => {
     argsSpec
@@ -33,32 +33,38 @@ const yargs = require('yargs') // eslint-disable-line
       default: 'hex',
       choices: ['base64', 'hex'],
     })
-  }, ({schema, encoding, delimiter, protobufs}) => {
-    decode(schema, encoding, delimiter, protobufs)
+  }, ({schema, encoding, delimiter, protobufs, filter}) => {
+    decode(schema, encoding, delimiter, protobufs, filter)
   })
   .command('serialise <schema>', 'line-delimited json strings => length-prefixed protobuf binary records', (argsSpec) => {
     argsSpec
     .positional('schema', {
       describe: 'protobuf schema to serialise messages with',
     })
-  }, ({schema, prefix, protobufs}) => {
-    serialise(schema, prefix, protobufs)
+  }, ({schema, prefix, protobufs, filter}) => {
+    serialise(schema, prefix, protobufs, filter)
   })
   .command('deserialise <schema>', 'length-prefixed protobuf binary records => delimited json strings', (argsSpec) => {
     argsSpec
     .positional('schema', {
       describe: 'protobuf schema to deserialise messages with',
     })
-  }, ({schema, prefix, delimiter, protobufs}) => {
-    deserialise(schema, prefix, delimiter, protobufs)
+  }, ({schema, prefix, delimiter, protobufs, filter}) => {
+    deserialise(schema, prefix, delimiter, protobufs, filter)
   })
   .command('spam <schema>', 'generates valid, pseudo-random records as delimited json strings', (argsSpec) => {
     argsSpec
     .positional('schema', {
       describe: 'protobuf schema to generate messages with',
     })
-  }, ({schema, delimiter, protobufs}) => {
-    spam(schema, delimiter, protobufs)
+  }, ({schema, delimiter, protobufs, filter}) => {
+    spam(schema, delimiter, protobufs, filter)
+  })
+  .option('filter', {
+    alias: 'f',
+    describe: 'filter records by matching field values against a sample json payload',
+    default: '{}',
+    coerce: jsonString => JSON.parse(jsonString)
   })
   .option('delimiter', {
     alias: 'd',

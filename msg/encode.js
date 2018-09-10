@@ -1,12 +1,13 @@
 const protobuf = require('../protobuf')(require('protobufjs'))
 const { SchemaConverter } = require('../protobuf.convert')
 const { readUTF8Lines } = require('../streams')
+const { matchesFilter } = require('./filter')
 
 module.exports = {
   encode,
 }
 
-function encode(schemaName, encodingName, delimiterBuffer, protobufPath) {
+function encode(schemaName, encodingName, delimiterBuffer, protobufPath, filterJsonObject) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -14,9 +15,11 @@ function encode(schemaName, encodingName, delimiterBuffer, protobufPath) {
 
   lineStream.on('line', line => {
     const jsonObject = JSON.parse(line)
-    const stringEncodedBinary = converter.json_object_to_string_encoded_binary(jsonObject, encodingName)
-    process.stdout.write(stringEncodedBinary)
-    process.stdout.write(delimiterBuffer)
+    if(matchesFilter(jsonObject, filterJsonObject)) {
+      const stringEncodedBinary = converter.json_object_to_string_encoded_binary(jsonObject, encodingName)
+      process.stdout.write(stringEncodedBinary)
+      process.stdout.write(delimiterBuffer)
+    }
   })
 
   if(process.stdin.isTTY) {
