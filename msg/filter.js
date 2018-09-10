@@ -6,7 +6,7 @@ function matchesFilter(jsonObject, filterJsonObject) {
       }).indexOf(false) < 0
   }
 
-  return jsonObject === filterJsonObject
+  return jsonObject == filterJsonObject
 }
 
 module.exports = {
