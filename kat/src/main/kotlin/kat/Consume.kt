@@ -4,10 +4,9 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import kat.kafka.Broker
+import kat.kafka.Brokers
 import kat.kafka.EarliestOffsetSpec
 import kat.kafka.EphemeralConsumer
-import java.lang.String
 import java.nio.ByteBuffer
 
 class Consume() : CliktCommand(help = "Consume records from Kafka") {
@@ -16,7 +15,7 @@ class Consume() : CliktCommand(help = "Consume records from Kafka") {
   val encoding by option()
 
   override fun run() {
-    val ephemeralConsumer = EphemeralConsumer(Broker("localhost", 9092))
+    val ephemeralConsumer = EphemeralConsumer(*Brokers.from(brokers))
 
     val sizeBufferArray = ByteArray(4)
     val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
