@@ -1,19 +1,20 @@
 package kat
 
-import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.default
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import kat.kafka.*
+import kat.kafka.Brokers
+import kat.kafka.EarliestOffsetSpec
+import kat.kafka.EphemeralConsumer
+import kat.kafka.LatestOffsetSpec
+import kat.kafka.TimestampOffsetSpec
+import kat.kafka.TopicIterator
 import java.nio.ByteBuffer
 import java.time.Instant
 
-class Consume() : CliktCommand(help = "Consume records from Kafka") {
-  val topic by argument("topic", "which topic should be consumed")
+class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
   val seek by argument("seek", "one of 'earliest', 'latest', or 'timestamp'").default("earliest")
   val timestamp by argument("timestamp", "the epoch milliseconds timestamp to seek to").default(Instant.now().toEpochMilli().toString())
-  val brokers by option(envvar = "KAFKA_BROKERS").default("localhost:9092")
   val encoding by option()
 
   override fun run() {
@@ -29,7 +30,7 @@ class Consume() : CliktCommand(help = "Consume records from Kafka") {
       else -> throw RuntimeException("Unexpected seek option - $seek")
     }
 
-    ephemeralConsumer.consumeFrom(topic, offsetSpec) { record ->
+    TopicIterator(ephemeralConsumer, topic, offsetSpec).forEach { record ->
       // TODO: move swithcing to a lambda return func
       when(encoding) {
         "hex" -> {
@@ -42,8 +43,6 @@ class Consume() : CliktCommand(help = "Consume records from Kafka") {
           System.out.write(record.value())
         }
       }
-
-      true
     }
   }
 }

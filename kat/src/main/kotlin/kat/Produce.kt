@@ -1,16 +1,11 @@
 package kat
 
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import kat.kafka.Brokers
 import kat.kafka.Producer
 import java.io.DataInputStream
 
-class Produce() : CliktCommand() {
-  val topic by argument("topic")
-  val brokers by option(envvar = "KAFKA_BROKERS").default("localhost:9092")
+class Produce : KafkaTopicCommand(help = "Produce records to Kafka\nReads stdin as length-prefixed binary records and sends them to Kafka") {
   val encoding by option()
 
   override fun run() {
