@@ -13,16 +13,16 @@ class Produce() : CliktCommand() {
   val brokers by option(envvar = "KAFKA_BROKERS").default("localhost:9092")
   val encoding by option()
 
-  private val MAX_MESSAGE_SIZE: Int = 65536 // 64 kb should be enough
-
   override fun run() {
-//    val producer = Producer(*Brokers.from(brokers))
-//
-//    val byteArray: ByteArray(MAX_MESSAGE_SIZE)
-//    while(true) {
-//      val input = DataInputStream(System.`in`)
-//      val nextMessageSize = input.readInt()
-//      input.readFully()
-//    }
+    val producer = Producer(*Brokers.from(brokers))
+
+    while(true) {
+      val input = DataInputStream(System.`in`)
+      val nextMessageSize = input.readInt()
+      val byteArray = ByteArray(nextMessageSize)
+      input.readFully(byteArray)
+      producer.produce(topic, byteArray)
+      System.out.print('.')
+    }
   }
 }
