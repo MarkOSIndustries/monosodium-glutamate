@@ -3,6 +3,7 @@ const {encode} = require('./encode')
 const {decode} = require('./decode')
 const {serialise} = require('./serialise')
 const {deserialise} = require('./deserialise')
+const {spam} = require('./spam')
 const env = require('../env')
 var os = require('os')
 
@@ -38,7 +39,7 @@ const yargs = require('yargs') // eslint-disable-line
   .command('serialise <schema>', 'line-delimited json strings => length-prefixed protobuf binary records', (argsSpec) => {
     argsSpec
     .positional('schema', {
-      describe: 'protobuf schema to encode messages with',
+      describe: 'protobuf schema to serialise messages with',
     })
   }, ({schema, prefix, protobufs}) => {
     serialise(schema, prefix, protobufs)
@@ -46,10 +47,18 @@ const yargs = require('yargs') // eslint-disable-line
   .command('deserialise <schema>', 'length-prefixed protobuf binary records => delimited json strings', (argsSpec) => {
     argsSpec
     .positional('schema', {
-      describe: 'protobuf schema to encode messages with',
+      describe: 'protobuf schema to deserialise messages with',
     })
   }, ({schema, prefix, delimiter, protobufs}) => {
     deserialise(schema, prefix, delimiter, protobufs)
+  })
+  .command('spam <schema>', 'generates valid, pseudo-random records as delimited json strings', (argsSpec) => {
+    argsSpec
+    .positional('schema', {
+      describe: 'protobuf schema to generate messages with',
+    })
+  }, ({schema, delimiter, protobufs}) => {
+    spam(schema, delimiter, protobufs)
   })
   .option('delimiter', {
     alias: 'd',

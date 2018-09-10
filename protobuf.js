@@ -1,5 +1,6 @@
 const fsLib = require('fs')
 const pathLib = require('path')
+const {rng} = require('crypto')
 
 function initWithProtobufJS(protobufjs) {
   function populate(messages, directoryPath) {
@@ -88,6 +89,7 @@ function initWithProtobufJS(protobufjs) {
     }))
   }
 
+  // TODO: deprecate in favour of makeValidJsonRecord once enum code completion is done in GRPC GUI
   function makeFullySpecifiedJsonSample(messageType) {
     switch(messageType.constructor.name) {
       case 'Enum':
@@ -116,17 +118,47 @@ function initWithProtobufJS(protobufjs) {
     }
   }
 
+  function makeValidJsonRecord(messageType) {
+    switch(messageType.constructor.name) {
+      case 'Enum':
+        const keys = Object.keys(messageType.values)
+        return keys[rng(2).readUInt16BE()%keys.length]
+      case 'Type':
+      default: // assume anything we don't understand is a message and hope for the best
+        if(!messageType.fields || messageType.fields.length === 0) {
+          return {}
+        }
+        return Object.assign({}, ...Object.keys(messageType.fields).map(fieldKey => {
+          const field = messageType.fields[fieldKey]
+
+          const wrap =
+            field.keyType ?
+              (val => { return { [field.name]: { [makeTypeSample(field.keyType, `${field.name}_key`)]: val } } }) :
+            field.repeated ?
+              (val => { return { [field.name]: [ val ] } }) :
+              (val => { return { [field.name]: val } })
+
+          if(field.resolvedType) {
+            return wrap(makeValidJsonRecord(field.resolvedType))
+          }
+
+          return wrap(makeTypeSample(field.type, field.name))
+        }))
+    }
+  }
+
+
   function makeTypeSample(fieldType, fieldName) {
     switch(fieldType) {
       case "bool":
-        return false
+        return Boolean(rng(1).readUIntBE()%2)
       case "string":
-        return `${fieldName} ${Math.ceil(1000*Math.random())}`
+        return `${fieldName} ${rng(2).readUInt16BE()}`
       case "bytes":
-        return btoa(`${fieldName} ${Math.ceil(1000*Math.random())}`)
+        return Buffer.concat([Buffer.from(fieldName), rng(12)]).toString("base64")
       default:
         // everything else is a number :)
-        return Math.ceil(1000*Math.random())
+        return rng(2).readUInt16BE()
     }
   }
 
@@ -135,6 +167,7 @@ function initWithProtobufJS(protobufjs) {
     makeFlatIndex,
     describeServiceMethods,
     makeFullySpecifiedJsonSample,
+    makeValidJsonRecord,
   }
 }
 
