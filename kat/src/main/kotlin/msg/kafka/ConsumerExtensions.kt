@@ -1,4 +1,4 @@
-package kat.kafka
+package msg.kafka
 
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.TopicPartition

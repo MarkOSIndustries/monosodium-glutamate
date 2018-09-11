@@ -14,12 +14,14 @@ dependencies {
   compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
   compile group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
   compile group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
+  compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
+  compile project(':schemas')
 }
 
 jar {
   manifest {
     attributes(
-      'Main-Class': 'kat.MainKt'
+      'Main-Class': 'msg.kat.MainKt'
     )
   }
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

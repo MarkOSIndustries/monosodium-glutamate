@@ -1,10 +1,10 @@
-package kat
+package msg.kat
 
 import com.github.ajalt.clikt.parameters.arguments.argument
-import kat.kafka.Brokers
-import kat.kafka.EphemeralConsumer
-import kat.kafka.TimestampOffsetSpec
-import kat.kafka.topicPartitions
+import msg.kafka.Brokers
+import msg.kafka.EphemeralConsumer
+import msg.kafka.TimestampOffsetSpec
+import msg.kafka.topicPartitions
 import java.time.Duration
 
 class Offset : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offsets for each partition at a given timestamp and prints to stdout") {

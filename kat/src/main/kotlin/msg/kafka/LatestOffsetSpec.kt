@@ -1,10 +1,10 @@
-package kat.kafka
+package msg.kafka
 
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.TopicPartition
 
-class EarliestOffsetSpec() : OffsetSpec {
+class LatestOffsetSpec() : OffsetSpec {
   override fun <K,V>getOffsets(consumer:Consumer<K,V>, topicPartitions: List<TopicPartition>): Map<TopicPartition, Long> {
-    return consumer.beginningOffsets(topicPartitions.toList())
+    return consumer.endOffsets(topicPartitions.toList())
   }
 }

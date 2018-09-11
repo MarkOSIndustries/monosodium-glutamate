@@ -2,6 +2,11 @@ syntax="proto3";
 
 package msg;
 
+option java_package = "msg.schemas";
+option java_outer_classname = "MSG";
+
+import 'google/protobuf/any.proto';
+
 message KafkaRecord {
   string topic = 1;
   int32 partition = 2;
@@ -11,14 +16,14 @@ message KafkaRecord {
   bytes value = 6;
 }
 
-//message TypedKafkaRecord {
-//  string topic = 1;
-//  int32 partition = 2;
-//  int64 offset = 3;
-//  int64 timestamp = 4;
-//  bytes key = 5;
-//  google.protobuf.Any value = 6;
-//}
+message TypedKafkaRecord {
+  string topic = 1;
+  int32 partition = 2;
+  int64 offset = 3;
+  int64 timestamp = 4;
+  bytes key = 5;
+  google.protobuf.Any value = 6;
+}
 
 service KafkaGRPCBridge {
   rpc consume(ConsumeRequest) returns (stream KafkaRecord);

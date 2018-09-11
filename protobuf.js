@@ -3,31 +3,40 @@ const pathLib = require('path')
 const {rng} = require('crypto')
 
 function initWithProtobufJS(protobufjs) {
-  function populate(messages, directoryPath) {
-    // TODO: use custom resolver to load google protobufs from here rather than requiring them
-    fsLib
-      .readdirSync(directoryPath)
-      .forEach(filename => {
-        const filePath = pathLib.join(directoryPath, filename)
-        if(fsLib.statSync(filePath).isDirectory()) {
-          populate(messages, filePath)
-          return
-        }
+  function populate(messages, directoryPaths) {
+    if(!Array.isArray(directoryPaths)) {
+      directoryPaths = [directoryPaths]
+    }
 
-        if(filename.endsWith('.proto')) {
-          messages.loadSync(filePath,{
-                keepCase: true,
-                enums: String,
-                defaults: true,
-                oneofs: true,
-              })
-        }
-      })
+    directoryPaths.forEach(directoryPath => {
+      fsLib
+        .readdirSync(directoryPath)
+        .forEach(filename => {
+          const filePath = pathLib.join(directoryPath, filename)
+          if(fsLib.statSync(filePath).isDirectory()) {
+            populate(messages, filePath)
+            return
+          }
+
+          if(filename.endsWith('.proto')) {
+            messages.loadSync(filePath,{
+                  keepCase: true,
+                  enums: String,
+                  defaults: true,
+                  oneofs: true,
+                })
+          }
+        })
+    })
     return messages
   }
 
-  function loadDirectory(directoryPath) {
-    const messages = populate(new protobufjs.Root(), directoryPath)
+  function loadDirectory(...directoryPaths) {
+    const messages = populate(new protobufjs.Root(), [
+      pathLib.join(__dirname, 'schemas', 'google'),
+      pathLib.join(__dirname, 'schemas', 'src', 'main', 'proto'),
+      ...directoryPaths
+    ])
 
     // Important - ensures that fields like resolvedType contain a value
     messages.resolveAll()

@@ -1,8 +1,8 @@
-package kat
+package msg.kat
 
 import com.github.ajalt.clikt.parameters.options.option
-import kat.kafka.Brokers
-import kat.kafka.Producer
+import msg.kafka.Brokers
+import msg.kafka.Producer
 import java.io.DataInputStream
 
 class Produce : KafkaTopicCommand(help = "Produce records to Kafka\nReads stdin as length-prefixed binary records and sends them to Kafka") {

@@ -1,4 +1,4 @@
-package kat
+package msg.kat
 
 import com.github.ajalt.clikt.core.subcommands
 

@@ -1,4 +1,4 @@
-package kat.kafka
+package msg.kafka
 
 object Brokers {
   fun from(csvBrokers: String):Array<Broker> =

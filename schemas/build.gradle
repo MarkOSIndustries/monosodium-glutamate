@@ -1,8 +1,7 @@
 plugins {
   id 'com.google.protobuf' version '0.8.5'
+  id 'java'
 }
-
-apply plugin: 'java'
 
 repositories {
   mavenCentral()
@@ -12,6 +11,14 @@ dependencies {
   compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
   compile group: 'io.grpc', name: 'grpc-protobuf', version: '1.14.0'
   compile group: 'io.grpc', name: 'grpc-stub', version: '1.14.0'
+}
+
+sourceSets {
+  main {
+    proto {
+      include 'google/**/*.proto'
+    }
+  }
 }
 
 protobuf {
@@ -29,3 +36,4 @@ protobuf {
     }
   }
 }
+
