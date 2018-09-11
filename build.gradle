@@ -1,0 +1,4 @@
+allprojects {
+  group 'msg'
+  version '1.0.0'
+}

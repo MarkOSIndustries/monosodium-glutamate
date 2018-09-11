@@ -1,0 +1,31 @@
+plugins {
+  id 'com.google.protobuf' version '0.8.5'
+}
+
+apply plugin: 'java'
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
+  compile group: 'io.grpc', name: 'grpc-protobuf', version: '1.14.0'
+  compile group: 'io.grpc', name: 'grpc-stub', version: '1.14.0'
+}
+
+protobuf {
+  protoc {
+    artifact = "com.google.protobuf:protoc:3.5.1-1"
+  }
+  plugins {
+    grpc {
+      artifact = 'io.grpc:protoc-gen-grpc-java:1.14.0'
+    }
+  }
+  generateProtoTasks {
+    all()*.plugins {
+      grpc {}
+    }
+  }
+}

@@ -1,0 +1,47 @@
+syntax="proto3";
+
+package msg;
+
+message KafkaRecord {
+  string topic = 1;
+  int32 partition = 2;
+  int64 offset = 3;
+  int64 timestamp = 4;
+  bytes key = 5;
+  bytes value = 6;
+}
+
+//message TypedKafkaRecord {
+//  string topic = 1;
+//  int32 partition = 2;
+//  int64 offset = 3;
+//  int64 timestamp = 4;
+//  bytes key = 5;
+//  google.protobuf.Any value = 6;
+//}
+
+service KafkaGRPCBridge {
+  rpc consume(ConsumeRequest) returns (stream KafkaRecord);
+  rpc offsets(OffsetsRequest) returns (stream OffsetsResponse);
+}
+
+message ConsumeRequest {
+  string topic = 1;
+  oneof seek_one_of {
+    bool earliest = 2;
+    bool latest = 3;
+    int64 timestamp = 4;
+  }
+}
+
+message OffsetsRequest {
+  string topic = 1;
+  int64 timestamp = 2;
+}
+
+message OffsetsResponse {
+  string topic = 1;
+  int32 partition = 2;
+  int64 offset = 3;
+  int64 timestamp = 4;
+}
