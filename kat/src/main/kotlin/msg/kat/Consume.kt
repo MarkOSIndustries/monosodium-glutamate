@@ -42,7 +42,13 @@ class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads reco
           record.value().map { String.format("%02X", it) }.forEach { System.out.print(it) }
           println()
         }
-        "protobuf" -> {
+        "msg.KafkaRecord" -> {
+          val kafkaRecord = toProto(record).toByteArray()
+          sizeBuffer.putInt(0, kafkaRecord.size)
+          System.out.write(sizeBufferArray)
+          System.out.write(kafkaRecord)
+        }
+        "msg.TypedKafkaRecord" -> {
           val kafkaRecord = toTypedProto(record).toByteArray()
           sizeBuffer.putInt(0, kafkaRecord.size)
           System.out.write(sizeBufferArray)
@@ -58,22 +64,36 @@ class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads reco
   }
 }
 
-private fun toProto(record: ConsumerRecord<ByteArray, ByteArray>) =
-  MSG.KafkaRecord.newBuilder()
+private fun toProto(record: ConsumerRecord<ByteArray, ByteArray>):MSG.KafkaRecord {
+  val builder = MSG.KafkaRecord.newBuilder()
     .setTopic(record.topic())
     .setPartition(record.partition())
     .setOffset(record.offset())
     .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
-    .setKey(ByteString.copyFrom(record.key()))
-    .setValue(ByteString.copyFrom(record.value()))
-    .build()
 
-private fun toTypedProto(record: ConsumerRecord<ByteArray, ByteArray>) =
-  MSG.TypedKafkaRecord.newBuilder()
+  if(record.key() != null) {
+    builder.setKey(ByteString.copyFrom(record.key()))
+  }
+  if(record.value() != null) {
+    // TODO: accept schema as input
+    builder.setValue(ByteString.copyFrom(record.value()))
+  }
+  return builder.build()
+}
+
+private fun toTypedProto(record: ConsumerRecord<ByteArray, ByteArray>):MSG.TypedKafkaRecord {
+  val builder = MSG.TypedKafkaRecord.newBuilder()
     .setTopic(record.topic())
     .setPartition(record.partition())
     .setOffset(record.offset())
     .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
-    .setKey(ByteString.copyFrom(record.key()))
-    .setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(record.topic()).build() ) // TODO: accept schema as input
-    .build()
+
+  if(record.key() != null) {
+    builder.setKey(ByteString.copyFrom(record.key()))
+  }
+  if(record.value() != null) {
+    // TODO: accept schema as input
+    builder.setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(record.topic()).build() )
+  }
+  return builder.build()
+}
