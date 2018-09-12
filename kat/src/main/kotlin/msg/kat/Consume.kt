@@ -2,98 +2,49 @@ package msg.kat
 
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.default
+import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import com.google.protobuf.Any
-import com.google.protobuf.ByteString
-import com.google.protobuf.Timestamp
+import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.long
 import msg.kafka.Brokers
-import msg.kafka.EarliestOffsetSpec
+import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.EphemeralConsumer
-import msg.kafka.LatestOffsetSpec
-import msg.kafka.TimestampOffsetSpec
+import msg.kafka.offsets.LatestOffsetSpec
+import msg.kafka.offsets.TimestampOffsetSpec
 import msg.kafka.TopicIterator
-import java.nio.ByteBuffer
+import msg.kafka.offsets.MaxOffsetSpec
+import msg.kafka.offsets.OffsetSpec
 import java.time.Instant
-import msg.schemas.MSG
-import org.apache.kafka.clients.consumer.ConsumerRecord
 
 class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
-  val seek by argument("seek", "one of 'earliest', 'latest', or 'timestamp'").default("earliest")
-  val timestamp by argument("timestamp", "the epoch milliseconds timestamp to seek to").default(Instant.now().toEpochMilli().toString())
-  val encoding by option()
+  private val makeOffsetSpec:Map<String,(Long)->OffsetSpec> = mapOf(
+    "earliest" to { _ -> EarliestOffsetSpec() },
+    "latest" to { _ ->LatestOffsetSpec() },
+    "timestamp" to { timestamp ->TimestampOffsetSpec(timestamp) },
+    "ts" to { timestamp ->TimestampOffsetSpec(timestamp) },
+    "forever" to { _ ->MaxOffsetSpec() }
+  )
+
+  private val emitters = mapOf(
+    "hex" to Emitters.lineDelimitedHexValues(System.out),
+    "base64" to Emitters.lineDelimitedBase64Values(System.out),
+    "binary" to Emitters.lengthPrefixedBinaryValues(System.out),
+    "msg.KafkaRecord" to Emitters.lengthPrefixedKafkaRecords(System.out),
+    "msg.TypedKafkaRecord" to Emitters.lengthPrefixedTypedKafkaRecords(System.out)
+  )
+
+  private val encoding by argument(help = "the format to emit records in on stdout").choice(*emitters.keys.toTypedArray()).default("binary")
+  private val startOffsets by argument(help = "which offsets to start at (ts is shorthand for timestamp)").choice("earliest","latest","timestamp","ts").default("earliest")
+  private val endOffsets by argument(help = "which offsets to stop at (ts is shorthand for timestamp)").choice("forever","latest","timestamp","ts").default("forever")
+  private val fromTime by option("--from", "-f", "--start", "-s", help = "earliest epoch milliseconds timestamp to fetch (exclusive)").long().default(Instant.now().toEpochMilli())
+  private val untilTime by option("--until", "-u", "--end", "-e", help = "latest epoch milliseconds timestamp to fetch (inclusive)").long().default(Instant.now().toEpochMilli())
 
   override fun run() {
     val ephemeralConsumer = EphemeralConsumer(*Brokers.from(brokers))
+    val from = makeOffsetSpec[startOffsets]!!(fromTime)
+    val until = makeOffsetSpec[endOffsets]!!(untilTime)
+    val emitter = emitters[encoding]!!
 
-    val sizeBufferArray = ByteArray(4)
-    val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
-
-    val offsetSpec = when(seek.trim().toLowerCase()) {
-      "earliest" -> EarliestOffsetSpec()
-      "latest" -> LatestOffsetSpec()
-      "timestamp" -> TimestampOffsetSpec(timestamp.toLong())
-      else -> throw RuntimeException("Unexpected seek option - $seek")
-    }
-
-    TopicIterator(ephemeralConsumer, topic, offsetSpec).forEach { record ->
-      // TODO: move swithcing to a lambda return func
-      when(encoding) {
-        "hex" -> {
-          record.value().map { String.format("%02X", it) }.forEach { System.out.print(it) }
-          println()
-        }
-        "msg.KafkaRecord" -> {
-          val kafkaRecord = toProto(record).toByteArray()
-          sizeBuffer.putInt(0, kafkaRecord.size)
-          System.out.write(sizeBufferArray)
-          System.out.write(kafkaRecord)
-        }
-        "msg.TypedKafkaRecord" -> {
-          val kafkaRecord = toTypedProto(record).toByteArray()
-          sizeBuffer.putInt(0, kafkaRecord.size)
-          System.out.write(sizeBufferArray)
-          System.out.write(kafkaRecord)
-        }
-        else -> {
-          sizeBuffer.putInt(0, record.value().size)
-          System.out.write(sizeBufferArray)
-          System.out.write(record.value())
-        }
-      }
-    }
+    TopicIterator(ephemeralConsumer, topic, from, until).forEach(emitter)
   }
-}
-
-private fun toProto(record: ConsumerRecord<ByteArray, ByteArray>):MSG.KafkaRecord {
-  val builder = MSG.KafkaRecord.newBuilder()
-    .setTopic(record.topic())
-    .setPartition(record.partition())
-    .setOffset(record.offset())
-    .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
-
-  if(record.key() != null) {
-    builder.setKey(ByteString.copyFrom(record.key()))
-  }
-  if(record.value() != null) {
-    // TODO: accept schema as input
-    builder.setValue(ByteString.copyFrom(record.value()))
-  }
-  return builder.build()
-}
-
-private fun toTypedProto(record: ConsumerRecord<ByteArray, ByteArray>):MSG.TypedKafkaRecord {
-  val builder = MSG.TypedKafkaRecord.newBuilder()
-    .setTopic(record.topic())
-    .setPartition(record.partition())
-    .setOffset(record.offset())
-    .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
-
-  if(record.key() != null) {
-    builder.setKey(ByteString.copyFrom(record.key()))
-  }
-  if(record.value() != null) {
-    // TODO: accept schema as input
-    builder.setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(record.topic()).build() )
-  }
-  return builder.build()
 }

@@ -3,7 +3,7 @@ package msg.kat
 import com.github.ajalt.clikt.parameters.arguments.argument
 import msg.kafka.Brokers
 import msg.kafka.EphemeralConsumer
-import msg.kafka.TimestampOffsetSpec
+import msg.kafka.offsets.TimestampOffsetSpec
 import msg.kafka.topicPartitions
 import java.time.Duration
 
