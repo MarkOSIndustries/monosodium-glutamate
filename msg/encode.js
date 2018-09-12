@@ -7,7 +7,7 @@ module.exports = {
   encode,
 }
 
-function encode(schemaName, encodingName, delimiterBuffer, protobufPath, filterJsonObject) {
+function encode(schemaName, encodingName, delimiterBuffer, protobufPath, filterJsonObject, templateFunction) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -16,7 +16,7 @@ function encode(schemaName, encodingName, delimiterBuffer, protobufPath, filterJ
   lineStream.on('line', line => {
     const jsonObject = JSON.parse(line)
     if(matchesFilter(jsonObject, filterJsonObject)) {
-      const stringEncodedBinary = converter.json_object_to_string_encoded_binary(jsonObject, encodingName)
+      const stringEncodedBinary = converter.json_object_to_string_encoded_binary(templateFunction(jsonObject), encodingName)
       process.stdout.write(stringEncodedBinary)
       process.stdout.write(delimiterBuffer)
     }

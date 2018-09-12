@@ -7,7 +7,7 @@ module.exports = {
   serialise,
 }
 
-function serialise(schemaName, prefixFormat, protobufPath, filterJsonObject) {
+function serialise(schemaName, prefixFormat, protobufPath, filterJsonObject, templateFunction) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -17,7 +17,7 @@ function serialise(schemaName, prefixFormat, protobufPath, filterJsonObject) {
   lineStream.on('line', line => {
     const jsonObject = JSON.parse(line)
     if(matchesFilter(jsonObject, filterJsonObject)) {
-      const binaryBuffer = converter.json_object_to_binary_buffer(jsonObject)
+      const binaryBuffer = converter.json_object_to_binary_buffer(templateFunction(jsonObject))
       prefixedBinaryStream.write(binaryBuffer)
     }
   })

@@ -6,7 +6,7 @@ module.exports = {
   spam,
 }
 
-function spam(schemaName, delimiterBuffer, protobufPath, filterJsonObject) {
+function spam(schemaName, delimiterBuffer, protobufPath, filterJsonObject, templateFunction) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
 
 // TODO extract this - it's in 3 files already
@@ -17,7 +17,7 @@ function spam(schemaName, delimiterBuffer, protobufPath, filterJsonObject) {
 
   while(true) {
     const jsonObject = Object.assign(protobuf.makeValidJsonRecord(schema), filterJsonObject)
-    process.stdout.write(serialiseJsonObject(jsonObject))
+    process.stdout.write(serialiseJsonObject(templateFunction(jsonObject)))
     process.stdout.write(delimiterBuffer)
   }
 

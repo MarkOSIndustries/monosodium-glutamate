@@ -7,7 +7,7 @@ module.exports = {
   deserialise,
 }
 
-function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath, filterJsonObject) {
+function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath, filterJsonObject, templateFunction) {
   const schema = protobuf.loadDirectory(protobufPath).lookupType(schemaName)
   const converter = new SchemaConverter(schema)
 
@@ -20,7 +20,7 @@ function deserialise(schemaName, prefixFormat, delimiterBuffer, protobufPath, fi
   prefixedBinaryStream.on('data', binaryBuffer => {
     const jsonObject = converter.binary_buffer_to_json_object(binaryBuffer)
     if(matchesFilter(jsonObject, filterJsonObject)) {
-      process.stdout.write(serialiseJsonObject(jsonObject))
+      process.stdout.write(serialiseJsonObject(templateFunction(jsonObject)))
       process.stdout.write(delimiterBuffer)
     }
   })
