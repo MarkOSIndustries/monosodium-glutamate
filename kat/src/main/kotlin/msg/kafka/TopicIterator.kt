@@ -7,10 +7,10 @@ import org.apache.kafka.common.TopicPartition
 import java.time.Duration
 import java.util.LinkedList
 
-class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic:String, startOffsetSpec: OffsetSpec, endOffsetSpec: OffsetSpec) : Iterator<ConsumerRecord<K, V>> {
+class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic:String, startOffsetInclusiveSpec: OffsetSpec, endOffsetInclusiveSpec: OffsetSpec) : Iterator<ConsumerRecord<K, V>> {
   private val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1)).toMutableSet()
-  private val startOffsets = startOffsetSpec.getOffsets(consumer, partitions)
-  private val endOffsets = endOffsetSpec.getOffsets(consumer, partitions)
+  private val startOffsets = startOffsetInclusiveSpec.getOffsets(consumer, partitions)
+  private val endOffsets = endOffsetInclusiveSpec.getOffsets(consumer, partitions)
   private val records = LinkedList<ConsumerRecord<K,V>>()
 
   init {
@@ -37,14 +37,13 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
       }
       val batch = consumer.poll(Duration.ofSeconds(10))
       batch.records(topic).forEach { record ->
-        if(record.offset() < endOffsets[record.topicPartition()]!!) {
+        val topicPartition = TopicPartition(record.topic(), record.partition())
+        if(record.offset() <= endOffsets[topicPartition]!!) {
           records.push(record)
         } else {
-          partitions.remove(record.topicPartition())
+          partitions.remove(topicPartition)
         }
       }
     }
   }
 }
-
-private fun <K, V> ConsumerRecord<K, V>.topicPartition(): TopicPartition  = TopicPartition(topic(), partition())
