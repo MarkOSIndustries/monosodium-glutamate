@@ -22,7 +22,7 @@ class SchemaConverter {
   }
 
   schema_object_to_json_object(schemaObject) {
-    return schemaObject.$type.toObject(schemaObject, {
+    return this.schema.toObject(schemaObject, {
           keepCase: true,
           longs: Number,
           enums: String,
