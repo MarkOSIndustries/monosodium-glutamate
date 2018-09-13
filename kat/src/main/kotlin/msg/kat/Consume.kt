@@ -40,7 +40,7 @@ class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads reco
   private val untilTime by option("--until", "-u", "--end", "-e", help = "latest epoch milliseconds timestamp to fetch (inclusive)").long().default(Instant.now().toEpochMilli())
 
   override fun run() {
-    val ephemeralConsumer = EphemeralConsumer(*Brokers.from(brokers))
+    val ephemeralConsumer = EphemeralConsumer(Brokers.from(brokers))
     val from = makeOffsetSpec[startOffsets]!!(fromTime)
     val until = makeOffsetSpec[endOffsets]!!(untilTime)
     val emitter = emitters[encoding]!!

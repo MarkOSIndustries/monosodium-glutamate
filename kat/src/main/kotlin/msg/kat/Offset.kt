@@ -11,7 +11,7 @@ class Offset : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offs
   val timestamp by argument("timestamp", "the epoch milliseconds timestamp to find offsets from")
 
   override fun run() {
-    val consumer = EphemeralConsumer(*Brokers.from(brokers))
+    val consumer = EphemeralConsumer(Brokers.from(brokers))
     val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1))
 
     TimestampOffsetSpec(timestamp.toLong()).getOffsetsWithTimestamps(consumer, partitions).forEach {
