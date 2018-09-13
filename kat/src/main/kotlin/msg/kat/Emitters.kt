@@ -35,8 +35,8 @@ object Emitters {
     return lengthPrefixedBinaryValues(out) { toKafkaRecord(it).toByteArray() }
   }
 
-  fun lengthPrefixedTypedKafkaRecords(out: OutputStream) : (ConsumerRecord<ByteArray, ByteArray>)->Unit {
-    return lengthPrefixedBinaryValues(out) { toTypedKafkaRecord(it).toByteArray() }
+  fun lengthPrefixedTypedKafkaRecords(out: OutputStream, schema: String) : (ConsumerRecord<ByteArray, ByteArray>)->Unit {
+    return lengthPrefixedBinaryValues(out) { toTypedKafkaRecord(it, schema).toByteArray() }
   }
 
   private fun toKafkaRecord(record: ConsumerRecord<ByteArray, ByteArray>):MSG.KafkaRecord {
@@ -56,7 +56,7 @@ object Emitters {
     return builder.build()
   }
 
-  private fun toTypedKafkaRecord(record: ConsumerRecord<ByteArray, ByteArray>):MSG.TypedKafkaRecord {
+  private fun toTypedKafkaRecord(record: ConsumerRecord<ByteArray, ByteArray>, schema: String):MSG.TypedKafkaRecord {
     val builder = MSG.TypedKafkaRecord.newBuilder()
       .setTopic(record.topic())
       .setPartition(record.partition())
@@ -67,8 +67,7 @@ object Emitters {
       builder.setKey(ByteString.copyFrom(record.key()))
     }
     if(record.value() != null) {
-      // TODO: accept schema as input
-      builder.setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(record.topic()).build() )
+      builder.setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build() )
     }
     return builder.build()
   }
