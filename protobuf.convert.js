@@ -22,7 +22,15 @@ class SchemaConverter {
   }
 
   schema_object_to_json_object(schemaObject) {
-    return schemaObject.toJSON()
+    return schemaObject.$type.toObject(schemaObject, {
+          keepCase: true,
+          longs: Number,
+          enums: String,
+          bytes: String,
+          json: true,
+          defaults: true,
+          oneofs: true,
+        })
   }
 
   schema_object_to_binary_buffer(schemaObject) {
