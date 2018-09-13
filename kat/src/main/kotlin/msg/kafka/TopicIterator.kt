@@ -42,7 +42,7 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
       batch.records(topic).forEach { record ->
         val topicPartition = TopicPartition(record.topic(), record.partition())
         if(record.offset() < endOffsets[topicPartition]!!) {
-          records.push(record)
+          records.add(record)
         }
         if(record.offset()+1 >= endOffsets[topicPartition]!!) {
           partitions.remove(topicPartition)
