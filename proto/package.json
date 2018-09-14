@@ -4,10 +4,10 @@
   "description": "A CLI for generating and translating protobuf records between encodings",
   "scripts": {
     "start": "node ./index.js",
-    "msg": "node ./index.js"
+    "proto": "node ./index.js"
   },
   "bin": {
-    "msg": "./index.js"
+    "proto": "./index.js"
   },
   "repository": {
     "type": "git",

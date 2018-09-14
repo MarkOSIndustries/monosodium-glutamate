@@ -44,10 +44,11 @@ const yargs = require('yargs') // eslint-disable-line
   }, ({schema, prefix, protobufs, filter, template}) => {
     serialise(schema, prefix, protobufs, filter, template)
   })
-  .command('deserialise <schema>', 'length-prefixed protobuf binary records => delimited json strings', (argsSpec) => {
+  .command('deserialise [schema]', 'length-prefixed protobuf binary records => delimited json strings', (argsSpec) => {
     argsSpec
     .positional('schema', {
       describe: 'protobuf schema to deserialise messages with',
+      default: 'msg.TypedKafkaRecord',
     })
   }, ({schema, prefix, delimiter, protobufs, filter, template}) => {
     deserialise(schema, prefix, delimiter, protobufs, filter, template)
@@ -105,7 +106,7 @@ const yargs = require('yargs') // eslint-disable-line
     default: env.PROTO_HOME,
   })
   .wrap(null)
-  .env('MSG_')
+  .env('PROTO_')
 
 const argv = yargs.argv
 

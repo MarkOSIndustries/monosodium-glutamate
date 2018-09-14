@@ -1,3 +1,3 @@
 rootProject.name = 'monosodium-glutamate'
 
-include 'grpc-gui', 'kat', 'msg', 'schemas'
+include 'grpc-gui', 'kat', 'proto', 'schemas'
