@@ -26,17 +26,23 @@ message TypedKafkaRecord {
 }
 
 service KafkaGRPCBridge {
-  rpc consume(ConsumeRequest) returns (stream KafkaRecord);
+  rpc consume(ConsumeRequest) returns (stream TypedKafkaRecord);
   rpc offsets(OffsetsRequest) returns (stream OffsetsResponse);
 }
 
 message ConsumeRequest {
   string topic = 1;
-  oneof seek_one_of {
-    bool earliest = 2;
-    bool latest = 3;
-    int64 timestamp = 4;
+  string schema = 2;
+  oneof from_one_of {
+    bool from_earliest = 3;
+    bool from_latest = 4;
+    int64 from_timestamp = 5;
   }
+  oneof until_one_of {
+    bool until_latest = 6;
+    int64 until_timestamp = 7;
+  }
+  uint64 limit = 8;
 }
 
 message OffsetsRequest {

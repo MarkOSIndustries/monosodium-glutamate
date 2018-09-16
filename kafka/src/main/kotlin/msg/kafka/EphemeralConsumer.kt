@@ -13,8 +13,8 @@ import java.util.UUID
 
 class EphemeralConsumer(brokers:Collection<Broker>, vararg config:Pair<String,Any>) : KafkaConsumer<ByteArray, ByteArray>(mapOf(
   ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to brokers.joinToString(","),
-  ConsumerConfig.CLIENT_ID_CONFIG to "kat",
-  ConsumerConfig.GROUP_ID_CONFIG to "kat-${UUID.randomUUID()}",
+  ConsumerConfig.CLIENT_ID_CONFIG to "monosodium-glutamate",
+  ConsumerConfig.GROUP_ID_CONFIG to "monosodium-glutamate-${UUID.randomUUID()}",
   ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java.name,
   ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java.name,
   ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,

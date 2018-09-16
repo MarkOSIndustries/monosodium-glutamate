@@ -21,6 +21,8 @@ class Host : CliktCommand("Host the bridge on a given port") {
     val server = ServerBuilder.forPort(port).addService(KafkaGRPCBridgeImpl(Brokers.from(brokers))).build()
     server.start()
 
+    println("Listening for GRPC requests on $port")
+
     // TODO: shutdown hooks etc
     server.awaitTermination()
   }
