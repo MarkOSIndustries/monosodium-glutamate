@@ -10,15 +10,20 @@ dependencies {
   compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
   testCompile group: 'junit', name: 'junit', version: '4.11'
   testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+
+  compile group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
+  compile group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
   compile group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
+  compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
   compile project(':kafka')
   compile project(':schemas')
+  compile group: 'io.grpc', name: 'grpc-netty', version: '1.14.0'
 }
 
 jar {
   manifest {
     attributes(
-      'Main-Class': 'msg.kat.MainKt'
+      'Main-Class': 'msg.kgb.MainKt'
     )
   }
   from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }

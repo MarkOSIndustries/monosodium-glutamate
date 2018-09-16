@@ -47,11 +47,11 @@ object Emitters {
       .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
 
     if(record.key() != null) {
-      builder.setKey(ByteString.copyFrom(record.key()))
+      builder.key = ByteString.copyFrom(record.key())
     }
     if(record.value() != null) {
       // TODO: accept schema as input
-      builder.setValue(ByteString.copyFrom(record.value()))
+      builder.value = ByteString.copyFrom(record.value())
     }
     return builder.build()
   }
@@ -64,10 +64,10 @@ object Emitters {
       .setTimestamp(record.timestamp())//Timestamp.newBuilder().setSeconds(record.timestamp()/1000).setNanos(1000000000 * (record.timestamp()%1000).toInt()).build()
 
     if(record.key() != null) {
-      builder.setKey(ByteString.copyFrom(record.key()))
+      builder.key = ByteString.copyFrom(record.key())
     }
     if(record.value() != null) {
-      builder.setValue( Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build() )
+      builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
     }
     return builder.build()
   }
