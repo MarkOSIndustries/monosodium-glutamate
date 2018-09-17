@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const {transform} = require('./transform')
+const {schemas} = require('./schemas')
 const {coerceFilter} = require('./filter')
 const {coerceTemplate} = require('./template.js')
 const env = require('../env')
@@ -19,7 +20,7 @@ const yargs = require('yargs') // eslint-disable-line
           'hex',
           'binary',
           'generator',
-        ]
+        ],
       })
       .positional('output', {
         describe: 'the output format to use',
@@ -28,10 +29,20 @@ const yargs = require('yargs') // eslint-disable-line
           'base64',
           'hex',
           'binary',
-        ]
+        ],
       })
   }, argv => {
     transform(argv)
+  })
+  .command('schemas [query]', 'list all known schemas', (argsSpec) => {
+    argsSpec
+      .positional('query', {
+        describe: 'show only schemas containing the given substring (case insensitive)',
+        default: '',
+        coerce: query => new RegExp(query, 'gi'),
+      })
+  }, argv => {
+    schemas(argv)
   })
   .option('filter', {
     alias: 'f',
