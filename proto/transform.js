@@ -17,17 +17,15 @@ const streamSchemaObjectsFrom = {
     })
     return outStream
   },
-  lineDelimitedJson: ({inStream, filterJsonObject, converter}) => {
+  lineDelimitedJson: ({inStream, converter}) => {
     const outStream = new stream.Writable()
     const jsonObjectStream = streams.readLineDelimitedJsonObjects(inStream)
     jsonObjectStream.on('data', jsonObject => {
-      if(filterJsonObject(jsonObject)) {
-        outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
-      }
+      outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
     })
     return outStream
   },
-  lineDelimitedEncodedBinary: ({inStream, filterJsonObject, converter, encodingName}) => {
+  lineDelimitedEncodedBinary: ({inStream, converter, encodingName}) => {
     const outStream = new stream.Writable()
     const linesStream = streams.readUTF8Lines(inStream)
     linesStream.on('data', line => {
@@ -35,25 +33,26 @@ const streamSchemaObjectsFrom = {
     })
     return outStream
   },
-  generator: ({filterJsonObject, converter}) => {
+  generator: ({converter}) => {
     const outStream = new stream.Writable()
     setInterval(() => {
       const jsonObject = protobuf.makeValidJsonRecord(converter.schema)
-      if(filterJsonObject(jsonObject)) {
-        outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
-      }
+      outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
     }, 1)
     return outStream
   }
 }
 
 const streamSchemaObjectsTo = {
-  lengthPrefixedBinary: ({inStream, outStream, prefixFormat, converter}) => {
+  lengthPrefixedBinary: ({inStream, outStream, prefixFormat, filterJsonObject, converter}) => {
     const prefixedBinaryStream = streams.writeLengthPrefixedBuffers(outStream, prefixFormat)
 
     inStream.on('data', schemaObject => {
-      const binaryBuffer = converter.schema_object_to_binary_buffer(schemaObject)
-      prefixedBinaryStream.write(binaryBuffer)
+      const jsonObject = converter.schema_object_to_json_object(schemaObject)
+      if(filterJsonObject(jsonObject)) {
+        const binaryBuffer = converter.schema_object_to_binary_buffer(schemaObject)
+        prefixedBinaryStream.write(binaryBuffer)
+      }
     })
   },
   lineDelimitedJson: ({inStream, outStream, delimiterBuffer, filterJsonObject, stringifyJsonObject, converter}) => {
@@ -66,12 +65,15 @@ const streamSchemaObjectsTo = {
       }
     })
   },
-  lineDelimitedEncodedBinary: ({inStream, outStream, delimiterBuffer, encodingName, converter}) => {
+  lineDelimitedEncodedBinary: ({inStream, outStream, delimiterBuffer, encodingName, filterJsonObject, converter}) => {
     const delimitedOutputStream = streams.writeDelimited(outStream, delimiterBuffer)
 
     inStream.on('data', schemaObject => {
-      const stringEncodedBinary = converter.schema_object_to_string_encoded_binary(schemaObject, encodingName)
-      delimitedOutputStream.write(stringEncodedBinary)
+      const jsonObject = converter.schema_object_to_json_object(schemaObject)
+      if(filterJsonObject(jsonObject)) {
+        const stringEncodedBinary = converter.schema_object_to_string_encoded_binary(schemaObject, encodingName)
+        delimitedOutputStream.write(stringEncodedBinary)
+      }
     })
   },
 }
