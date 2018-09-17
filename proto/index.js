@@ -5,7 +5,39 @@ const {coerceTemplate} = require('./template.js')
 const env = require('../env')
 var os = require('os')
 
+const formats = {
+  'json': 'lineDelimitedJson',
+  'encoded': 'lineDelimitedEncodedBinary',
+  'binary': 'lengthPrefixedBinary',
+  'generator': 'generator',
+}
+
 const yargs = require('yargs') // eslint-disable-line
+  .command('transform <schema> <input> <output>', 'transform protobuf records from stdin to stdout', (argsSpec) => {
+    argsSpec
+      .positional('schema', {
+        describe: 'protobuf schema to interpret messages as',
+      })
+      .positional('input', {
+        describe: 'the input format to expect',
+        choices: [
+          'json',
+          'encoded',
+          'binary',
+          'generator',
+        ]
+      })
+      .positional('output', {
+        describe: 'the output format to use',
+        choices: [
+          'json',
+          'encoded',
+          'binary',
+        ]
+      })
+  }, argv => {
+    transform(formats[argv.input], formats[argv.output], argv)
+  })
   .command('encode <schema>', 'line-delimited json strings => delimited, string-encoded protobuf binary records', (argsSpec) => {
     argsSpec
       .positional('schema', {
