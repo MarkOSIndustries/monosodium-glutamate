@@ -55,13 +55,16 @@ const streamSchemaObjectsTo = {
       }
     })
   },
-  lineDelimitedJson: ({inStream, outStream, delimiterBuffer, filterJsonObject, stringifyJsonObject, converter}) => {
+  lineDelimitedJson: ({inStream, outStream, delimiterBuffer, filterJsonObject, shapeJsonObject, stringifyJsonObject, converter}) => {
     const delimitedOutputStream = streams.writeDelimited(outStream, delimiterBuffer)
 
     inStream.on('data', schemaObject => {
       const jsonObject = converter.schema_object_to_json_object(schemaObject)
       if(filterJsonObject(jsonObject)) {
-        delimitedOutputStream.write(stringifyJsonObject(jsonObject))
+        // TODO: make this filtering and shaping a single block of code outside of input/ouput concerns
+        const shapedJsonObject = shapeJsonObject(jsonObject)
+        console.log(shapedJsonObject)
+        delimitedOutputStream.write(stringifyJsonObject(shapedJsonObject))
       }
     })
   },
@@ -90,11 +93,12 @@ const encodings = {
   'hex': 'hex',
 }
 
-function transform({input, output, schema, prefix, encoding, delimiter, protobufs, filter, template}) {
+function transform({input, output, schema, prefix, encoding, delimiter, protobufs, filter, shape, template}) {
   const transformConfig = {
     prefixFormat: prefix,
     delimiterBuffer: delimiter,
     filterJsonObject: filter,
+    shapeJsonObject: shape,
     stringifyJsonObject: template,
     converter: new SchemaConverter(protobuf.loadDirectory(protobufs).lookupType(schema)),
     inStream: process.stdin,
