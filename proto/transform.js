@@ -78,10 +78,21 @@ const streamSchemaObjectsTo = {
   },
 }
 
-function transform(inputFormat, outputFormat, {schema, prefix, encoding, delimiter, protobufs, filter, template}) {
+const formats = {
+  'json': 'lineDelimitedJson',
+  'base64': 'lineDelimitedEncodedBinary',
+  'hex': 'lineDelimitedEncodedBinary',
+  'binary': 'lengthPrefixedBinary',
+  'generator': 'generator',
+}
+const encodings = {
+  'base64': 'base64',
+  'hex': 'hex',
+}
+
+function transform({input, output, schema, prefix, encoding, delimiter, protobufs, filter, template}) {
   const transformConfig = {
     prefixFormat: prefix,
-    encodingName: encoding,
     delimiterBuffer: delimiter,
     filterJsonObject: filter,
     stringifyJsonObject: template,
@@ -89,8 +100,9 @@ function transform(inputFormat, outputFormat, {schema, prefix, encoding, delimit
     inStream: process.stdin,
     outStream: process.stdout,
   }
-  transformConfig.inStream = streamSchemaObjectsFrom[inputFormat](transformConfig)
+
+  transformConfig.inStream = streamSchemaObjectsFrom[formats[input]](Object.assign({encodingName: encodings[input]}, transformConfig))
   transformConfig.inStream.on('end', () => { process.exit() })
 
-  streamSchemaObjectsTo[outputFormat](transformConfig)
+  streamSchemaObjectsTo[formats[output]](Object.assign({encodingName: encodings[output]}, transformConfig))
 }

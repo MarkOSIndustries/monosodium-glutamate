@@ -5,13 +5,6 @@ const {coerceTemplate} = require('./template.js')
 const env = require('../env')
 var os = require('os')
 
-const formats = {
-  'json': 'lineDelimitedJson',
-  'encoded': 'lineDelimitedEncodedBinary',
-  'binary': 'lengthPrefixedBinary',
-  'generator': 'generator',
-}
-
 const yargs = require('yargs') // eslint-disable-line
   .command('transform <schema> <input> <output>', 'transform protobuf records from stdin to stdout', (argsSpec) => {
     argsSpec
@@ -19,10 +12,11 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'protobuf schema to interpret messages as',
       })
       .positional('input', {
-        describe: 'the input format to expect',
+        describe: 'the input format to expect. generator means generate pseudo-random, valid records',
         choices: [
           'json',
-          'encoded',
+          'base64',
+          'hex',
           'binary',
           'generator',
         ]
@@ -31,52 +25,13 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the output format to use',
         choices: [
           'json',
-          'encoded',
+          'base64',
+          'hex',
           'binary',
         ]
       })
   }, argv => {
-    transform(formats[argv.input], formats[argv.output], argv)
-  })
-  .command('encode <schema>', 'line-delimited json strings => delimited, string-encoded protobuf binary records', (argsSpec) => {
-    argsSpec
-      .positional('schema', {
-        describe: 'protobuf schema to encode messages with',
-      })
-  }, argv => {
-    transform('lineDelimitedJson', 'lineDelimitedEncodedBinary', argv)
-  })
-  .command('decode <schema>', 'line-delimited, string-encoded protobuf binary records => delimited json strings', (argsSpec) => {
-    argsSpec
-    .positional('schema', {
-      describe: 'protobuf schema to encode messages with',
-    })
-  }, argv => {
-    transform('lineDelimitedEncodedBinary', 'lineDelimitedJson', argv)
-  })
-  .command('serialise <schema>', 'line-delimited json strings => length-prefixed protobuf binary records', (argsSpec) => {
-    argsSpec
-    .positional('schema', {
-      describe: 'protobuf schema to serialise messages with',
-    })
-  }, argv => {
-    transform('lineDelimitedJson', 'lengthPrefixedBinary', argv)
-  })
-  .command('deserialise <schema>', 'length-prefixed protobuf binary records => delimited json strings', (argsSpec) => {
-    argsSpec
-    .positional('schema', {
-      describe: 'protobuf schema to deserialise messages with',
-    })
-  }, argv => {
-    transform('lengthPrefixedBinary', 'lineDelimitedJson', argv)
-  })
-  .command('spam <schema>', 'generates valid, pseudo-random records as delimited json strings', (argsSpec) => {
-    argsSpec
-    .positional('schema', {
-      describe: 'protobuf schema to generate messages with',
-    })
-  }, argv => {
-    transform('generator', 'lineDelimitedJson', argv)
+    transform(argv)
   })
   .option('filter', {
     alias: 'f',
@@ -112,12 +67,6 @@ const yargs = require('yargs') // eslint-disable-line
       'UInt16BE',
       'UInt8',
     ]
-  })
-  .option('encoding', {
-    alias: 'e',
-    describe: 'the encoding to use for string-encoded binary',
-    default: 'hex',
-    choices: ['base64', 'hex'],
   })
   .option('protobufs', {
     describe: 'path which contains protobuf schemas (env PROTO_HOME to override)',
