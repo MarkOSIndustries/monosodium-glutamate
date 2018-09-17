@@ -2,8 +2,10 @@ const stream = require('stream')
 
 module.exports = {
   readUTF8Lines,
+  readLineDelimitedJsonObjects,
   readLengthPrefixedBuffers,
   writeLengthPrefixedBuffers,
+  writeDelimited,
 }
 
 function readUTF8Lines(inStream) {
@@ -18,7 +20,7 @@ function readUTF8Lines(inStream) {
       const lines = buffer.split(/[\r\n]/)
       buffer = lines.pop() // will be empty string if end char was newline
 
-      lines.filter(l => l!=='').forEach(l => outStream.emit('line', l))
+      lines.filter(l => l!=='').forEach(l => outStream.emit('data', l))
     }
   })
 
@@ -27,6 +29,14 @@ function readUTF8Lines(inStream) {
   })
 
   return outStream
+}
+
+function readLineDelimitedJsonObjects(inStream) {
+    const outStream = new stream.Writable()
+    readUTF8Lines(inStream).on('data', line => {
+      outStream.emit('data', JSON.parse(line))
+    })
+    return outStream
 }
 
 const prefixSizeByFormat = {
@@ -88,6 +98,22 @@ function writeLengthPrefixedBuffers(outStream, prefixFormat) {
     outputBuffer[prefixWriteFn](binaryBuffer.length)
     binaryBuffer.copy(outputBuffer, prefixSize)
     outStream.write(outputBuffer)
+  })
+
+  return inStream
+}
+
+function writeDelimited(outStream, delimiterBuffer) {
+  const inStream = new stream.Writable({
+    write(chunk,encoding,cb) {
+      this.emit('data', chunk)
+      cb()
+    }
+  })
+
+  inStream.on('data', data => {
+    outStream.write(data)
+    outStream.write(delimiterBuffer)
   })
 
   return inStream

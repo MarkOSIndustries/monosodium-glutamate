@@ -49,6 +49,10 @@ class SchemaConverter {
     return this.schema_object_to_json_object(this.binary_buffer_to_schema_object(binaryBuffer))
   }
 
+  schema_object_to_string_encoded_binary(schemaObject, encoding) {
+    return this.binary_buffer_to_string_encoded_binary(this.schema_object_to_binary_buffer(schemaObject), encoding)
+  }
+
   string_encoded_binary_to_schema_object(stringEncodedBinary, encoding) {
     return this.binary_buffer_to_schema_object(this.string_encoded_binary_to_binary_buffer(stringEncodedBinary, encoding))
   }
