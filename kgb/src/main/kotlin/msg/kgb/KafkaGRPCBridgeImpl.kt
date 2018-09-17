@@ -3,9 +3,6 @@ package msg.kgb
 import com.google.protobuf.Any
 import com.google.protobuf.ByteString
 import io.grpc.stub.StreamObserver
-import msg.kafka.Broker
-import msg.kafka.Brokers
-import msg.kafka.EphemeralConsumer
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec
@@ -14,14 +11,14 @@ import msg.kafka.offsets.TimestampOffsetSpec
 import msg.kafka.topicPartitions
 import msg.schemas.KafkaGRPCBridgeGrpc
 import msg.schemas.MSG
-import java.lang.RuntimeException
+import org.apache.kafka.clients.consumer.Consumer
 import java.time.Duration
 
-class KafkaGRPCBridgeImpl(private val brokers:Collection<Broker>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
+class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
   override fun consume(request: MSG.ConsumeRequest,
               responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>) {
     val iterator = TopicIterator(
-      EphemeralConsumer(brokers),
+      newConsumer(),
       request.topic,
       getFromOffsetSpec(request),
       getUntilOffsetSpec(request)
@@ -52,7 +49,7 @@ class KafkaGRPCBridgeImpl(private val brokers:Collection<Broker>) : KafkaGRPCBri
 
   override fun offsets(request: MSG.OffsetsRequest,
               responseObserver: StreamObserver<MSG.OffsetsResponse>) {
-    val consumer = EphemeralConsumer(brokers)
+    val consumer = newConsumer()
     val partitions = consumer.topicPartitions(request.topic, Duration.ofMinutes(1))
 
     TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {

@@ -40,7 +40,7 @@ class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads reco
 
   override fun run() {
     TopicIterator(
-      EphemeralConsumer(Brokers.from(brokers)),
+      newConsumer(),
       topic,
       parseOffsetSpec(fromOption),
       parseOffsetSpec(untilOption)
