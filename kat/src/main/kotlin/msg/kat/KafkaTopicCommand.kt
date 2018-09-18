@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import msg.kafka.Brokers
 import msg.kafka.EphemeralConsumer
+import msg.kafka.Producer
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.security.auth.SecurityProtocol
@@ -25,4 +26,10 @@ abstract class KafkaTopicCommand(help:String) : CliktCommand(help) {
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
       "sasl.mechanism" to sasl
       )
+
+  fun newProducer() : Producer = Producer(
+    Brokers.from(brokers),
+    CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
+    "sasl.mechanism" to sasl
+  )
 }

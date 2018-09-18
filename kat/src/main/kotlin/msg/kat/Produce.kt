@@ -9,7 +9,7 @@ class Produce : KafkaTopicCommand(help = "Produce records to Kafka\nReads stdin 
   val encoding by option()
 
   override fun run() {
-    val producer = Producer(Brokers.from(brokers))
+    val producer = newProducer()
 
     while(true) {
       val input = DataInputStream(System.`in`)

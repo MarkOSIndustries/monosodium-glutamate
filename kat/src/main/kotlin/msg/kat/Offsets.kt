@@ -7,7 +7,7 @@ import msg.kafka.offsets.TimestampOffsetSpec
 import msg.kafka.topicPartitions
 import java.time.Duration
 
-class Offset : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offsets for each partition at a given timestamp and prints to stdout") {
+class Offsets : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offsets for each partition at a given timestamp and prints to stdout") {
   val timestamp by argument("timestamp", "the epoch milliseconds timestamp to find offsets from")
 
   override fun run() {
