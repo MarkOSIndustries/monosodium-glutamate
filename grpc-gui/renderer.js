@@ -19,7 +19,10 @@ const dom = {
   serverHost: document.querySelector('#server-host'),
   serverPort: document.querySelector('#server-port'),
   serverStatus: document.querySelector('#server-status'),
-  serverDetails: document.querySelector('#server-area'),
+  serverArea: document.querySelector('#server-area'),
+  statusArea: document.querySelector('#status-area'),
+  invokeMethod: document.querySelector('#invoke-method'),
+  cancelMethod: document.querySelector('#cancel-method'),
 }
 
 const selected = {
@@ -34,17 +37,17 @@ const globals = {
   requestEditor: {},
   channelManager: new transport.ChannelManager(newChannel => {
     newChannel.on('connecting', channel => {
-      dom.serverDetails.setAttribute('data-state', 'connecting')
+      dom.serverArea.setAttribute('data-state', 'connecting')
       dom.serverStatus.innerHTML = `Connecting to ${channel.address}`
     })
     newChannel.on('connect', channel => {
-      dom.serverDetails.setAttribute('data-state', 'connected')
+      dom.serverArea.setAttribute('data-state', 'connected')
       dom.serverStatus.innerHTML = `Connected to ${channel.address}`
       localStorage.setItem('last-connected-host', channel.host)
       localStorage.setItem('last-connected-port', channel.port)
     })
     newChannel.on('disconnect', channel => {
-      dom.serverDetails.setAttribute('data-state', 'disconnected')
+      dom.serverArea.setAttribute('data-state', 'disconnected')
       dom.serverStatus.innerHTML = 'Disconnected'
     })
   }),
@@ -53,7 +56,8 @@ const globals = {
   },
   loadLastSentRequest: () => {
     alert('Please select a service method first');
-  }
+  },
+  isInvoking: false,
 }
 
 dom.serverHost.value = localStorage.getItem('last-connected-host')
@@ -174,11 +178,13 @@ function changeDirectory(path) {
 }
 
 function invokeServiceMethod() {
-  if(!selected.method) {
+  if(!selected.method || globals.isInvoking) {
     return
   }
-  const requestConverter = new SchemaConverter(selected.method.requestType)
-  const responseConverter = new SchemaConverter(selected.method.responseType)
+
+  globals.isInvoking = true
+  dom.invokeMethod.setAttribute('disabled', true)
+  dom.cancelMethod.removeAttribute('disabled')
 
   localStorage.setItem(`${selected.serviceName}-${selected.methodName}-request`, globals.requestEditor.getValue())
   const request = {
@@ -188,12 +194,17 @@ function invokeServiceMethod() {
     method: selected.methodName,
     body: JSON.parse(globals.requestEditor.getValue())
   }
+
   dom.requestListing.innerHTML = '<pre>'+JSON.stringify(request, undefined, '  ')+'</pre>'
   console.log('Request', request)
   dom.responseListing.innerHTML = ''
   dom.responseOutcome.innerHTML = 'Running'
   dom.responseTiming.innerHTML = '...'
-  dom.responseListing.className = 'running'
+  dom.statusArea.setAttribute('data-state', 'running')
+
+  const requestConverter = new SchemaConverter(selected.method.requestType)
+  const responseConverter = new SchemaConverter(selected.method.responseType)
+
   const t0 = performance.now()
   const channel = globals.channelManager.getChannel(request.host, request.port)
   const responseStream = selected.method.invokeWith(channel, requestConverter.json_object_to_schema_object(request.body))
@@ -216,13 +227,16 @@ function invokeServiceMethod() {
     dom.responseListing.appendChild(fragment)
     if(responseDone) {
       clearInterval(responseRenderInterval)
+      globals.isInvoking = false
+      dom.invokeMethod.removeAttribute('disabled')
+      dom.cancelMethod.setAttribute('disabled', true)
     }
-  }, 300)
+  }, 5)
   responseStream.on('data', response => {
     responses.push(responseConverter.schema_object_to_json_object(response))
     responseCount++
     dom.responseOutcome.innerHTML = 'Success'
-    dom.responseListing.className = 'success'
+    dom.responseListing.className = dom.statusArea.setAttribute('data-state', 'success')
   })
   responseStream.on('end', () => {
     const t1 = performance.now()
@@ -235,9 +249,13 @@ function invokeServiceMethod() {
   responseStream.on('error', error => {
     dom.responseOutcome.innerHTML = 'Error'
     dom.responseListing.innerHTML = `<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
-    dom.responseListing.className = 'failure'
+    dom.responseListing.className = dom.statusArea.setAttribute('data-state', 'failure')
     console.error('Error', error)
   })
+}
+
+function cancelServiceMethod() {
+  // TODO
 }
 
 function previousServiceMethod() {
@@ -271,6 +289,9 @@ function nextServiceMethod() {
     currentMethodButton.click()
   }
 }
+
+dom.invokeMethod.addEventListener('click', invokeServiceMethod)
+dom.cancelMethod.addEventListener('click', cancelServiceMethod)
 
 ipc.on('selected-directory', (event, paths) => {
   const [path] = paths

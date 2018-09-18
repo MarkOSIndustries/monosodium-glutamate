@@ -12,12 +12,14 @@
 
       #root {
         display:grid;
-        grid-template-columns: 3fr 5fr 4fr;
-        grid-template-rows: 10fr 6fr 1fr;
+        grid-template-columns: 3fr 8fr 1fr;
+        grid-template-rows: 6fr 0.5fr 0.5fr 5fr 5fr;
         grid-template-areas:
-          'services editor response'
-          'services editor request'
-          'server server server';
+          'services editor editor'
+          'services server controls'
+          'services status controls'
+          'services response response'
+          'request response response';
         grid-gap: 4px;
         background-color: rgb(60,60,60);
         position:absolute;
@@ -32,7 +34,9 @@
       #request-area { grid-area: request; }
       #response-area { grid-area: response; }
       #server-area { grid-area: server; }
+      #status-area { grid-area: status; }
       #services-area { grid-area: services; }
+      #controls-area { grid-area: controls; }
 
       .y-scroll { width:100%;height:100%; overflow-y:scroll; position:absolute; }
       .y-scroll.no-x-scroll { overflow-x: hidden; }
@@ -44,21 +48,16 @@
 
       .service { width:100%; }
 
-      #server-area[data-state=connecting] { background-color: rgb(255,180,80) }
-      #server-area[data-state=connected] { background-color: rgb(80,190,80) }
-      #server-area[data-state=disconnected] { background-color: rgb(230,120,120) }
+      #server-area[data-state=connecting], #status-area[data-state=running] { background-color: rgb(255,180,80) }
+      #server-area[data-state=connected], #status-area[data-state=success] { background-color: rgb(80,190,80) }
+      #server-area[data-state=disconnected], #status-area[data-state=failure] { background-color: rgb(230,120,120) }
 
-      #server-area { display:flex; justify-content:space-between; padding: 0.5em; }
-      #server-area label, #server-area h4 { text-transform: uppercase; }
-      #server-area label { margin-left:3em; }
+      #server-area { display:flex; justify-content:space-between; }
+      #server-area label { margin-left:3em; text-transform: uppercase; }
 
       #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
 
-      #response-listing { border-left-width:8px; border-left-style: solid; }
-      #response-listing pre { padding-left:4px; }
-      #response-listing.running { border-color: rgb(255,180,80) }
-      #response-listing.success { border-color: rgb(80,190,80) }
-      #response-listing.failure { border-color: rgb(230,120,120) }
+      #status-area
 
       #request-listing { margin-left: 8px; }
       #request-listing pre { padding-left:4px; }
@@ -79,25 +78,32 @@
         </div>
       </div>
       <div id="request-area" class="y-scroll no-x-scroll">
-        <h5>Request</h5>
+        <h5>Last Request</h5>
         <div id="request-listing">
           <code>Use CTRL-ALT-ENTER to send current request</code>
         </div>
       </div>
+      <div id="controls-area">
+        <input id="invoke-method" type="button" value="Run" />
+        <input id="cancel-method" type="button" value="Stop" disabled="disabled" />
+      </div>
+      <div id="status-area">
+        <h5>Last Response (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
+      </div>
       <div id="response-area" class="y-scroll">
-        <h5>Response (<span id="response-outcome"></span> in <span id="response-timing"></span>)</h5>
         <div id="response-listing">
+          <code>Use CTRL-ALT-ENTER to send current request</code>
         </div>
       </div>
       <div id="server-area" data-state="disconnected">
         <div>
-          <h4 id="server-status" class="disconnected">Disconnected</h4>
+          <h5>Channel: <span id="server-status">Disconnected</span></h5>
         </div>
         <div>
           <label for="server-host">Host</label>
           <input id="server-host" value="localhost" style="width:10em" />
           <label for="server-port">Port</label>
-          <input id="server-port" value="1234" style="width:5em" />
+          <input id="server-port" value="8082" style="width:5em" />
         </div>
       </div>
     </div>
