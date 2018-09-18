@@ -14,6 +14,7 @@ const formats = {
   'hex': 'lineDelimitedEncodedBinary',
   'binary': 'lengthPrefixedBinary',
   'generator': 'generator',
+  'spam': 'generator',
 }
 const encodings = {
   'base64': 'base64',

@@ -34,14 +34,13 @@ Consume a topic called `my.Topic` and deserialise the values as `my.MessageType`
 ```bash
 ./bin/kat.sh consume my.Topic \
   --from latest --until forever --encoding binary |\
-  ./bin/proto.sh deserialise my.MessageType
+  ./bin/proto.sh transform my.MessageType binary json
 ```
 
 #### Fill a Kafka topic with valid protobuf messages
 Produce protobuf messages of type `my.MessageType`, serialise them, and send to topic `my.Topic`
 ```bash
-./bin/proto.sh spam my.MessageType | \
-  ./bin/proto.sh serialise my.MessageType | \
+./bin/proto.sh spam my.MessageType binary | \
   ./bin/kat.sh produce my.Topic
 ```
 
@@ -51,6 +50,6 @@ Construct a file of INSERT statements from `my.MessageType` protobuf messages in
 ./bin/kat.sh consume my.Topic \
   --from 1636900200000 --until 1636900800000 \
   --encoding msg.TypedKafkaRecord --schema my.MessageType |\
-  ./bin/proto.sh deserialise my.TypedKafkaRecord -f "{\"partition\":3}" \
-  -t "INSERT INTO SomeTable(Id,Name) VALUES (${msg.value.id},${msg.value.name})" > /tmp/script.sql
+  ./bin/proto.sh transform msg.TypedKafkaRecord json -f "{\"partition\":3}" \
+  -t "INSERT INTO SomeTable(Id,Name) VALUES ('${msg.value.id}','${msg.value.name}')" > /tmp/script.sql
 ```

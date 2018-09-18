@@ -14,13 +14,12 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'protobuf schema to interpret messages as',
       })
       .positional('input', {
-        describe: 'the input format to expect. generator means generate pseudo-random, valid records',
+        describe: 'the input format to expect. spam/generator ignore stdin and generate pseudo-random, valid records',
         choices: [
           'json',
           'base64',
           'hex',
           'binary',
-          'generator',
         ],
       })
       .positional('output', {
@@ -32,49 +31,27 @@ const yargs = require('yargs') // eslint-disable-line
           'binary',
         ],
       })
-      .option('filter', {
-        alias: 'f',
-        describe: 'filter records by matching field values against a partially specified json payload',
-        default: null,
-        coerce: coerceFilter,
-      })
-      .option('shape', {
-        alias: 's',
-        describe: 'project JSON records through an arbitrary JS snippet (currently only works for input=generator)',
-        default: null,
-        coerce: coerceShape,
-      })
-      .option('template', {
-        alias: 't',
-        describe: 'project records through a string template (uses standard js string interpolation syntax)',
-        default: null,
-        coerce: coerceTemplate,
-      })
-      .option('delimiter', {
-        alias: 'd',
-        describe: 'delimiter bytes between output records (as hex string)',
-        default: Buffer.from(os.EOL).toString("hex"),
-        coerce: hex => Buffer.from(hex, "hex"),
-      })
-      .option('prefix', {
-        alias: 'p',
-        describe: 'length prefix format',
-        default: 'Int32BE',
-        choices: [
-          'Int32LE',
-          'Int32BE',
-          'Int16LE',
-          'Int16BE',
-          'Int8',
-          'UInt32LE',
-          'UInt32BE',
-          'UInt16LE',
-          'UInt16BE',
-          'UInt8',
-        ]
-      })
+      addTransformOptions(argsSpec)
   }, argv => {
     transform(argv)
+  })
+  .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
+    argsSpec
+      .positional('schema', {
+        describe: 'protobuf schema to generate messages for',
+      })
+      .positional('output', {
+        describe: 'the output format to use',
+        choices: [
+          'json',
+          'base64',
+          'hex',
+          'binary',
+        ],
+      })
+      addTransformOptions(argsSpec)
+  }, argv => {
+    transform(Object.assign(argv, {input: 'generator'}))
   })
   .command('schemas [query]', 'list all known schemas', (argsSpec) => {
     argsSpec
@@ -92,6 +69,51 @@ const yargs = require('yargs') // eslint-disable-line
   })
   .wrap(null)
   .env('PROTO_')
+
+function addTransformOptions(argsSpec) {
+  argsSpec
+    .option('filter', {
+      alias: 'f',
+      describe: 'filter records by matching field values against a partially specified json payload',
+      default: null,
+      coerce: coerceFilter,
+    })
+    .option('shape', {
+      alias: 's',
+      describe: 'project JSON records through an arbitrary JS snippet (currently only works for input=generator)',
+      default: null,
+      coerce: coerceShape,
+    })
+    .option('template', {
+      alias: 't',
+      describe: 'project records through a string template (uses standard js string interpolation syntax)',
+      default: null,
+      coerce: coerceTemplate,
+    })
+    .option('delimiter', {
+      alias: 'd',
+      describe: 'delimiter bytes between output records (as hex string)',
+      default: Buffer.from(os.EOL).toString("hex"),
+      coerce: hex => Buffer.from(hex, "hex"),
+    })
+    .option('prefix', {
+      alias: 'p',
+      describe: 'length prefix format',
+      default: 'Int32BE',
+      choices: [
+        'Int32LE',
+        'Int32BE',
+        'Int16LE',
+        'Int16BE',
+        'Int8',
+        'UInt32LE',
+        'UInt32BE',
+        'UInt16LE',
+        'UInt16BE',
+        'UInt8',
+      ]
+    })
+}
 
 const argv = yargs.argv
 
