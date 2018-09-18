@@ -8,79 +8,6 @@ module.exports = {
   transform,
 }
 
-const streamSchemaObjectsFrom = {
-  lengthPrefixedBinary: ({inStream, prefixFormat, converter}) => {
-    const outStream = new stream.Writable()
-    const prefixedBinaryStream = streams.readLengthPrefixedBuffers(inStream, prefixFormat)
-    prefixedBinaryStream.on('data', binaryBuffer => {
-      outStream.emit('data', converter.binary_buffer_to_schema_object(binaryBuffer))
-    })
-    return outStream
-  },
-  lineDelimitedJson: ({inStream, converter}) => {
-    const outStream = new stream.Writable()
-    const jsonObjectStream = streams.readLineDelimitedJsonObjects(inStream)
-    jsonObjectStream.on('data', jsonObject => {
-      outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
-    })
-    return outStream
-  },
-  lineDelimitedEncodedBinary: ({inStream, converter, encodingName}) => {
-    const outStream = new stream.Writable()
-    const linesStream = streams.readUTF8Lines(inStream)
-    linesStream.on('data', line => {
-      outStream.emit('data', converter.string_encoded_binary_to_schema_object(line, encodingName))
-    })
-    return outStream
-  },
-  generator: ({converter}) => {
-    const outStream = new stream.Writable()
-    setInterval(() => {
-      const jsonObject = protobuf.makeValidJsonRecord(converter.schema)
-      outStream.emit('data', converter.json_object_to_schema_object(jsonObject))
-    }, 1)
-    return outStream
-  }
-}
-
-const streamSchemaObjectsTo = {
-  lengthPrefixedBinary: ({inStream, outStream, prefixFormat, filterJsonObject, converter}) => {
-    const prefixedBinaryStream = streams.writeLengthPrefixedBuffers(outStream, prefixFormat)
-
-    inStream.on('data', schemaObject => {
-      const jsonObject = converter.schema_object_to_json_object(schemaObject)
-      if(filterJsonObject(jsonObject)) {
-        const binaryBuffer = converter.schema_object_to_binary_buffer(schemaObject)
-        prefixedBinaryStream.write(binaryBuffer)
-      }
-    })
-  },
-  lineDelimitedJson: ({inStream, outStream, delimiterBuffer, filterJsonObject, shapeJsonObject, stringifyJsonObject, converter}) => {
-    const delimitedOutputStream = streams.writeDelimited(outStream, delimiterBuffer)
-
-    inStream.on('data', schemaObject => {
-      const jsonObject = converter.schema_object_to_json_object(schemaObject)
-      if(filterJsonObject(jsonObject)) {
-        // TODO: make this filtering and shaping a single block of code outside of input/ouput concerns
-        const shapedJsonObject = shapeJsonObject(jsonObject)
-        console.log(shapedJsonObject)
-        delimitedOutputStream.write(stringifyJsonObject(shapedJsonObject))
-      }
-    })
-  },
-  lineDelimitedEncodedBinary: ({inStream, outStream, delimiterBuffer, encodingName, filterJsonObject, converter}) => {
-    const delimitedOutputStream = streams.writeDelimited(outStream, delimiterBuffer)
-
-    inStream.on('data', schemaObject => {
-      const jsonObject = converter.schema_object_to_json_object(schemaObject)
-      if(filterJsonObject(jsonObject)) {
-        const stringEncodedBinary = converter.schema_object_to_string_encoded_binary(schemaObject, encodingName)
-        delimitedOutputStream.write(stringEncodedBinary)
-      }
-    })
-  },
-}
-
 const formats = {
   'json': 'lineDelimitedJson',
   'base64': 'lineDelimitedEncodedBinary',
@@ -93,20 +20,68 @@ const encodings = {
   'hex': 'hex',
 }
 
+const inputFormats = {
+  lengthPrefixedBinary: {
+    newStream: (inStream, {prefixFormat}) => streams.readLengthPrefixedBuffers(inStream, prefixFormat),
+    unmarshal: (binaryBuffer, {converter}) => converter.binary_buffer_to_json_object(binaryBuffer),
+  },
+  lineDelimitedJson: {
+    newStream: (inStream) => streams.readLineDelimitedJsonObjects(inStream),
+    unmarshal: (jsonObject) => jsonObject,
+  },
+  lineDelimitedEncodedBinary: {
+    newStream: (inStream) => streams.readUTF8Lines(inStream),
+    unmarshal: (line, {converter, encodingName}) => converter.string_encoded_binary_to_json_object(line, encodingName),
+  },
+  generator: {
+    newStream: (inStream, {converter}) => {
+      const outStream = new stream.Writable()
+      setInterval(() => outStream.emit('data', protobuf.makeValidJsonRecord(converter.schema)), 1)
+      return outStream
+    },
+    unmarshal: (jsonObject) => jsonObject,
+  },
+}
+
+const outputFormats = {
+  lengthPrefixedBinary: {
+    newStream: (outStream, {prefixFormat}) => streams.writeLengthPrefixedBuffers(outStream, prefixFormat),
+    marshal: (jsonObject, {converter}) => converter.json_object_to_binary_buffer(jsonObject),
+  },
+  lineDelimitedJson: {
+    newStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    marshal: (jsonObject, {stringifyJsonObject}) => stringifyJsonObject(jsonObject),
+  },
+  lineDelimitedEncodedBinary: {
+    newStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    marshal: (jsonObject, {converter, encodingName}) => converter.json_object_to_string_encoded_binary(jsonObject, encodingName),
+  },
+}
+
 function transform({input, output, schema, prefix, encoding, delimiter, protobufs, filter, shape, template}) {
   const transformConfig = {
     prefixFormat: prefix,
     delimiterBuffer: delimiter,
-    filterJsonObject: filter,
-    shapeJsonObject: shape,
     stringifyJsonObject: template,
     converter: new SchemaConverter(protobuf.loadDirectory(protobufs).lookupType(schema)),
-    inStream: process.stdin,
-    outStream: process.stdout,
   }
 
-  transformConfig.inStream = streamSchemaObjectsFrom[formats[input]](Object.assign({encodingName: encodings[input]}, transformConfig))
-  transformConfig.inStream.on('end', () => { process.exit() })
+  const inputConfig = Object.assign({encodingName: encodings[input]}, transformConfig)
+  const inputFormat = inputFormats[formats[input]]
 
-  streamSchemaObjectsTo[formats[output]](Object.assign({encodingName: encodings[output]}, transformConfig))
+  const outputConfig = Object.assign({encodingName: encodings[output]}, transformConfig)
+  const outputFormat = outputFormats[formats[output]]
+
+  const inStream = inputFormat.newStream(process.stdin, inputConfig)
+  const outStream = outputFormat.newStream(process.stdout, outputConfig)
+
+  inStream.on('data', data => {
+    const jsonObject = inputFormat.unmarshal(data, inputConfig)
+    if(filter(jsonObject)) {
+      const shapedJsonObject = shape(jsonObject)
+      outStream.write(outputFormat.marshal(shapedJsonObject, outputConfig))
+    }
+  })
+
+  process.stdin.on('end', () => { process.exit() })
 }
