@@ -6,6 +6,7 @@ const fsLib = require('fs')
 const pathLib = require('path')
 const protobuf = require('../protobuf')(require('protobufjs'))
 const transport = require('../grpc.transport')
+const { SchemaConverter } = require('../protobuf.convert')
 
 const dom = {
   methodSearch: document.querySelector('#method-search'),
@@ -133,7 +134,7 @@ function changeDirectory(path) {
               `<h4><code>${method.method}</code></h4>`+
               `<h6><code>${fqServiceName}</code></h6>`+
             `</div>`+
-            `<h5><code><var>${method.requestType}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseType}</var></code></h5>`+
+            `<h5><code><var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var></code></h5>`+
           `</li>`
         }).join('')
     }).join('')+
@@ -176,6 +177,8 @@ function invokeServiceMethod() {
   if(!selected.method) {
     return
   }
+  const requestConverter = new SchemaConverter(selected.method.requestType)
+  const responseConverter = new SchemaConverter(selected.method.responseType)
 
   localStorage.setItem(`${selected.serviceName}-${selected.methodName}-request`, globals.requestEditor.getValue())
   const request = {
@@ -191,9 +194,9 @@ function invokeServiceMethod() {
   dom.responseOutcome.innerHTML = 'Running'
   dom.responseTiming.innerHTML = '...'
   dom.responseListing.className = 'running'
-  const t0 = performance.now();
+  const t0 = performance.now()
   const channel = globals.channelManager.getChannel(request.host, request.port)
-  const responseStream = selected.method.invokeWith(channel, request.body)
+  const responseStream = selected.method.invokeWith(channel, requestConverter.json_object_to_schema_object(request.body))
   const responses = []
   let responseDone = false
   let responseCount = 0
@@ -216,7 +219,7 @@ function invokeServiceMethod() {
     }
   }, 300)
   responseStream.on('data', response => {
-    responses.push(response.toJSON())
+    responses.push(responseConverter.schema_object_to_json_object(response))
     responseCount++
     dom.responseOutcome.innerHTML = 'Success'
     dom.responseListing.className = 'success'

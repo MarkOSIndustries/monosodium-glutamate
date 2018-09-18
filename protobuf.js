@@ -82,15 +82,17 @@ function initWithProtobufJS(protobufjs) {
       return {
         [serviceMethodKey]: {
           method: serviceMethodKey,
-          requestType: serviceMethod.requestType,
+          requestType: serviceMethod.resolvedRequestType,
+          requestTypeName: serviceMethod.requestType,
           requestSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedRequestType),
           responseOf: serviceMethod.responseStream ? "stream of" : "",
-          responseType:  serviceMethod.responseType,
+          responseType: serviceMethod.resolvedResponseType,
+          responseTypeName: serviceMethod.responseType,
           responseSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedResponseType),
           invokeWith: (http2Connection, requestObject, options) => {
             const svc = service.create(http2Connection.rpcImpl(service, options))
             const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
-            svc[svcMethodKey](serviceMethod.resolvedRequestType.fromObject(requestObject))
+            svc[svcMethodKey](requestObject)
             return svc // svc implements stream.Readable
           }
         }
