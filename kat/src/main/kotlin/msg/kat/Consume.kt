@@ -1,12 +1,10 @@
 package msg.kat
 
 import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.defaultLazy
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.choice
-import msg.kafka.Brokers
-import msg.kafka.EphemeralConsumer
+import msg.kafka.KafkaTopicCommand
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec

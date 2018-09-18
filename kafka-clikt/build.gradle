@@ -2,27 +2,18 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.70'
 }
 
+group 'msg'
+version '1.0.0'
+
 repositories {
     mavenCentral()
 }
 
 dependencies {
   compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8'
-  testCompile group: 'junit', name: 'junit', version: '4.11'
-  testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
   compile group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
   compile project(':kafka')
-  compile project(':kafka-clikt')
-  compile project(':schemas')
-}
 
-jar {
-  manifest {
-    attributes(
-      'Main-Class': 'msg.kat.MainKt'
-    )
-  }
-  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 }
 
 compileKotlin {
