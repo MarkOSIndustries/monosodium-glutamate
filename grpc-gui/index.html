@@ -8,18 +8,19 @@
       * { box-sizing: border-box; margin:0px; padding:0px; }
       body { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1.25em; }
       input { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1em; }
-      code, pre { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:0.8em; }
+      code, pre, h5 { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:0.8em; }
+      h5 { padding: 0.3em 0 0 0.3em; }
 
       #root {
         display:grid;
-        grid-template-columns: 3fr 8fr 1fr;
+        grid-template-columns: 3fr 9fr;
         grid-template-rows: 6fr 0.5fr 0.5fr 5fr 5fr;
         grid-template-areas:
-          'services editor editor'
-          'services server controls'
-          'services status controls'
-          'services response response'
-          'request response response';
+          'services editor'
+          'services server'
+          'services status'
+          'services response'
+          'request response';
         grid-gap: 4px;
         background-color: rgb(60,60,60);
         position:absolute;
@@ -30,13 +31,13 @@
       #root > * { background-color: rgb(220,220,220); }
       #root > * > * { width:100%; }
 
+
       #editor-area { grid-area: editor; }
       #request-area { grid-area: request; }
       #response-area { grid-area: response; }
       #server-area { grid-area: server; }
       #status-area { grid-area: status; }
       #services-area { grid-area: services; }
-      #controls-area { grid-area: controls; }
 
       .y-scroll { width:100%;height:100%; overflow-y:scroll; position:absolute; }
       .y-scroll.no-x-scroll { overflow-x: hidden; }
@@ -52,12 +53,14 @@
       #server-area[data-state=connected], #status-area[data-state=success] { background-color: rgb(80,190,80) }
       #server-area[data-state=disconnected], #status-area[data-state=failure] { background-color: rgb(230,120,120) }
 
-      #server-area { display:flex; justify-content:space-between; }
+      #server-area, #status-area { display:flex; justify-content:space-between; }
+      #server-area > *, #status-area > * { flex-basis:1em;white-space:nowrap; }
+
       #server-area label { margin-left:3em; text-transform: uppercase; }
 
-      #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
+      #status-area input[type=button] { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:1.3em; padding: 0 0.3em 0 0.3em; }
 
-      #status-area
+      #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
 
       #request-listing { margin-left: 8px; }
       #request-listing pre { padding-left:4px; }
@@ -83,12 +86,14 @@
           <code>Use CTRL-ALT-ENTER to send current request</code>
         </div>
       </div>
-      <div id="controls-area">
-        <input id="invoke-method" type="button" value="Run" />
-        <input id="cancel-method" type="button" value="Stop" disabled="disabled" />
-      </div>
       <div id="status-area">
-        <h5>Last Response (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
+        <div>
+          <h5>Last Response (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
+        </div>
+        <div>
+          <input id="invoke-method" type="button" value="►" title="Invoke [CTRL+ALT+ENTER]" />
+          <input id="cancel-method" type="button" value="■" disabled="disabled" title="Cancel running request" />
+        </div>
       </div>
       <div id="response-area" class="y-scroll">
         <div id="response-listing">
