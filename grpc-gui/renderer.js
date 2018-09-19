@@ -211,41 +211,44 @@ function invokeServiceMethod() {
   const responses = []
   let responseDone = false
   let responseCount = 0
+  const durationRenderInterval = setInterval(() => {
+    const t1 = performance.now()
+    const duration = t1-t0
+    dom.responseTiming.innerHTML = `${duration.toFixed(3)} milliseconds`
+    if(responseDone) {
+      clearInterval(durationRenderInterval)
+      console.log('Response completed in', duration)
+      console.log('Response count', responseCount)
+    }
+  }, 25)
   const responseRenderInterval = setInterval(() => {
-    if(!responses.length) {
-      return
-    }
-
-    var fragment = document.createDocumentFragment()
-    while(responses.length) {
-      const response = responses.shift()
-      const responseElement = document.createElement('pre')
-      responseElement.innerText = JSON.stringify(response, undefined, '  ')
-      fragment.appendChild(responseElement)
-      fragment.appendChild(document.createElement('hr'))
-    }
-    dom.responseListing.appendChild(fragment)
     if(responseDone) {
       clearInterval(responseRenderInterval)
       globals.isInvoking = false
       dom.invokeMethod.removeAttribute('disabled')
       dom.cancelMethod.setAttribute('disabled', true)
     }
-  }, 5)
+
+    if(responses.length) {
+      console.log('Rendering response batch of ', responses.length)
+      var fragment = document.createDocumentFragment()
+      while(responses.length) {
+        const response = responses.shift()
+        const responseElement = document.createElement('pre')
+        responseElement.innerText = JSON.stringify(response, undefined, '  ')
+        fragment.appendChild(responseElement)
+        fragment.appendChild(document.createElement('hr'))
+      }
+      dom.responseListing.appendChild(fragment)
+    }
+  }, 500)
   responseStream.on('data', response => {
     responses.push(responseConverter.schema_object_to_json_object(response))
     responseCount++
     dom.responseOutcome.innerHTML = 'Success'
     dom.responseListing.className = dom.statusArea.setAttribute('data-state', 'success')
   })
-  responseStream.on('end', () => {
-    const t1 = performance.now()
-    const duration = t1-t0
-    console.log('Response completed in', duration)
-    console.log('Response count', responseCount)
-    dom.responseTiming.innerHTML = `${duration.toFixed(3)} milliseconds`
-    responseDone = true
-  })
+  responseStream.on('end', () => { responseDone = true })
   responseStream.on('error', error => {
     dom.responseOutcome.innerHTML = 'Error'
     dom.responseListing.innerHTML = `<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
