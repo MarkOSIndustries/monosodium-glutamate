@@ -59,6 +59,8 @@
       #server-area label { margin-left:3em; text-transform: uppercase; }
 
       #status-area input[type=button] { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:1.3em; padding: 0 0.3em 0 0.3em; }
+      #invoke-method:not([disabled]) { color: green; }
+      #cancel-method:not([disabled]) { color: red; }
 
       #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
 
@@ -88,7 +90,7 @@
       </div>
       <div id="status-area">
         <div>
-          <h5>Last Response (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
+          <h5>Responses (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
         </div>
         <div>
           <input id="invoke-method" type="button" value="►" title="Invoke [CTRL+ALT+ENTER]" />
