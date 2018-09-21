@@ -105,22 +105,25 @@ class Http2Channel {
     this.client.on('goaway', () => console.log('Http2Channel server requested channel shutdown'))
     this.client.on('close', () => {
       self.connected = false
-      self.events.emit('disconnect', this)
+      self.events.emit('disconnected', this)
       console.log('Http2Channel closed. Will reconnect when needed')
     })
     // client.on('stream', () => console.log('Http2Channel stream initiated'))
     this.client.on('error', err => console.error('Http2Channel error', err))
     this.client.on('connect', () => {
       console.log('Http2Channel connected', self.address)
-      self.events.emit('connect', this)
+      self.events.emit('connected', this)
     })
     this.connected = true
   }
 
   rpcImpl(service, options) {
     const self = this
-
     return (method, requestBuffer, callback) => {
+      if(method == null) {
+        self.events.emit('cancelled')
+        return
+      }
       this.events.emit('request', requestBuffer)
       const request = new Http2Request(service, method, this.client, (err, responseBuffer) => {
         if(responseBuffer == null) {
@@ -130,7 +133,8 @@ class Http2Channel {
         }
         callback(err, responseBuffer)
       }, Object.assign(DefaultRequestOptions, options || {}))
-      self.events.on('disconnect', () => request.abort('Connection closed'))
+      self.events.on('disconnected', () => request.abort(null))
+      self.events.on('cancelled', () => request.abort(null))
       request.send(requestBuffer)
     }
   }
@@ -172,7 +176,7 @@ class Http2Request {
       }
       const acceptedResponseEncodings = headers[GRPC_HEADER_MESSAGE_ENCODING]
       if(acceptedResponseEncodings) {
-        acceptedResponseEncodings.forEach(newResponseEncoding => {
+        acceptedResponseEncodings.split(',').forEach(newResponseEncoding => {
           if(encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
             self.options.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
             console.log("Response encoding negotatiated", self.options.responseEncoding.name)

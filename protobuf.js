@@ -76,12 +76,14 @@ function initWithProtobufJS(protobufjs) {
     return index
   }
 
-  function describeServiceMethods(service) {
+  function describeServiceMethods(service, serviceName) {
     return Object.assign({}, ...Object.keys(service.methods).map(serviceMethodKey => {
       const serviceMethod = service.methods[serviceMethodKey];
       return {
         [serviceMethodKey]: {
-          method: serviceMethodKey,
+          fqName: `${serviceName}.${serviceMethodKey}`,
+          serviceName,
+          methodName: serviceMethodKey,
           requestType: serviceMethod.resolvedRequestType,
           requestTypeName: serviceMethod.requestType,
           requestSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedRequestType),
