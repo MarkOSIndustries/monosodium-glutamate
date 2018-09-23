@@ -16,8 +16,8 @@ module.exports = function(channels) {
 
   const state = {
     inFlight: false,
+    success: true,
     responses: [],
-    status: '',
   }
 
   document.querySelectorAll('input[name=render-mode]').forEach(renderMode => {
@@ -30,17 +30,27 @@ module.exports = function(channels) {
   })
   document.querySelector(`input#render-mode-${localStorage.getItem('last-render-mode') || 'log'}`).click()
 
+  function setStatus(status, error) {
+    dom.responseOutcome.innerHTML = status
+    dom.statusArea.setAttribute('data-state', status)
+    if(error) {
+      dom.responseError.innerHTML = `<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
+      dom.responseError.classList.remove('hidden')
+    } else {
+      dom.responseError.innerHTML = ''
+      dom.responseError.classList.add('hidden')
+    }
+  }
+
   channels.invocation.subject('started').subscribe(requestPayload => {
     renderers.forEach(renderer => renderer.reset())
-    dom.responseOutcome.innerHTML = 'Running'
     dom.responseTiming.innerHTML = '...'
-    dom.responseError.innerHTML = ''
-    dom.responseError.classList.add('hidden')
 
     state.inFlight = true
-    state.error = null
+    state.success = true
     state.responses = []
-    state.status = 'success'
+
+    setStatus('running')
 
     const t0 = performance.now()
     const durationRenderInterval = setInterval(() => {
@@ -63,20 +73,19 @@ module.exports = function(channels) {
       }
     }, 500)
   })
-  channels.invocation.subject('received').subscribe(response => {
-    state.responses.push(response)
+  channels.invocation.subject('received').subscribe(response => state.responses.push(response))
+  channels.invocation.subject('cancelled').subscribe(() => {
+    setStatus('cancelled')
+    state.success = false
   })
   channels.invocation.subject('error').subscribe(error => {
-    state.status = 'failure'
-    state.error = error
+    setStatus('failure', error)
+    state.success = false
   })
   channels.invocation.subject('finished').subscribe(() => {
     state.inFlight = false
-    dom.responseOutcome.innerHTML = state.status
-    dom.statusArea.setAttribute('data-state', state.status)
-    if(state.error) {
-      dom.responseError.innerHTML = `<pre>${JSON.stringify(state.error, undefined, '  ')}</pre>`
-      dom.responseError.classList.remove('hidden')
+    if(state.success) {
+      setStatus('success')
     }
   })
 

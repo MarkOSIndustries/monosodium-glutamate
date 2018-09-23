@@ -55,7 +55,7 @@
 
       .service { width:100%; }
 
-      #server-area[data-state=connecting], #status-area[data-state=running] { background-color: rgb(255,180,80) }
+      #server-area[data-state=connecting], #status-area[data-state=running], #status-area[data-state=cancelled] { background-color: rgb(255,180,80) }
       #server-area[data-state=connected], #status-area[data-state=success] { background-color: rgb(80,190,80) }
       #server-area[data-state=disconnected], #status-area[data-state=failure] { background-color: rgb(230,120,120) }
 
@@ -96,7 +96,7 @@
       </div>
       <div id="status-area">
         <div>
-          <h5>Responses (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
+          <h5>Responses (<span id="response-outcome"></span> - <span id="response-timing"></span>)</h5>
         </div>
         <div>
           <label for="render-mode-log">Log </label><input id="render-mode-log" type="radio" name="render-mode" value="log" />&nbsp;&nbsp;&nbsp;
