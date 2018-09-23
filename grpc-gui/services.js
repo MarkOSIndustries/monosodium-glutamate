@@ -100,13 +100,10 @@ module.exports = function(channels) {
     Object.values(methods).forEach(method => {
       const methodButton = document.createElement('li')
       methodButton.className = "method-listing-entry clickable-entry tab"
-      methodButton.innerHTML = `<li>`+
-        `<div class="layout layout-row" style="justify-content:space-between;padding-right:0.2em">`+
-          `<h4><code>${method.methodName}</code></h4>`+
-          `<h6><code>${method.serviceName}</code></h6>`+
-        `</div>`+
-        `<h5><code><var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var></code></h5>`+
-      `</li>`
+      methodButton.innerHTML =
+        `<h6 title="Service" style="float:right"><code>${method.serviceName}</code></h6>`+
+        `<h4 title="Method"><code>${method.methodName}</code></h4>`+
+        `<h5 title="Signature" style="padding:0px"><code><var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var></code></h5>`
 
       methodButton.addEventListener('click', methodButtonClickEvent => {
         const lastSelectedMethodButton = dom.listing.querySelector('.method-listing-entry.selected')
