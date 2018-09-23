@@ -21,7 +21,7 @@ const response = require('./response')(channels)
 
 function changeDirectory(path) {
   document.title = `GRPC GUI - ${path}`
-  const messages = protobuf.loadDirectory(path)
+  const messages = protobuf.loadDirectory(path, true)
 
   const messagesIndex = protobuf.makeFlatIndex(messages)
 

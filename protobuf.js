@@ -31,12 +31,15 @@ function initWithProtobufJS(protobufjs) {
     return messages
   }
 
-  function loadDirectory(...directoryPaths) {
-    const messages = populate(new protobufjs.Root(), [
-      pathLib.join(__dirname, 'schemas', 'google'),
-      pathLib.join(__dirname, 'schemas', 'src', 'main', 'proto'),
-      ...directoryPaths
-    ])
+  function loadDirectory(directoryPath, excludeMsgSchemas) {
+    const paths = []
+    paths.push(pathLib.join(__dirname, 'schemas', 'google'))
+    if(!excludeMsgSchemas) {
+      paths.push(pathLib.join(__dirname, 'schemas', 'src', 'main', 'proto'))
+    }
+    paths.push(directoryPath)
+
+    const messages = populate(new protobufjs.Root(), paths)
 
     // Important - ensures that fields like resolvedType contain a value
     messages.resolveAll()
