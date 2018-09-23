@@ -19,6 +19,9 @@ module.exports = function(channels) {
   const dom = {
     search: document.querySelector('#method-search'),
     listing: document.querySelector('#method-listing'),
+    methodName: document.querySelector('#method-name'),
+    methodSignature: document.querySelector('#method-signature'),
+    serviceName: document.querySelector('#service-name'),
   }
 
   channels.services.subject('search.started').subscribe(() => {
@@ -111,6 +114,9 @@ module.exports = function(channels) {
           lastSelectedMethodButton.classList.remove('selected')
         }
         methodButton.classList.add('selected')
+        dom.methodName.innerHTML = `<code>${method.methodName}</code>`
+        dom.methodSignature.innerHTML = `<code>(<var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var>)</code>`
+        dom.serviceName.innerHTML = `<code>${method.serviceName}</code>`
 
         channels.services.subject('method.selection.changed').next(method)
       })

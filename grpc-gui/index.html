@@ -20,8 +20,9 @@
       #root {
         display:grid;
         grid-template-columns: 3fr 9fr;
-        grid-template-rows: 6fr 0.5fr 0.5fr 5fr 5fr;
+        grid-template-rows: 0.5fr 6fr 0.5fr 0.5fr 4.5fr 5fr;
         grid-template-areas:
+          'services method'
           'services editor'
           'services server'
           'services status'
@@ -38,6 +39,7 @@
       #root > * > * { width:100%; }
 
 
+      #method-area { grid-area:method; }
       #editor-area { grid-area: editor; }
       #request-area { grid-area: request; }
       #response-area { grid-area: response; }
@@ -59,10 +61,12 @@
       #server-area[data-state=connected], #status-area[data-state=success] { background-color: rgb(80,190,80) }
       #server-area[data-state=disconnected], #status-area[data-state=failure] { background-color: rgb(230,120,120) }
 
-      #server-area, #status-area { display:flex; justify-content:space-between; }
-      #server-area > *, #status-area > * { flex-basis:1em;white-space:nowrap; }
+      #server-area, #status-area, #method-area { display:flex; justify-content:space-between; }
+      #server-area > *, #status-area > *, #method-area > * { flex-basis:1em;white-space:nowrap; }
 
       #server-area label { margin-left:3em; text-transform: uppercase; }
+
+      #method-area #method-name { font-weight:bold; padding-left:1em; }
 
       #status-area input[type=button] { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:1.3em; padding: 0 0.3em 0 0.3em; }
       #invoke-method:not([disabled]) { color: green; }
@@ -81,6 +85,14 @@
         <ul id="method-listing">
           <li>Ctrl-O to open your protobuf directory</li>
         </ul>
+      </div>
+      <div id="method-area">
+        <div id="method-name">
+        </div>
+        <div id="method-signature">
+        </div>
+        <div id="service-name">
+        </div>
       </div>
       <div id="editor-area">
         <div id="method-details"></div>
