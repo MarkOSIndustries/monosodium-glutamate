@@ -5,9 +5,14 @@ module.exports = function(channels) {
   const dom = {
     statusArea: document.querySelector('#status-area'),
     responseTiming: document.querySelector('#response-timing'),
-    responseListing: document.querySelector('#response-listing'),
+    responseError: document.querySelector('#response-error'),
     responseOutcome: document.querySelector('#response-outcome'),
   }
+
+  const renderers = [
+    require('./response.log')(document.querySelector('#response-listing-log')),
+    require('./response.table')(document.querySelector('#response-listing-table')),
+  ]
 
   const state = {
     inFlight: false,
@@ -15,12 +20,25 @@ module.exports = function(channels) {
     status: '',
   }
 
+  document.querySelectorAll('input[name=render-mode]').forEach(renderMode => {
+    renderMode.addEventListener('change', () => {
+      console.log('Repsonse listing mode changed to ', renderMode.value)
+      document.querySelectorAll(`.response-listing:not(#response-listing-${renderMode.value})`).forEach(listingMode => listingMode.classList.add('hidden'))
+      document.querySelector(`#response-listing-${renderMode.value}`).classList.remove('hidden')
+      localStorage.setItem('last-render-mode', renderMode.value)
+    })
+  })
+  document.querySelector(`input#render-mode-${localStorage.getItem('last-render-mode') || 'log'}`).click()
+
   channels.invocation.subject('started').subscribe(requestPayload => {
-    dom.responseListing.innerHTML = ''
+    renderers.forEach(renderer => renderer.reset())
     dom.responseOutcome.innerHTML = 'Running'
     dom.responseTiming.innerHTML = '...'
+    dom.responseError.innerHTML = ''
+    dom.responseError.classList.add('hidden')
 
     state.inFlight = true
+    state.error = null
     state.responses = []
     state.status = 'success'
 
@@ -40,16 +58,8 @@ module.exports = function(channels) {
       }
 
       if(state.responses.length) {
-        console.log('Rendering response batch of ', state.responses.length)
-        var fragment = document.createDocumentFragment()
-        while(state.responses.length) {
-          const response = state.responses.shift()
-          const responseElement = document.createElement('pre')
-          responseElement.innerText = JSON.stringify(response, undefined, '  ')
-          fragment.appendChild(responseElement)
-          fragment.appendChild(document.createElement('hr'))
-        }
-        dom.responseListing.appendChild(fragment)
+        renderers.forEach(renderer => renderer.render(state.responses))
+        state.responses = []
       }
     }, 500)
   })
@@ -63,9 +73,10 @@ module.exports = function(channels) {
   channels.invocation.subject('finished').subscribe(() => {
     state.inFlight = false
     dom.responseOutcome.innerHTML = state.status
-    dom.responseListing.className = dom.statusArea.setAttribute('data-state', state.status)
+    dom.statusArea.setAttribute('data-state', state.status)
     if(state.error) {
-      dom.responseListing.innerHTML = `<pre>${JSON.stringify(state.error, undefined, '  ')}</pre>`
+      dom.responseError.innerHTML = `<pre>${JSON.stringify(state.error, undefined, '  ')}</pre>`
+      dom.responseError.classList.remove('hidden')
     }
   })
 

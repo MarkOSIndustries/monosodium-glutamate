@@ -8,8 +8,14 @@
       * { box-sizing: border-box; margin:0px; padding:0px; }
       body { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1.25em; }
       input { font-family:'BlinkMacSystemFont', "Lucida Sans Unicode", 'Lucida Grande', 'Segoe UI', Ubuntu, Cantarell, sans-serif; font-size:1em; }
-      code, pre, h5 { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:0.8em; }
+      code, pre, h5, td, th { font-family: "Fira Mono", "Andale Mono", "Consolas", monospace; font-size:0.8em; }
+      label { font-size: 1em; }
       h5 { padding: 0.3em 0 0 0.3em; }
+      code var { padding-right: 0.5em; }
+      table {width: 100%; border-collapse: collapse; }
+      thead, thead tr, thead th { position:sticky; top: 0px; background: grey; }
+      tbody { background:rgba(255,255,255,100) }
+      th, td { border-bottom:1px solid lightgrey;border-right:1px solid lightgrey; padding:2px; margin:0px; }
 
       #root {
         display:grid;
@@ -93,13 +99,21 @@
           <h5>Responses (<span id="response-outcome">None</span> in <span id="response-timing">session</span>)</h5>
         </div>
         <div>
+          <label for="render-mode-log">Log </label><input id="render-mode-log" type="radio" name="render-mode" value="log" />&nbsp;&nbsp;&nbsp;
+          <label for="render-mode-table">Table </label><input id="render-mode-table" type="radio" name="render-mode" value="table" />
+        </div>
+        <div>
           <input id="invoke-method" type="button" value="►" title="Invoke [CTRL+ALT+ENTER]" />
-          <input id="cancel-method" type="button" value="■" disabled="disabled" title="Cancel running request" />
+          <input id="cancel-method" type="button" value="■" disabled="disabled" title="Cancel running request [CTRL+ALT+BACKSPACE]" />
         </div>
       </div>
       <div id="response-area" class="y-scroll">
-        <div id="response-listing">
+        <div id="response-error">
           <code>Use CTRL-ALT-ENTER to send current request</code>
+        </div>
+        <div id="response-listing-log" class="response-listing hidden">
+        </div>
+        <div id="response-listing-table" class="response-listing hidden">
         </div>
       </div>
       <div id="server-area" data-state="disconnected">

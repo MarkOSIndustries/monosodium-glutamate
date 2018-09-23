@@ -30,6 +30,14 @@ const menuTemplate = [
         }
       },
       {
+        label: 'Cancel method',
+        accelerator: 'CmdOrCtrl+Alt+Backspace',
+        click() {
+          mainWindow.webContents.send('cancel-service-method')
+        }
+      },
+      {type: 'separator'},
+      {
         label: 'Regenerate request body',
         accelerator: 'CmdOrCtrl+Alt+G',
         click() {

@@ -44,6 +44,7 @@ ipc.on('selected-directory', (event, paths) => {
   localStorage.setItem('last-selected-directory', path)
 })
 ipc.on('invoke-service-method', invocation.invoke)
+ipc.on('cancel-service-method', invocation.cancel)
 ipc.on('next-service-method', services.nextMethod)
 ipc.on('previous-service-method', services.previousMethod)
 ipc.on('find-service-method', services.search)
