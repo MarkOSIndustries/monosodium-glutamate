@@ -18,6 +18,7 @@ const services = require('./services')(channels)
 const request = require('./request')(channels)
 const invocation = require('./invocation')(channels)
 const response = require('./response')(channels)
+const history = require('./history')(channels)
 
 const workspace = {
   paths: [],

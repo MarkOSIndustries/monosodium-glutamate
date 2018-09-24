@@ -72,15 +72,14 @@ module.exports = function(channels) {
       port: dom.serverPort.value,
       service: state.method.serviceName,
       method: state.method.methodName,
-      body: JSON.parse(requestPayload)
+      body: JSON.parse(requestPayload),
+      sent: Date.now(),
     }
-
-    console.log('Request', request)
 
     const requestConverter = new SchemaConverter(state.method.requestType)
     const responseConverter = new SchemaConverter(state.method.responseType)
 
-    // TODO: can I keep this in state to cancel in-flight?
+    channels.invocation.subject('sent').next(request)
     state.responseStream = state.method.invokeWith(channelManager.getChannel(request.host, request.port), requestConverter.json_object_to_schema_object(request.body))
     state.responseStream.on('data', response => {
       channels.invocation.subject('received').next(responseConverter.schema_object_to_json_object(response))

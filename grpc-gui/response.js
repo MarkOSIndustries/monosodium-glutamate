@@ -34,7 +34,7 @@ module.exports = function(channels) {
     dom.responseOutcome.innerHTML = status
     dom.statusArea.setAttribute('data-state', status)
     if(error) {
-      dom.responseError.innerHTML = `<pre>${JSON.stringify(error, undefined, '  ')}</pre>`
+      dom.responseError.innerHTML = `<pre><code>${JSON.stringify(error, undefined, '  ')}</code></pre>`
       dom.responseError.classList.remove('hidden')
     } else {
       dom.responseError.innerHTML = ''

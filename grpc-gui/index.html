@@ -27,7 +27,7 @@
           'services server'
           'services status'
           'services response'
-          'request response';
+          'history response';
         grid-gap: 1px;
         background-color: rgb(60,60,60);
         position:absolute;
@@ -41,7 +41,7 @@
 
       #method-area { grid-area:method; }
       #editor-area { grid-area: editor; }
-      #request-area { grid-area: request; }
+      #history-area { grid-area: history; }
       #response-area { grid-area: response; }
       #server-area { grid-area: server; }
       #status-area { grid-area: status; }
@@ -74,8 +74,7 @@
 
       #services-area { display:flex; justify-content:start; flex-flow:column nowrap; }
 
-      #request-listing { margin-left: 8px; }
-      #request-listing pre { padding-left:4px; }
+      #request-listing, #response-error { margin-left: 8px; }
     </style>
   </head>
   <body>
@@ -100,10 +99,10 @@
           <div class="request-json" style="height:100%"></div>
         </div>
       </div>
-      <div id="request-area" class="y-scroll no-x-scroll">
-        <h5>Last Request</h5>
+      <div id="history-area" class="y-scroll no-x-scroll">
+        <h5>History</h5>
         <div id="request-listing">
-          <code>Use CTRL-ALT-ENTER to send current request</code>
+          <pre><code>Use CTRL-ALT-ENTER to send current request</code></pre>
         </div>
       </div>
       <div id="status-area">
@@ -121,7 +120,7 @@
       </div>
       <div id="response-area" class="y-scroll">
         <div id="response-error">
-          <code>Use CTRL-ALT-ENTER to send current request</code>
+          <pre><code>Use CTRL-ALT-ENTER to send current request</code></pre>
         </div>
         <div id="response-listing-log" class="response-listing hidden">
         </div>

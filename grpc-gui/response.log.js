@@ -9,7 +9,7 @@ module.exports = domContainer => {
       var fragment = document.createDocumentFragment()
       responses.forEach(response => {
         const responseElement = document.createElement('pre')
-        responseElement.innerText = JSON.stringify(response, undefined, '  ')
+        responseElement.innerHTML = `<code>${JSON.stringify(response, undefined, '  ')}</code>`
         fragment.appendChild(responseElement)
         fragment.appendChild(document.createElement('hr'))
       })
