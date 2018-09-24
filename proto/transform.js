@@ -64,7 +64,11 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
     prefixFormat: prefix,
     delimiterBuffer: delimiter,
     stringifyJsonObject: template,
-    converter: new SchemaConverter(protobuf.loadDirectory(protobufs).lookupType(schema)),
+    converter: new SchemaConverter(protobuf.loadFromPaths([
+      protobuf.getGoogleSchemasPath(),
+      protobuf.getMSGSchemasPath(),
+      ...protobufs,
+    ]).lookupType(schema)),
   }
 
   const inputConfig = Object.assign({encodingName: encodings[input]}, transformConfig)

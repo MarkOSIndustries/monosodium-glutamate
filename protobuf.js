@@ -3,7 +3,9 @@ const pathLib = require('path')
 const {rng} = require('crypto')
 
 function initWithProtobufJS(protobufjs) {
-  function populate(messages, directoryPaths) {
+  function loadFromPaths(directoryPaths, messages) {
+    const shouldResolve = !messages
+    messages = messages || new protobufjs.Root()
     if(!Array.isArray(directoryPaths)) {
       directoryPaths = [directoryPaths]
     }
@@ -14,7 +16,7 @@ function initWithProtobufJS(protobufjs) {
         .forEach(filename => {
           const filePath = pathLib.join(directoryPath, filename)
           if(fsLib.statSync(filePath).isDirectory()) {
-            populate(messages, filePath)
+            loadFromPaths(filePath, messages)
             return
           }
 
@@ -28,23 +30,21 @@ function initWithProtobufJS(protobufjs) {
           }
         })
     })
+
+    // Important - ensures that fields like resolvedType contain a value
+    if(shouldResolve) {
+      messages.resolveAll()
+    }
+
     return messages
   }
 
-  function loadDirectory(directoryPath, excludeMsgSchemas) {
-    const paths = []
-    paths.push(pathLib.join(__dirname, 'schemas', 'google'))
-    if(!excludeMsgSchemas) {
-      paths.push(pathLib.join(__dirname, 'schemas', 'src', 'main', 'proto'))
-    }
-    paths.push(directoryPath)
+  function getGoogleSchemasPath() {
+    return pathLib.join(__dirname, 'schemas', 'google')
+  }
 
-    const messages = populate(new protobufjs.Root(), paths)
-
-    // Important - ensures that fields like resolvedType contain a value
-    messages.resolveAll()
-
-    return messages
+  function getMSGSchemasPath() {
+    return pathLib.join(__dirname, 'schemas', 'src', 'main', 'proto')
   }
 
   function makeFlatIndex(node, ns) {
@@ -179,7 +179,9 @@ function initWithProtobufJS(protobufjs) {
   }
 
   return {
-    loadDirectory,
+    loadFromPaths,
+    getGoogleSchemasPath,
+    getMSGSchemasPath,
     makeFlatIndex,
     describeServiceMethods,
     makeFullySpecifiedJsonSample,

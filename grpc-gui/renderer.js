@@ -19,30 +19,40 @@ const request = require('./request')(channels)
 const invocation = require('./invocation')(channels)
 const response = require('./response')(channels)
 
-function changeDirectory(path) {
-  document.title = `GRPC GUI - ${path}`
-  const messages = protobuf.loadDirectory(path, true)
+const workspace = {
+  paths: [],
+}
 
+function newWorkspace() {
+  workspace.paths = []
+  addPaths([protobuf.getGoogleSchemasPath()])
+}
+
+function addPaths(paths) {
+  workspace.paths.push(...paths)
+  workspace.paths = Array.from(new Set(workspace.paths))
+  document.title = `GRPC GUI - ${workspace.paths.join(', ')}`
+
+  const messages = protobuf.loadFromPaths(workspace.paths)
   const messagesIndex = protobuf.makeFlatIndex(messages)
-
   const methods = []
   Object.keys(messagesIndex.services).forEach(serviceName => {
     methods.push(...Object.values(protobuf.describeServiceMethods(messagesIndex.services[serviceName], serviceName)))
   })
 
   services.load(methods)
+
+  localStorage.setItem('last-workspace-paths', workspace.paths.join(','))
 }
 
-
-if(localStorage.getItem('last-selected-directory')) {
-  changeDirectory(localStorage.getItem('last-selected-directory'))
+if(localStorage.getItem('last-workspace-paths')) {
+  addPaths(localStorage.getItem('last-workspace-paths').split(','))
+} else {
+  newWorkspace()
 }
 
-ipc.on('selected-directory', (event, paths) => {
-  const [path] = paths
-  changeDirectory(path)
-  localStorage.setItem('last-selected-directory', path)
-})
+ipc.on('new-workspace', newWorkspace)
+ipc.on('added-workspace-paths', (event, paths) => addPaths(paths))
 ipc.on('invoke-service-method', invocation.invoke)
 ipc.on('cancel-service-method', invocation.cancel)
 ipc.on('next-service-method', services.nextMethod)

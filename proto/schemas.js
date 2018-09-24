@@ -5,7 +5,11 @@ module.exports = {
 }
 
 function schemas({query, protobufs}) {
-  const allSchemas = protobuf.loadDirectory(protobufs)
+  const allSchemas = protobuf.loadFromPaths([
+    protobuf.getGoogleSchemasPath(),
+    protobuf.getMSGSchemasPath(),
+    ...protobufs,
+  ])
   const index = protobuf.makeFlatIndex(allSchemas)
   Object.keys(index.messages).forEach(schemaName => {
     if(query.test(schemaName)) {

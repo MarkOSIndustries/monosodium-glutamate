@@ -5,13 +5,20 @@ const menuTemplate = [
     label: 'File',
     submenu: [
       {
-        label: 'Open directory',
+        label: 'New workspace',
+        accelerator: 'CmdOrCtrl+N',
+        click () {
+          mainWindow.webContents.send('new-workspace')
+        }
+      },
+      {
+        label: 'Add path(s) to workspace',
         accelerator: 'CmdOrCtrl+O',
         click () {
           dialog.showOpenDialog({
             properties: ['openDirectory']
-          }, function (files) {
-            if (files) mainWindow.webContents.send('selected-directory', files)
+          }, function (paths) {
+            if (paths) mainWindow.webContents.send('added-workspace-paths', paths)
           })
         }
       },

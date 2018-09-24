@@ -58,14 +58,15 @@ const yargs = require('yargs') // eslint-disable-line
       .positional('query', {
         describe: 'show only schemas containing the given substring (case insensitive)',
         default: '',
-        coerce: query => new RegExp(query, 'gi'),
+        coerce: query => new RegExp(query, 'i'),
       })
   }, argv => {
     schemas(argv)
   })
   .option('protobufs', {
-    describe: 'path which contains protobuf schemas (env PROTO_HOME to override)',
+    describe: 'paths which contain protobuf schemas (comma separated, env PROTO_HOME to override)',
     default: env.PROTO_HOME,
+    coerce: x => x.split(','),
   })
   .wrap(null)
   .env('PROTO_')
