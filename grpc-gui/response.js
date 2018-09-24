@@ -82,6 +82,12 @@ module.exports = function(channels) {
     setStatus('failure', error)
     state.success = false
   })
+  channels.invocation.subject('terminated').subscribe(() => {
+    setStatus('failure', {
+      reason: 'Connection terminated'
+    })
+    state.success = false
+  })
   channels.invocation.subject('finished').subscribe(() => {
     state.inFlight = false
     if(state.success) {

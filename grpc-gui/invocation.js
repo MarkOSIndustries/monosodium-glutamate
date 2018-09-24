@@ -36,19 +36,22 @@ module.exports = function(channels) {
 
   const channelManager = new transport.ChannelManager(channel => {
     ['connected', 'connecting', 'disconnected'].forEach(channelState => {
-      channel.on(channelState, () => channels.invocation.subject('channel.state.changed').next({ state: channelState, channel }))
+      channel.on(channelState, () => channels.invocation.subject('channel.state.changed').next({ channelState, channel }))
     })
   })
 
-  channels.invocation.subject('channel.state.changed').subscribe(({state, channel}) => {
-    dom.serverArea.setAttribute('data-state', state)
+  channels.invocation.subject('channel.state.changed').subscribe(({channelState, channel}) => {
+    dom.serverArea.setAttribute('data-state', channelState)
     dom.serverStatus.innerHTML = {
       connected:`Connected to ${channel.address}`,
       connecting:`Connecting to ${channel.address}`,
       disconnected:'Disconnected'
-    }[state]
+    }[channelState]
     localStorage.setItem('last-connected-host', channel.host)
     localStorage.setItem('last-connected-port', channel.port)
+    if(state.inFlight) {
+      channels.invocation.subject('terminated').next()
+    }
   })
 
   channels.services.subject('method.selection.changed').subscribe(method => {
