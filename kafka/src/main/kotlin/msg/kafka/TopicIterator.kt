@@ -26,7 +26,10 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
     ensureQueueDoesntRunEmpty()
   }
 
-  override fun hasNext() = records.isNotEmpty()
+  override fun hasNext():Boolean {
+    ensureQueueDoesntRunEmpty()
+    return records.isNotEmpty()
+  }
 
   override fun next(): ConsumerRecord<K, V> {
     ensureQueueDoesntRunEmpty()
@@ -34,7 +37,7 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
   }
 
   private fun ensureQueueDoesntRunEmpty() {
-    while(partitions.isNotEmpty() && records.size < 2) {
+    while(partitions.isNotEmpty() && records.isEmpty()) {
       if(partitions.size != consumer.assignment().size) {
         consumer.assign(partitions)
       }
