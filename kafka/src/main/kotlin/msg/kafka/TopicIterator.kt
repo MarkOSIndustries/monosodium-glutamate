@@ -19,7 +19,7 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
     }
 
     // Remove partitions we'll never get records for
-    partitions.removeAll(endOffsets.filterNot { startOffsets.getOrDefault(it.key, 0) < it.value }.keys)
+    partitions.removeAll(endOffsets.filterNot { startOffsets.getOrDefault(it.key, Long.MAX_VALUE) < it.value }.keys)
 
     consumer.assign(partitions)
     startOffsets.filterKeys(partitions::contains).forEach(consumer::seek)
@@ -44,10 +44,11 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
       val batch = consumer.poll(Duration.ofSeconds(10))
       batch.records(topic).forEach { record ->
         val topicPartition = TopicPartition(record.topic(), record.partition())
-        if(record.offset() < endOffsets[topicPartition]!!) {
+        val endOffset = endOffsets.getOrDefault(topicPartition, 0)
+        if(record.offset() < endOffset) {
           records.add(record)
         }
-        if(record.offset()+1 >= endOffsets[topicPartition]!!) {
+        if(record.offset()+1 >= endOffset) {
           partitions.remove(topicPartition)
         }
       }
