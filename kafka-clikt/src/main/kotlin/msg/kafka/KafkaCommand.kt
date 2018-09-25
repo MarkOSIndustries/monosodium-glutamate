@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.choice
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.common.security.auth.SecurityProtocol
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 abstract class KafkaCommand(help:String) : CliktCommand(help) {
   private val brokers by option("--brokers", "-b", help = "comma separated list of broker addresses",envvar = "KAFKA_BROKERS").default("localhost:9092")
@@ -17,6 +18,8 @@ abstract class KafkaCommand(help:String) : CliktCommand(help) {
   fun newConsumer(): Consumer<ByteArray, ByteArray> =
     EphemeralConsumer(
       Brokers.from(brokers),
+      ByteArrayDeserializer::class,
+      ByteArrayDeserializer::class,
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
       "sasl.mechanism" to sasl
     )

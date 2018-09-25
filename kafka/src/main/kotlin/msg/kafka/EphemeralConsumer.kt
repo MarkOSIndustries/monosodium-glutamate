@@ -1,26 +1,22 @@
 package msg.kafka
 
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
 import org.apache.kafka.clients.consumer.OffsetCommitCallback
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.requests.IsolationLevel
-import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import org.apache.kafka.common.serialization.Deserializer
 import java.time.Duration
-import java.util.Locale
 import java.util.UUID
+import kotlin.reflect.KClass
 
-class EphemeralConsumer(brokers:Collection<Broker>, vararg config:Pair<String,Any>) : KafkaConsumer<ByteArray, ByteArray>(mapOf(
-  ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to brokers.joinToString(","),
-  ConsumerConfig.CLIENT_ID_CONFIG to "monosodium-glutamate",
-  ConsumerConfig.GROUP_ID_CONFIG to "monosodium-glutamate-${UUID.randomUUID()}",
-  ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java.name,
-  ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to ByteArrayDeserializer::class.java.name,
+class EphemeralConsumer<K,V,DK: Deserializer<K>,DV: Deserializer<V>>(brokers:Collection<Broker>, keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config:Pair<String,Any>) : KafkaConsumer<K,V,DK,DV>(
+  brokers,
+  keyDeserialiser,
+  valueDeserialiser,
+  "monosodium-glutamate",
+  "monosodium-glutamate-${UUID.randomUUID()}",
   ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
-  ConsumerConfig.ISOLATION_LEVEL_CONFIG to IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT),
-  *config
-)) {
+  *config) {
   override fun commitAsync() {
     // NOOP for ephemeral consumer
   }
