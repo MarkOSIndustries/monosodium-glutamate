@@ -3,11 +3,13 @@ package msg.kat.encodings
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.io.InputStream
+import java.io.OutputStream
 import java.io.PrintStream
+import java.nio.ByteBuffer
 
 class Binary : Encoding {
   override fun reader(input: InputStream): Iterator<ByteArray> {
-    return Ingesters.lengthPrefixedBinaryValues(input)
+    return LengthPrefixedByteArrayIterator(input)
   }
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
@@ -19,6 +21,19 @@ class Binary : Encoding {
   }
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
-    return Emitters.lengthPrefixedBinaryValues(output)
+    return lengthPrefixedBinaryValues(output)
+  }
+
+  companion object {
+    fun lengthPrefixedBinaryValues(out: OutputStream) : (ByteArray)->Unit {
+      val sizeBufferArray = ByteArray(4)
+      val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
+
+      return {
+        sizeBuffer.putInt(0, it.size)
+        out.write(sizeBufferArray)
+        out.write(it)
+      }
+    }
   }
 }

@@ -3,21 +3,16 @@ package msg.kat
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
-import com.github.ajalt.clikt.parameters.types.choice
-import msg.kafka.KafkaTopicCommand
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec
 import msg.kafka.offsets.MaxOffsetSpec
 import msg.kafka.offsets.OffsetSpec
 import msg.kafka.offsets.TimestampOffsetSpec
-import msg.kat.encodings.Encodings
-import msg.kat.encodings.TypedKafkaRecord
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Instant
 
-class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
-  private val encoding by option("--encoding", "-e", help = "the format to emit records in on stdout. HEX,Base64 are line delimited ASCII. Others are length-prefixed binary.").choice(Encodings.byName).default(TypedKafkaRecord())
+class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
   private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
   private val startOffsetTypes = setOf("earliest","latest")
   private val fromOption by option("--from", "-f", help = "which offsets to start from", metavar="[${startOffsetTypes.joinToString("|")}|<timestampMs>]").default("earliest").validate {

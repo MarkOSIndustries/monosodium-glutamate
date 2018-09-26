@@ -7,7 +7,7 @@ import java.io.PrintStream
 
 class TypedKafkaRecord : Encoding {
   override fun reader(input: InputStream): Iterator<ByteArray> {
-    return Ingesters.lengthPrefixedBinaryValues(input)
+    return LengthPrefixedByteArrayIterator(input)
   }
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
@@ -19,6 +19,6 @@ class TypedKafkaRecord : Encoding {
   }
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
-    return Emitters.lengthPrefixedBinaryValues(output)
+    return Binary.lengthPrefixedBinaryValues(output)
   }
 }

@@ -4,10 +4,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.io.InputStream
 import java.io.PrintStream
+import java.util.Base64
 
 class Base64 : Encoding {
+  private val encoder = Base64.getEncoder()
+
   override fun reader(input: InputStream): Iterator<ByteArray> {
-    return Ingesters.lineDelimitedBase64Values(input)
+    return input.bufferedReader().lineSequence().map { Base64.getDecoder().decode(it) }.iterator()
   }
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
@@ -19,6 +22,6 @@ class Base64 : Encoding {
   }
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
-    return Emitters.lineDelimitedBase64Values(output)
+    return { output.println(encoder.encodeToString(it)) }
   }
 }
