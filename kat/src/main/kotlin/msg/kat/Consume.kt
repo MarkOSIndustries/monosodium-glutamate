@@ -11,6 +11,7 @@ import msg.kafka.offsets.LatestOffsetSpec
 import msg.kafka.offsets.MaxOffsetSpec
 import msg.kafka.offsets.OffsetSpec
 import msg.kafka.offsets.TimestampOffsetSpec
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.io.PrintStream
 import java.time.Instant
 
@@ -38,7 +39,7 @@ class Consume : KafkaTopicCommand(help = "Consume records from Kafka\nReads reco
 
   override fun run() {
     TopicIterator(
-      newConsumer(),
+      newConsumer(ByteArrayDeserializer::class,ByteArrayDeserializer::class),
       topic,
       parseOffsetSpec(fromOption),
       parseOffsetSpec(untilOption)

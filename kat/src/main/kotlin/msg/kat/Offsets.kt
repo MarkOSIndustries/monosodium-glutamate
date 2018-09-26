@@ -7,13 +7,14 @@ import msg.kafka.offsets.LatestOffsetSpec
 import msg.kafka.offsets.OffsetSpec
 import msg.kafka.offsets.TimestampOffsetSpec
 import msg.kafka.topicPartitions
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
 class Offsets : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offsets for each partition at a given timestamp and prints to stdout") {
   val timestamp by argument("timestamp", "the epoch milliseconds timestamp to find offsets from, or one of the strings 'latest' or 'earliest'")
 
   override fun run() {
-    val consumer = newConsumer()
+    val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
     val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1))
 
     val offsetSpec: OffsetSpec = when(timestamp) {

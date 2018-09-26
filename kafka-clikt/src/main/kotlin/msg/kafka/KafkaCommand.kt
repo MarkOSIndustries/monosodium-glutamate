@@ -6,8 +6,11 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
+import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.common.security.auth.SecurityProtocol
-import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import org.apache.kafka.common.serialization.Deserializer
+import org.apache.kafka.common.serialization.Serializer
+import kotlin.reflect.KClass
 
 abstract class KafkaCommand(help:String) : CliktCommand(help) {
   private val brokers by option("--brokers", "-b", help = "comma separated list of broker addresses",envvar = "KAFKA_BROKERS").default("localhost:9092")
@@ -15,17 +18,20 @@ abstract class KafkaCommand(help:String) : CliktCommand(help) {
     .choice(*SecurityProtocol.names().toTypedArray()).default(SecurityProtocol.PLAINTEXT.toString())
   private val sasl by option("--sasl", "-a", help = "SASL mechanism to use for authentication. eg: SCRAM-SHA=256", envvar = "KAFKA_SASL").default("")
 
-  fun newConsumer(): Consumer<ByteArray, ByteArray> =
+  fun <K,V,DK:Deserializer<K>,DV:Deserializer<V>>newConsumer(keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>): Consumer<K,V> =
     EphemeralConsumer(
       Brokers.from(brokers),
-      ByteArrayDeserializer::class,
-      ByteArrayDeserializer::class,
+      keyDeserialiser,
+      valueDeserialiser,
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
       "sasl.mechanism" to sasl
     )
 
-  fun newProducer() : Producer = Producer(
+  fun <K,V,DK:Serializer<K>,DV:Serializer<V>>newProducer(keySerialiser: KClass<DK>, valueSerialiser: KClass<DV>): Producer<K,V> = KafkaProducer(
     Brokers.from(brokers),
+    keySerialiser,
+    valueSerialiser,
+    "monosodium-glutamate",
     CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
     "sasl.mechanism" to sasl
   )
