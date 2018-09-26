@@ -53,3 +53,10 @@ Construct a file of INSERT statements from `my.MessageType` protobuf messages in
   ./bin/proto.sh transform msg.TypedKafkaRecord json -f "{\"partition\":3}" \
   -t "INSERT INTO SomeTable(Id,Name) VALUES ('${msg.value.id}','${msg.value.name}')" > /tmp/script.sql
 ```
+
+### Mirror a topic to another topic/cluster
+Use the same keys/values produced to clusterA to populate a topic on clusterB
+```bash
+bin\kat consume my.TopicA -b clusterA -e msg.KafkaRecord | \
+  bin\kat produce my.TopicB -b clusterB -e msg.KafkaRecord
+```
