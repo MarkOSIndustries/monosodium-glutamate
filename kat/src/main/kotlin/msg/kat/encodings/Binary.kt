@@ -13,27 +13,14 @@ class Binary : Encoding {
   }
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
-    return Translators.addRandomKey(topic, bytes)
+    return ProducerRecord(topic, Encoding.randomKey(), bytes)
   }
 
   override fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray {
-    return Translators.toValueBytes(consumerRecord)
+    return consumerRecord.value()
   }
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
-    return lengthPrefixedBinaryValues(output)
-  }
-
-  companion object {
-    fun lengthPrefixedBinaryValues(out: OutputStream) : (ByteArray)->Unit {
-      val sizeBufferArray = ByteArray(4)
-      val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
-
-      return {
-        sizeBuffer.putInt(0, it.size)
-        out.write(sizeBufferArray)
-        out.write(it)
-      }
-    }
+    return Encoding.lengthPrefixedBinaryValues(output)
   }
 }

@@ -14,11 +14,11 @@ class Base64 : Encoding {
   }
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
-    return Translators.addRandomKey(topic, bytes)
+    return ProducerRecord(topic, Encoding.randomKey(), bytes)
   }
 
   override fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray {
-    return Translators.toValueBytes(consumerRecord)
+    return consumerRecord.value()
   }
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
