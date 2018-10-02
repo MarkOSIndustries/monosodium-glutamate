@@ -13,6 +13,5 @@ open class KafkaConsumer<K,V,DK:Deserializer<K>,DV:Deserializer<V>>(brokers:Coll
   ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to valueDeserialiser.java.name,
   ConsumerConfig.CLIENT_ID_CONFIG to clientId,
   ConsumerConfig.GROUP_ID_CONFIG to groupId,
-  ConsumerConfig.ISOLATION_LEVEL_CONFIG to IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT),
   *config
 ))

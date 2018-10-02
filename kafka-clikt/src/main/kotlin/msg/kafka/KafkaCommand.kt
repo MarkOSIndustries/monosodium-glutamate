@@ -18,21 +18,23 @@ abstract class KafkaCommand(help:String) : CliktCommand(help) {
     .choice(*SecurityProtocol.names().toTypedArray()).default(SecurityProtocol.PLAINTEXT.toString())
   private val sasl by option("--sasl", "-a", help = "SASL mechanism to use for authentication. eg: SCRAM-SHA=256", envvar = "KAFKA_SASL").default("")
 
-  fun <K,V,DK:Deserializer<K>,DV:Deserializer<V>>newConsumer(keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>): Consumer<K,V> =
+  fun <K,V,DK:Deserializer<K>,DV:Deserializer<V>>newConsumer(keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config: Pair<String,Any>): Consumer<K,V> =
     EphemeralConsumer(
       Brokers.from(brokers),
       keyDeserialiser,
       valueDeserialiser,
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
-      "sasl.mechanism" to sasl
+      "sasl.mechanism" to sasl,
+      *config
     )
 
-  fun <K,V,DK:Serializer<K>,DV:Serializer<V>>newProducer(keySerialiser: KClass<DK>, valueSerialiser: KClass<DV>): Producer<K,V> = KafkaProducer(
+  fun <K,V,DK:Serializer<K>,DV:Serializer<V>>newProducer(keySerialiser: KClass<DK>, valueSerialiser: KClass<DV>, vararg config: Pair<String,Any>): Producer<K,V> = KafkaProducer(
     Brokers.from(brokers),
     keySerialiser,
     valueSerialiser,
     "monosodium-glutamate",
     CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
-    "sasl.mechanism" to sasl
+    "sasl.mechanism" to sasl,
+    *config
   )
 }
