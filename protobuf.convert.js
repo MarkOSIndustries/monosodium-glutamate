@@ -68,24 +68,6 @@ class SchemaConverter {
   json_object_to_string_encoded_binary(jsonObject, encoding) {
     return this.binary_buffer_to_string_encoded_binary(this.json_object_to_binary_buffer(jsonObject), encoding)
   }
-
-// TODO: break the below into delimited stream and length-prefixed stream converters
-
-  stream_to_buffer(stream) {
-    return new Promise((resolve,reject) => {
-      const chunks = [];
-      stream.on('data', function(chunk) { chunks.push(chunk); });
-      stream.on('end', function() {
-          const buffer = Buffer.concat(chunks);
-          resolve(buffer);
-      });
-    });
-  }
-
-  stream_to_string(stream, encoding) {
-    return stream_to_buffer(stream)
-      .then(buffer => buffer.toString(encoding));
-  }
 }
 
 module.exports = {
