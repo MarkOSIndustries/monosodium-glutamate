@@ -159,12 +159,23 @@ function getSuggestionContext(monacoModel, monacoPosition) {
 function buildFieldNameChain(textPrecedingCursor) {
   const fieldNames = []
   let levelComplete = false
+  let closeBracketCount = 0
   for(let index = textPrecedingCursor.length-1; index >= 0; index--) {
-    if(levelComplete) {
-      levelComplete = textPrecedingCursor[index] !== '{'
-    } else if(textPrecedingCursor[index] === ',') {
+    if(textPrecedingCursor[index] === ',') {
       levelComplete = true
-    }  else if(textPrecedingCursor[index] === ':') {
+    }
+    if(textPrecedingCursor[index] === '}') {
+      closeBracketCount = closeBracketCount + 1
+      levelComplete = true
+    }
+    if(textPrecedingCursor[index] === '{') {
+      closeBracketCount = closeBracketCount - 1
+      if(closeBracketCount < 0) {
+        levelComplete = false
+        closeBracketCount = 0
+      }
+    }
+    if(!levelComplete && textPrecedingCursor[index] === ':') {
       const fieldName = getLastQuotedChunk(textPrecedingCursor.substring(0,index))
       fieldNames.unshift(fieldName)
       levelComplete = true
