@@ -23,7 +23,8 @@ module.exports = function(channels) {
   const requestEditorPromise = require('monaco-loader')().then(monaco => {
     monaco.languages.registerCompletionItemProvider('json', {
       provideCompletionItems: function (model, position) {
-        return suggest(state.method.requestType, state.method.requestTypeName, monaco, model, position)
+        const suggestionContext = getSuggestionContext(model, position)
+        return suggest(state.method.requestType, [], monaco, suggestionContext)
       }
     })
 
@@ -66,12 +67,10 @@ module.exports = function(channels) {
   return cmd
 }
 
-function suggest(messageType, fieldName, monaco, monacoModel, monacoPosition) {
-  const suggestionContext = getSuggestionContext(monacoModel, monacoPosition)
-
+function suggest(messageType, fieldNameChain, monaco, suggestionContext) {
   switch(messageType.constructor.name) {
     case 'Enum':
-      if(suggestionContext.values && fieldName == suggestionContext.fieldName) {
+      if(suggestionContext.values && isSameFieldNameChain(fieldNameChain, suggestionContext.fieldNameChain)) {
         return Object.keys(messageType.values).map(enumValue => {
           return {
             label: JSON.stringify(enumValue),
@@ -88,20 +87,21 @@ function suggest(messageType, fieldName, monaco, monacoModel, monacoPosition) {
       const result = []
       if(!messageType.fields) return result
       Object.keys(messageType.fields).forEach(fieldKey => {
+        const nextFieldNameChain = fieldNameChain.concat(fieldKey)
         let fieldType = messageType.fields[fieldKey].type
         if(messageType.fields[fieldKey].resolvedType) {
           fieldType = messageType.fields[fieldKey].resolvedType.name
-          result.push(...suggest(messageType.fields[fieldKey].resolvedType, fieldKey, monaco, monacoModel, monacoPosition))
+          result.push(...suggest(messageType.fields[fieldKey].resolvedType, nextFieldNameChain, monaco, suggestionContext))
         }
-        if(suggestionContext.fields) {
+        if(suggestionContext.fields && isSameFieldNameChain(fieldNameChain, suggestionContext.fieldNameChain)) {
           result.push({
             label: JSON.stringify(fieldKey),
             kind: monaco.languages.CompletionItemKind.Field,
             detail: fieldType,
-            documentation: `${messageType.fields[fieldKey].toString()} = ${messageType.fields[fieldKey].id}`,
+            documentation: `${nextFieldNameChain.join('.')} = ${messageType.fields[fieldKey].id};`,
           })
         }
-        if(suggestionContext.values && fieldKey == suggestionContext.fieldName) {
+        if(suggestionContext.values && isSameFieldNameChain(nextFieldNameChain, suggestionContext.fieldNameChain)) {
           let defaultValue = messageType.fields[fieldKey].typeDefault
           if(!defaultValue) {
             defaultValue = JSON.stringify(defaultValue)
@@ -146,20 +146,38 @@ function getSuggestionContext(monacoModel, monacoPosition) {
   const lastOpenBracket = textPrecedingCursor.lastIndexOf('{')
   const lastComma = textPrecedingCursor.lastIndexOf(',')
 
-  if(lastColon > lastComma && lastColon > lastOpenBracket) {
-    // We're suggesting a value
-    const chunks = textPrecedingCursor.split(':')
-    const fieldNameChunk = chunks[chunks.length-2]
-    const valueChunks = fieldNameChunk.split('"')
-    const fieldName = valueChunks[valueChunks.length-2]
-    return {
-      values: true,
-      fieldName,
+  const values = (lastColon > lastComma && lastColon > lastOpenBracket)
+  const fields = !values
+
+  return {
+    values,
+    fields,
+    fieldNameChain: buildFieldNameChain(textPrecedingCursor),
+  }
+}
+
+function buildFieldNameChain(textPrecedingCursor) {
+  const fieldNames = []
+  let levelComplete = false
+  for(let index = textPrecedingCursor.length-1; index >= 0; index--) {
+    if(levelComplete) {
+      levelComplete = textPrecedingCursor[index] !== '{'
+    } else if(textPrecedingCursor[index] === ',') {
+      levelComplete = true
+    }  else if(textPrecedingCursor[index] === ':') {
+      const fieldName = getLastQuotedChunk(textPrecedingCursor.substring(0,index))
+      fieldNames.unshift(fieldName)
+      levelComplete = true
     }
   }
+  return fieldNames
+}
 
-  // we're suggesting a field
-  return {
-    fields: true,
-  }
+function getLastQuotedChunk(str) {
+  const chunks = str.split('"')
+  return chunks[chunks.length-2]
+}
+
+function isSameFieldNameChain(chain1, chain2) {
+  return chain1.join('.') === chain2.join('.')
 }
