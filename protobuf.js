@@ -89,11 +89,11 @@ function initWithProtobufJS(protobufjs) {
           methodName: serviceMethodKey,
           requestType: serviceMethod.resolvedRequestType,
           requestTypeName: serviceMethod.requestType,
-          requestSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedRequestType),
+          requestSample: makeValidJsonRecord(serviceMethod.resolvedRequestType),
           responseOf: serviceMethod.responseStream ? "stream of" : "",
           responseType: serviceMethod.resolvedResponseType,
           responseTypeName: serviceMethod.responseType,
-          responseSample: makeFullySpecifiedJsonSample(serviceMethod.resolvedResponseType),
+          responseSample: makeValidJsonRecord(serviceMethod.resolvedResponseType),
           invokeWith: (http2Connection, requestObject, options) => {
             const svc = service.create(http2Connection.rpcImpl(service, options))
             const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
@@ -105,35 +105,6 @@ function initWithProtobufJS(protobufjs) {
     }))
   }
 
-  // TODO: deprecate in favour of makeValidJsonRecord once enum code completion is done in GRPC GUI
-  function makeFullySpecifiedJsonSample(messageType) {
-    switch(messageType.constructor.name) {
-      case 'Enum':
-        return Object.keys(messageType.values).join("|")
-      case 'Type':
-      default: // assume anything we don't understand is a message and hope for the best
-        if(!messageType.fields || messageType.fields.length === 0) {
-          return {};
-        }
-        return Object.assign({}, ...Object.keys(messageType.fields).map(fieldKey => {
-          const field = messageType.fields[fieldKey];
-
-          const wrap =
-            field.keyType ?
-              (val => { return { [field.name]: { [makeTypeSample(field.keyType, `${field.name}_key`)]: val } } }) :
-            field.repeated ?
-              (val => { return { [field.name]: [ val ] } }) :
-              (val => { return { [field.name]: val } })
-
-          if(field.resolvedType) {
-            return wrap(makeFullySpecifiedJsonSample(field.resolvedType))
-          }
-
-          return wrap(makeTypeSample(field.type, field.name))
-        }))
-    }
-  }
-
   function makeValidJsonRecord(messageType) {
     switch(messageType.constructor.name) {
       case 'Enum':
@@ -141,7 +112,7 @@ function initWithProtobufJS(protobufjs) {
         return keys[rng(2).readUInt16BE()%keys.length]
       case 'Type':
       default: // assume anything we don't understand is a message and hope for the best
-        if(!messageType.fields || messageType.fields.length === 0) {
+        if(!messageType.fields) {
           return {}
         }
         return Object.assign({}, ...Object.keys(messageType.fields).map(fieldKey => {
@@ -163,7 +134,6 @@ function initWithProtobufJS(protobufjs) {
     }
   }
 
-
   function makeTypeSample(fieldType, fieldName) {
     switch(fieldType) {
       case "bool":
@@ -184,8 +154,8 @@ function initWithProtobufJS(protobufjs) {
     getMSGSchemasPath,
     makeFlatIndex,
     describeServiceMethods,
-    makeFullySpecifiedJsonSample,
     makeValidJsonRecord,
+    makeTypeSample,
   }
 }
 
