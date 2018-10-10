@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.long
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec
@@ -13,8 +14,11 @@ import msg.kafka.offsets.TimestampOffsetSpec
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.requests.IsolationLevel
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import sun.misc.Signal
 import java.time.Instant
 import java.util.Locale
+import java.util.concurrent.CompletableFuture
+import kotlin.system.exitProcess
 
 class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
   private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
@@ -29,17 +33,30 @@ class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads 
       "Please choose from $metavar where <timestampMs> means a timestamp like ${Instant.now().toEpochMilli()}"}
   }
   private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.values().map{ it.toString().toLowerCase(Locale.ROOT) to it }.toMap()).default(IsolationLevel.READ_COMMITTED)
+  private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
 
   override fun run() {
     val write = encoding.writer(System.out)
 
+    val interrupted = CompletableFuture<Unit>()
+    Signal.handle(Signal("INT")) { interrupted.complete(Unit) }
+
+    var receivedCount = 0
     TopicIterator(
       newConsumer(ByteArrayDeserializer::class,ByteArrayDeserializer::class,
         ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().toLowerCase(Locale.ROOT)),
       topic,
       parseOffsetSpec(fromOption),
-      parseOffsetSpec(untilOption)
-    ).forEach { write(encoding.fromConsumerRecord(it, schema ?: topic)) }
+      parseOffsetSpec(untilOption),
+      interrupted
+    ).forEach {
+      write(encoding.fromConsumerRecord(it, schema ?: topic))
+      if(++receivedCount >= limit) {
+        interrupted.complete(Unit)
+      }
+    }
+
+    System.err.println("Received $receivedCount messages.")
   }
 
   private fun parseOffsetSpec(spec:String):OffsetSpec {
