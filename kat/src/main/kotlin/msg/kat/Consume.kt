@@ -18,7 +18,6 @@ import sun.misc.Signal
 import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
-import kotlin.system.exitProcess
 
 class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
   private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
