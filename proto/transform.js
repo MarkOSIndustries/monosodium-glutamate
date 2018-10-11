@@ -81,10 +81,14 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
   const outStream = outputFormat.newStream(process.stdout, outputConfig)
 
   inStream.on('data', data => {
-    const jsonObject = inputFormat.unmarshal(data, inputConfig)
-    if(filter(jsonObject)) {
-      const shapedJsonObject = shape(jsonObject)
-      outStream.write(outputFormat.marshal(shapedJsonObject, outputConfig))
+    try {
+      const jsonObject = inputFormat.unmarshal(data, inputConfig)
+      if(filter(jsonObject)) {
+        const shapedJsonObject = shape(jsonObject)
+        outStream.write(outputFormat.marshal(shapedJsonObject, outputConfig))
+      }
+    } catch(ex) {
+      console.error(ex)
     }
   })
 
