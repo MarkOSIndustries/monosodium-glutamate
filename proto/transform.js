@@ -10,6 +10,8 @@ module.exports = {
 
 const formats = {
   'json': 'lineDelimitedJson',
+  'json_hex': 'lineDelimitedEncodedJson',
+  'json_base64': 'lineDelimitedEncodedJson',
   'base64': 'lineDelimitedEncodedBinary',
   'hex': 'lineDelimitedEncodedBinary',
   'binary': 'lengthPrefixedBinary',
@@ -19,6 +21,8 @@ const formats = {
 const encodings = {
   'base64': 'base64',
   'hex': 'hex',
+  'json_base64': 'base64',
+  'json_hex': 'hex',
 }
 
 const inputFormats = {
@@ -29,6 +33,10 @@ const inputFormats = {
   lineDelimitedJson: {
     newStream: (inStream) => streams.readLineDelimitedJsonObjects(inStream),
     unmarshal: (jsonObject) => jsonObject,
+  },
+  lineDelimitedEncodedJson: {
+    newStream: (inStream) => streams.readUTF8Lines(inStream),
+    unmarshal: (line, {encodingName}) => JSON.parse(Buffer.from(line, encodingName)),
   },
   lineDelimitedEncodedBinary: {
     newStream: (inStream) => streams.readUTF8Lines(inStream),
@@ -53,6 +61,10 @@ const outputFormats = {
     newStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
     marshal: (jsonObject, {stringifyJsonObject}) => stringifyJsonObject(jsonObject),
   },
+  lineDelimitedEncodedJson: {
+    newStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    marshal: (jsonObject, {encodingName}) => Buffer.from(JSON.stringify(jsonObject)).toString(encodingName),
+  },
   lineDelimitedEncodedBinary: {
     newStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
     marshal: (jsonObject, {converter, encodingName}) => converter.json_object_to_string_encoded_binary(jsonObject, encodingName),
@@ -64,11 +76,7 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
     prefixFormat: prefix,
     delimiterBuffer: delimiter,
     stringifyJsonObject: template,
-    converter: new SchemaConverter(protobuf.loadFromPaths([
-      protobuf.getGoogleSchemasPath(),
-      protobuf.getMSGSchemasPath(),
-      ...protobufs,
-    ]).lookupType(schema)),
+    converter: new SchemaConverter(tryToLoadSchema(protobufs, schema)),
   }
 
   const inputConfig = Object.assign({encodingName: encodings[input]}, transformConfig)
@@ -93,4 +101,17 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
   })
 
   process.stdin.on('end', () => { process.exit() })
+}
+
+function tryToLoadSchema(protobufs, schema) {
+  try {
+    return protobuf.loadFromPaths([
+      protobuf.getGoogleSchemasPath(),
+      protobuf.getMSGSchemasPath(),
+      ...protobufs,
+    ]).lookupType(schema)
+  } catch(ex) {
+    process.stderr.write(`${ex}\n`)
+    return null
+  }
 }

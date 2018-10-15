@@ -17,6 +17,8 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the input format to expect. spam/generator ignore stdin and generate pseudo-random, valid records',
         choices: [
           'json',
+          'json_hex',
+          'json_base64',
           'base64',
           'hex',
           'binary',
@@ -26,6 +28,8 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the output format to use',
         choices: [
           'json',
+          'json_hex',
+          'json_base64',
           'base64',
           'hex',
           'binary',
@@ -44,6 +48,8 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the output format to use',
         choices: [
           'json',
+          'json_hex',
+          'json_base64',
           'base64',
           'hex',
           'binary',
