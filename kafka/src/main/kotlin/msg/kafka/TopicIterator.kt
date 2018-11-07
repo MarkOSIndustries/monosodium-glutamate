@@ -29,7 +29,7 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
 
   override fun hasNext():Boolean {
     ensureQueueDoesntRunEmpty()
-    return records.isNotEmpty()
+    return records.isNotEmpty() && !interrupted.isDone
   }
 
   override fun next(): ConsumerRecord<K, V> {
