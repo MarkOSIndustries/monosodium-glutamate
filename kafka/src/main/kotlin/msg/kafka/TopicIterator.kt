@@ -49,10 +49,8 @@ class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic
         if(record.offset() < endOffset) {
           records.add(record)
         }
-        if(record.offset()+1 >= endOffset) {
-          partitions.remove(topicPartition)
-        }
       }
+      partitions.removeIf { consumer.position(it) >= endOffsets.getOrDefault(it, 0) }
     }
   }
 }
