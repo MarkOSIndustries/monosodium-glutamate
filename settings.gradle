@@ -7,4 +7,5 @@ include 'kat'
 include 'kgb'
 include 'proto'
 include 'schemas'
+include 'kz'
 
