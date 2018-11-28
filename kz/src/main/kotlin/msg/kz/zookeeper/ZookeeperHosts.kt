@@ -17,7 +17,10 @@ object ZookeeperHosts {
         if(addresses.isEmpty()) {
           listOf(zookeeperHost)
         } else {
-          addresses.map { address -> ZookeeperHost(address.hostAddress, zookeeperHost.port) }
+          addresses
+            .map { address -> address.hostName }
+            .toSet()
+            .map { address -> ZookeeperHost(address, zookeeperHost.port) }
         }
       }
 }

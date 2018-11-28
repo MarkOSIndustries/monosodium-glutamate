@@ -17,7 +17,10 @@ object Brokers {
         if(addresses.isEmpty()) {
           listOf(broker)
         } else {
-          addresses.map { address -> Broker(address.hostAddress, broker.port) }
+          addresses
+            .map { address -> address.hostName }
+            .toSet()
+            .map { address -> Broker(address, broker.port) }
         }
       }
 }
