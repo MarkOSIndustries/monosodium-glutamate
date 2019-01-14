@@ -24,7 +24,7 @@ const workspace = {
   paths: [],
 }
 
-function newWorkspace() {
+function resetWorkspace() {
   workspace.paths = []
   addPaths([protobuf.getGoogleSchemasPath()])
 }
@@ -49,10 +49,10 @@ function addPaths(paths) {
 if(localStorage.getItem('last-workspace-paths')) {
   addPaths(localStorage.getItem('last-workspace-paths').split(','))
 } else {
-  newWorkspace()
+  resetWorkspace()
 }
 
-ipc.on('new-workspace', newWorkspace)
+ipc.on('reset-workspace', resetWorkspace)
 ipc.on('added-workspace-paths', (event, paths) => addPaths(paths))
 ipc.on('invoke-service-method', invocation.invoke)
 ipc.on('cancel-service-method', invocation.cancel)

@@ -1,14 +1,29 @@
-const {app, Menu, dialog} = require('electron')
+const {app, BrowserWindow, Menu, dialog} = require('electron')
+const { createWindow } = require('./window-management.js')
+
+function sendToFocussedWindow() {
+  const focussedWindow = BrowserWindow.getFocusedWindow()
+  if(focussedWindow) {
+    focussedWindow.webContents.send(...arguments)
+  }
+}
 
 const menuTemplate = [
   {
-    label: 'File',
+    label: 'Main',
     submenu: [
       {
-        label: 'New workspace',
+        label: 'New window',
         accelerator: 'CmdOrCtrl+N',
         click () {
-          mainWindow.webContents.send('new-workspace')
+          createWindow()
+        }
+      },
+      {
+        label: 'Reset workspace',
+        accelerator: 'CmdOrCtrl+R',
+        click () {
+          sendToFocussedWindow('reset-workspace')
         }
       },
       {
@@ -18,7 +33,7 @@ const menuTemplate = [
           dialog.showOpenDialog({
             properties: ['openDirectory']
           }, function (paths) {
-            if (paths) mainWindow.webContents.send('added-workspace-paths', paths)
+            if (paths) sendToFocussedWindow('added-workspace-paths', paths)
           })
         }
       },
@@ -33,14 +48,14 @@ const menuTemplate = [
         label: 'Invoke method',
         accelerator: 'CmdOrCtrl+Alt+Enter',
         click() {
-          mainWindow.webContents.send('invoke-service-method')
+          sendToFocussedWindow('invoke-service-method')
         }
       },
       {
         label: 'Cancel method',
         accelerator: 'CmdOrCtrl+Alt+Backspace',
         click() {
-          mainWindow.webContents.send('cancel-service-method')
+          sendToFocussedWindow('cancel-service-method')
         }
       },
       {type: 'separator'},
@@ -48,14 +63,14 @@ const menuTemplate = [
         label: 'Regenerate request body',
         accelerator: 'CmdOrCtrl+Alt+G',
         click() {
-          mainWindow.webContents.send('generate-request-body')
+          sendToFocussedWindow('generate-request-body')
         }
       },
       {
         label: 'Load last sent request body',
         accelerator: 'CmdOrCtrl+Alt+L',
         click() {
-          mainWindow.webContents.send('load-last-request-body')
+          sendToFocussedWindow('load-last-request-body')
         }
       },
       {type: 'separator'},
@@ -63,21 +78,21 @@ const menuTemplate = [
         label: 'Next method',
         accelerator: 'CmdOrCtrl+Tab',
         click() {
-          mainWindow.webContents.send('next-service-method')
+          sendToFocussedWindow('next-service-method')
         }
       },
       {
         label: 'Previous method',
         accelerator: 'CmdOrCtrl+Shift+Tab',
         click() {
-          mainWindow.webContents.send('previous-service-method')
+          sendToFocussedWindow('previous-service-method')
         }
       },
       {
         label: 'Find method',
         accelerator: 'CmdOrCtrl+Shift+F',
         click() {
-          mainWindow.webContents.send('find-service-method')
+          sendToFocussedWindow('find-service-method')
         }
       }
     ]
