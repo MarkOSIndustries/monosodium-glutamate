@@ -30,6 +30,42 @@ service KafkaGRPCBridge {
   rpc offsets(OffsetsRequest) returns (stream OffsetsResponse);
 }
 
+service QueryStore {
+  rpc get(GetRequest) returns (GetResponse);
+  rpc put(PutRequest) returns (PutResponse);
+  rpc scan(ScanRequest) returns (stream GetResponse);
+  rpc delete(DeleteRequest) returns (DeleteResponse);
+}
+
+message GetRequest {
+  bytes key = 1;
+  string schema = 2;
+}
+
+message GetResponse {
+  bytes key = 1;
+  google.protobuf.Any value = 2;
+}
+
+message PutRequest {
+  bytes key = 1;
+  bytes value = 2;
+}
+
+message PutResponse {}
+
+message ScanRequest {
+  bytes key_prefix = 1;
+  string schema = 2;
+  uint64 limit = 3;
+}
+
+message DeleteRequest {
+  bytes key = 1;
+}
+
+message DeleteResponse {}
+
 message ConsumeRequest {
   string topic = 1;
   string schema = 2;

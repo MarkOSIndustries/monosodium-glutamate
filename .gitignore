@@ -5,3 +5,4 @@ gradle*
 build
 *.iml
 schemas/gen
+msg_qs

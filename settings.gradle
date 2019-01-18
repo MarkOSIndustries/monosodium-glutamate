@@ -6,5 +6,6 @@ include 'kafka-clikt'
 include 'kat'
 include 'kgb'
 include 'proto'
+include 'qs'
 include 'schemas'
 
