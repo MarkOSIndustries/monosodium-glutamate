@@ -88,11 +88,13 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
   const inStream = inputFormat.newStream(process.stdin, inputConfig)
   const outStream = outputFormat.newStream(process.stdout, outputConfig)
 
+  var messagesTransformed = 0
   inStream.on('data', data => {
     try {
       const jsonObject = inputFormat.unmarshal(data, inputConfig)
       if(filter(jsonObject)) {
         const shapedJsonObject = shape(jsonObject)
+        messagesTransformed = messagesTransformed + 1
         outStream.write(outputFormat.marshal(shapedJsonObject, outputConfig))
       }
     } catch(ex) {
@@ -100,13 +102,18 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
     }
   })
 
+  const exit = () => {
+    process.stderr.write(`Transformed ${messagesTransformed} messages${require('os').EOL}`)
+    process.exit()
+  }
+
   process.on('SIGINT', function() {
     if(process.stdin.isTTY) {
-      process.exit()
+      exit()
     } else {
       setInterval(() => {
         if(process.stdin.bytesWritten <= process.stdin.bytesRead) {
-          process.exit()
+          exit()
         }
       }, 10)
     }
