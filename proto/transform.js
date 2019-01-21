@@ -100,7 +100,17 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
     }
   })
 
-  process.stdin.on('end', () => { process.exit() })
+  process.on('SIGINT', function() {
+    if(process.stdin.isTTY) {
+      process.exit()
+    } else {
+      setInterval(() => {
+        if(process.stdin.bytesWritten <= process.stdin.bytesRead) {
+          process.exit()
+        }
+      }, 10)
+    }
+  })
 }
 
 function tryToLoadSchema(protobufs, schema) {
