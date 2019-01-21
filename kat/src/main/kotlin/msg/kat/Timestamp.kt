@@ -19,8 +19,8 @@ class Timestamp  : KafkaTopicCommand("Query timestamp by offset\nRetrieves the t
     val topicPartition = TopicPartition(topic, partition)
     consumer.assign(listOf(topicPartition))
     consumer.seek(topicPartition, offset)
-    val records = consumer.poll(Duration.ofMillis(10000))
-    println(records.first().timestamp())
+    val records = consumer.poll(Duration.ofMillis(10_000))
+    println("${records.first().timestamp()} @ offset ${records.first().offset()}")
   }
 }
 
