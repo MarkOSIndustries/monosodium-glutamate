@@ -4,6 +4,8 @@ const stream = require('stream')
 const streams = require('../streams')
 const { matchesFilter } = require('./filter')
 const { inspect } = require('util')
+const os = require('os')
+
 module.exports = {
   transform,
 }
@@ -103,7 +105,7 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
   })
 
   const exit = () => {
-    process.stderr.write(`Transformed ${messagesTransformed} messages${require('os').EOL}`)
+    process.stderr.write(`Transformed ${messagesTransformed} messages${os.EOL}`)
     process.exit()
   }
 
@@ -112,7 +114,7 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
       exit()
     } else {
       setInterval(() => {
-        if(process.stdin.bytesWritten <= process.stdin.bytesRead) {
+        if(!process.readable) {
           exit()
         }
       }, 10)
