@@ -114,7 +114,7 @@ function transform({input, output, schema, prefix, encoding, delimiter, protobuf
       exit()
     } else {
       setInterval(() => {
-        if(!process.readable) {
+        if(process.stdin.readableLength === 0) {
           exit()
         }
       }, 10)
