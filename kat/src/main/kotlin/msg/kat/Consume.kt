@@ -16,10 +16,10 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.requests.IsolationLevel
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import sun.misc.Signal
 import java.time.Instant
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.atomic.AtomicInteger
 
 class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads records from Kafka and emits length-prefixed binary records on stdout") {
   private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
@@ -40,9 +40,12 @@ class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads 
     val write = encoding.writer(System.out)
 
     val interrupted = CompletableFuture<Unit>()
-    Signal.handle(Signal("INT")) { interrupted.complete(Unit) }
 
-    var receivedCount = 0
+    var receivedCount = AtomicInteger(0)
+    Runtime.getRuntime().addShutdownHook(Thread {
+      System.err.println("Received $receivedCount messages.")
+    })
+
     TopicIterator(
       newConsumer(ByteArrayDeserializer::class,ByteArrayDeserializer::class,
         ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().toLowerCase(Locale.ROOT)),
@@ -52,12 +55,10 @@ class Consume : KafkaTopicDataCommand(help = "Consume records from Kafka\nReads 
       interrupted
     ).forEach {
       write(encoding.fromConsumerRecord(it, schema ?: topic))
-      if(++receivedCount >= limit) {
+      if(receivedCount.incrementAndGet() >= limit) {
         interrupted.complete(Unit)
       }
     }
-
-    System.err.println("Received $receivedCount messages.")
   }
 
   private fun parseOffsetSpec(spec:String):OffsetSpec {

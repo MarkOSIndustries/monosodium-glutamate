@@ -8,7 +8,7 @@ import java.time.Duration
 import java.util.LinkedList
 import java.util.concurrent.CompletableFuture
 
-class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic:String, startOffsetInclusiveSpec: OffsetSpec, endOffsetExclusiveSpec: OffsetSpec, val interrupted: CompletableFuture<Unit> = CompletableFuture()) : Iterator<ConsumerRecord<K, V>> {
+class TopicIterator<K,V>(private val consumer: Consumer<K, V>, private val topic:String, startOffsetInclusiveSpec: OffsetSpec, endOffsetExclusiveSpec: OffsetSpec, private val interrupted: CompletableFuture<Unit> = CompletableFuture()) : Iterator<ConsumerRecord<K, V>> {
   private val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1)).toMutableSet()
   private val startOffsets = startOffsetInclusiveSpec.getOffsets(consumer, partitions)
   private val endOffsets = endOffsetExclusiveSpec.getOffsets(consumer, partitions)

@@ -13,22 +13,20 @@ class Host : KafkaCommand("Host the bridge on a given port") {
   private val port by argument(help = "the port to bind the GRPC endpoint to").int().default(8082)
 
   override fun run() {
-    val interrupted = CompletableFuture<Unit>()
-    Signal.handle(Signal("INT")) { interrupted.complete(Unit) }
-
     val server = ServerBuilder.forPort(port)
-        .addService(KafkaGRPCBridgeImpl { newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class) })
-        .build()
+      .addService(KafkaGRPCBridgeImpl { newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class) })
+      .build()
+
+    Runtime.getRuntime().addShutdownHook(Thread {
+      println("Shutting down...")
+      server.shutdownNow()
+      server.awaitTermination()
+      println("Done.")
+    })
 
     server.start()
     println("Listening for GRPC requests on $port")
 
-    interrupted.thenRun {
-      println("Shutting down...")
-      server.shutdownNow()
-    }
-
     server.awaitTermination()
-    println("Done.")
   }
 }
