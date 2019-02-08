@@ -53,7 +53,10 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
     try {
       val iterator = rocksDB.newIterator()
       iterator.seek(request.keyPrefix.toByteArray())
-      for (i in 0..limit) {
+      for (i in 1..limit) {
+        if(!iterator.isValid) {
+          break
+        }
         responseObserver.onNext(MSG.GetResponse.newBuilder()
           .setKey(ByteString.copyFrom(iterator.key()))
           .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(iterator.value())).build()).build())

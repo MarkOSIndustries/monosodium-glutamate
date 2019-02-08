@@ -18,8 +18,8 @@ open class QsCommand(help: String): CliktCommand(help = help) {
   private val port by option(help = "the port to bind the GRPC endpoint to").int().default(8083)
 
   protected val rocksDB: RocksDB by lazy {
-    val pathString = path?.toString() ?: System.getProperty("user.dir")
-    RocksDBManager.get("$pathString${File.separator}msg_qs")
+    val pathString = path?.toString() ?: "${System.getProperty("user.dir")}${File.separator}msg_qs"
+    RocksDBManager.get(pathString)
   }
 
   protected val grpcServer: Server by lazy {
