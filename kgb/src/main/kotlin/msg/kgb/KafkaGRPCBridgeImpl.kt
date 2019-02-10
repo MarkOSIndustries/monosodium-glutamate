@@ -14,9 +14,11 @@ import msg.schemas.MSG
 import org.apache.kafka.clients.consumer.Consumer
 import java.time.Duration
 
-class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
-  override fun consume(request: MSG.ConsumeRequest,
-              responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>) {
+class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
+  override fun consume(
+    request: MSG.ConsumeRequest,
+    responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>
+  ) {
     val iterator = TopicIterator(
       newConsumer(),
       request.topic,
@@ -24,10 +26,10 @@ class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteA
       getUntilOffsetSpec(request)
     )
 
-    val schema = if(request.schema.isNullOrEmpty()) request.topic else request.schema
-    val limit = if(request.limit <= 0L) Long.MAX_VALUE else request.limit
+    val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
+    val limit = if (request.limit <= 0L) Long.MAX_VALUE else request.limit
     var count = 0
-    while(iterator.hasNext() && count++ < limit) {
+    while (iterator.hasNext() && count++ < limit) {
       val record = iterator.next()
       val builder = MSG.TypedKafkaRecord.newBuilder()
         .setTopic(record.topic())
@@ -35,10 +37,10 @@ class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteA
         .setOffset(record.offset())
         .setTimestamp(record.timestamp())
 
-      if(record.key() != null) {
+      if (record.key() != null) {
         builder.key = ByteString.copyFrom(record.key())
       }
-      if(record.value() != null) {
+      if (record.value() != null) {
         builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
       }
       responseObserver.onNext(builder.build())
@@ -47,14 +49,16 @@ class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteA
     responseObserver.onCompleted()
   }
 
-  override fun offsets(request: MSG.OffsetsRequest,
-              responseObserver: StreamObserver<MSG.OffsetsResponse>) {
+  override fun offsets(
+    request: MSG.OffsetsRequest,
+    responseObserver: StreamObserver<MSG.OffsetsResponse>
+  ) {
     val consumer = newConsumer()
     val partitions = consumer.topicPartitions(request.topic, Duration.ofMinutes(1))
 
     TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {
       val builder = MSG.OffsetsResponse.newBuilder().setTopic(it.key.topic()).setPartition(it.key.partition())
-      if(it.value != null) {
+      if (it.value != null) {
         builder.offset = it.value!!.offset()
         builder.timestamp = it.value!!.timestamp()
       }
@@ -65,7 +69,7 @@ class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteA
   }
 
   private fun getFromOffsetSpec(request: MSG.ConsumeRequest): OffsetSpec =
-    when(request.fromOneOfCase) {
+    when (request.fromOneOfCase) {
       MSG.ConsumeRequest.FromOneOfCase.FROM_EARLIEST -> EarliestOffsetSpec()
       MSG.ConsumeRequest.FromOneOfCase.FROM_LATEST -> LatestOffsetSpec()
       MSG.ConsumeRequest.FromOneOfCase.FROM_TIMESTAMP -> TimestampOffsetSpec(request.fromTimestamp)
@@ -73,7 +77,7 @@ class KafkaGRPCBridgeImpl(private val newConsumer:()-> Consumer<ByteArray, ByteA
     }
 
   private fun getUntilOffsetSpec(request: MSG.ConsumeRequest): OffsetSpec =
-    when(request.untilOneOfCase) {
+    when (request.untilOneOfCase) {
       MSG.ConsumeRequest.UntilOneOfCase.UNTIL_LATEST -> LatestOffsetSpec()
       MSG.ConsumeRequest.UntilOneOfCase.UNTIL_TIMESTAMP -> TimestampOffsetSpec(request.untilTimestamp)
       else -> throw RuntimeException("Must specify which offsets to read from")

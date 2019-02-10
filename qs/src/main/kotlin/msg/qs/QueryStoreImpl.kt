@@ -20,7 +20,7 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
       } else {
         responseObserver.onError(Status.NOT_FOUND.withDescription("Key does not exist").asRuntimeException())
       }
-    } catch(t: Throwable) {
+    } catch (t: Throwable) {
       responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
     }
@@ -31,7 +31,7 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
       rocksDB.put(request.key.toByteArray(), request.value.toByteArray())
       responseObserver.onNext(MSG.PutResponse.newBuilder().build())
       responseObserver.onCompleted()
-    } catch(t: Throwable) {
+    } catch (t: Throwable) {
       responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
     }
@@ -42,19 +42,19 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
       rocksDB.delete(request.key.toByteArray())
       responseObserver.onNext(MSG.DeleteResponse.newBuilder().build())
       responseObserver.onCompleted()
-    } catch(t: Throwable) {
+    } catch (t: Throwable) {
       responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
     }
   }
 
   override fun scan(request: MSG.ScanRequest, responseObserver: StreamObserver<MSG.GetResponse>) {
-    val limit = if(request.limit == 0L) 10L else request.limit
+    val limit = if (request.limit == 0L) 10L else request.limit
     try {
       val iterator = rocksDB.newIterator()
       iterator.seek(request.keyPrefix.toByteArray())
       for (i in 1..limit) {
-        if(!iterator.isValid) {
+        if (!iterator.isValid) {
           break
         }
         responseObserver.onNext(MSG.GetResponse.newBuilder()
@@ -63,10 +63,9 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
         iterator.next()
       }
       responseObserver.onCompleted()
-    } catch(t: Throwable) {
+    } catch (t: Throwable) {
       responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
     }
   }
-
 }

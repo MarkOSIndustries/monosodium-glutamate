@@ -9,7 +9,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
-class Timestamp  : KafkaTopicCommand("Query timestamp by offset\nRetrieves the timestamp a given offset on a given topic partition and prints to stdout") {
+class Timestamp : KafkaTopicCommand("Query timestamp by offset\nRetrieves the timestamp a given offset on a given topic partition and prints to stdout") {
   val partition by argument("partition", "the partition to query").int()
   val offset by argument("offset", "the offset to get the timestamp for").long()
 
@@ -23,5 +23,3 @@ class Timestamp  : KafkaTopicCommand("Query timestamp by offset\nRetrieves the t
     println("${records.first().timestamp()} @ offset ${records.first().offset()}")
   }
 }
-
-

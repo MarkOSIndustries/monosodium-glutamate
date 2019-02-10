@@ -9,7 +9,7 @@ import java.time.Duration
 import java.util.UUID
 import kotlin.reflect.KClass
 
-class EphemeralConsumer<K,V,DK: Deserializer<K>,DV: Deserializer<V>>(brokers:Collection<Broker>, keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config:Pair<String,Any>) : KafkaConsumer<K,V,DK,DV>(
+class EphemeralConsumer<K, V, DK : Deserializer<K>, DV : Deserializer<V>>(brokers: Collection<Broker>, keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config: Pair<String, Any>) : KafkaConsumer<K, V, DK, DV>(
   brokers,
   keyDeserialiser,
   valueDeserialiser,

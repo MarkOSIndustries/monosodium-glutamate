@@ -2,3 +2,41 @@ allprojects {
   group 'msg'
   version '1.0.0'
 }
+
+def kotlinProjects() {
+  def result = []
+  getTasksByName('compileKotlin', true).forEach{task -> result.add(task.project)}
+  return result
+}
+
+configure(kotlinProjects()) {
+  apply plugin: 'java' // needed for ktlint
+
+  repositories {
+    jcenter() // needed for ktlint
+  }
+
+  configurations {
+    ktlint
+  }
+
+  dependencies {
+    ktlint group: 'com.github.shyiko', name: 'ktlint', version: '0.28.0'
+  }
+
+  task ktlint(type: JavaExec, group: "verification") {
+    description = "Check Kotlin code style."
+    main = "com.github.shyiko.ktlint.Main"
+    classpath = configurations.ktlint
+    args "src/**/*.kt"
+  }
+
+  check.dependsOn ktlint
+
+  task ktlintFormat(type: JavaExec, group: "formatting") {
+    description = "Fix Kotlin code style deviations."
+    main = "com.github.shyiko.ktlint.Main"
+    classpath = configurations.ktlint
+    args "-F", "src/**/*.kt"
+  }
+}

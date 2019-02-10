@@ -10,10 +10,10 @@ import java.util.Random
 
 interface Encoding {
   fun reader(input: InputStream): Iterator<ByteArray>
-  fun toProducerRecord(topic: String, bytes:ByteArray): ProducerRecord<ByteArray,ByteArray>
+  fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray>
 
   fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray
-  fun writer(output: PrintStream): (ByteArray)->Unit
+  fun writer(output: PrintStream): (ByteArray) -> Unit
 
   companion object {
     private val random = Random()
@@ -24,7 +24,7 @@ interface Encoding {
       return key
     }
 
-    fun lengthPrefixedBinaryValues(out: OutputStream) : (ByteArray)->Unit {
+    fun lengthPrefixedBinaryValues(out: OutputStream): (ByteArray) -> Unit {
       val sizeBufferArray = ByteArray(4)
       val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
 

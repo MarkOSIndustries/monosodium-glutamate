@@ -8,7 +8,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.util.UUID
 
 class ProduceTx : KafkaTopicDataCommand(help = "Produce records to Kafka using transactions\nReads records from stdin and sends them to Kafka") {
-  val commit by option("-c", "--commit", help="How many records should be sent per transaction").int().default(5)
+  val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
 
   override fun run() {
     val producer = newProducer(ByteArraySerializer::class, ByteArraySerializer::class,
@@ -20,8 +20,8 @@ class ProduceTx : KafkaTopicDataCommand(help = "Produce records to Kafka using t
 
     var recordsInTransaction = 0
     producer.beginTransaction()
-    while(reader.hasNext()) {
-      if(recordsInTransaction++ == commit) {
+    while (reader.hasNext()) {
+      if (recordsInTransaction++ == commit) {
         producer.commitTransaction()
         System.out.print('.')
         recordsInTransaction = 0

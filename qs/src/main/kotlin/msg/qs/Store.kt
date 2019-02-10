@@ -6,7 +6,7 @@ import msg.qs.encodings.Encodings
 import java.io.EOFException
 
 class Store : QsCommand("Accept new records on stdin, while providing a GRPC query endpoint to the query store") {
-  private val encoding by argument("encoding","the stdin format for records. All are length-prefixed binary of some MSG-specific schema.").choice(Encodings.byName)
+  private val encoding by argument("encoding", "the stdin format for records. All are length-prefixed binary of some MSG-specific schema.").choice(Encodings.byName)
 
   override fun run() {
     super.run()
@@ -18,7 +18,7 @@ class Store : QsCommand("Accept new records on stdin, while providing a GRPC que
         val kv = encoding.getKVPair(bytes)
         rocksDB.put(kv.first, kv.second)
       }
-    } catch(t: EOFException) {
+    } catch (t: EOFException) {
       // Ignore, we just terminated between hasNext and next()
     }
 

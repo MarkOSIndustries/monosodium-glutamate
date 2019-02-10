@@ -19,7 +19,7 @@ interface Encoding {
       return key
     }
 
-    fun lengthPrefixedBinaryValues(out: OutputStream) : (ByteArray)->Unit {
+    fun lengthPrefixedBinaryValues(out: OutputStream): (ByteArray) -> Unit {
       val sizeBufferArray = ByteArray(4)
       val sizeBuffer: ByteBuffer = ByteBuffer.wrap(sizeBufferArray)
 

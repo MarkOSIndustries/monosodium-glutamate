@@ -6,8 +6,6 @@ import com.github.ajalt.clikt.parameters.types.int
 import io.grpc.ServerBuilder
 import msg.kafka.KafkaCommand
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import sun.misc.Signal
-import java.util.concurrent.CompletableFuture
 
 class Host : KafkaCommand("Host the bridge on a given port") {
   private val port by argument(help = "the port to bind the GRPC endpoint to").int().default(8082)

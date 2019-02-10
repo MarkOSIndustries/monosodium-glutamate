@@ -22,11 +22,11 @@ class Topics : KafkaCommand("Query topics\nRetrieves the names of all topics and
 
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
     consumer.listTopics(Duration.ofMinutes(1))
-      .filterKeys { if(not) !regex.matches(it) else regex.matches(it) }
+      .filterKeys { if (not) !regex.matches(it) else regex.matches(it) }
       .toSortedMap()
       .forEach { topicWithPartitionInfos ->
         println(topicWithPartitionInfos.key)
-        if(offsets) {
+        if (offsets) {
           val topicPartitionsWithInfo = topicWithPartitionInfos.value.map { TopicPartition(it.topic(), it.partition()) to it }.toMap()
           val earliest = EarliestOffsetSpec().getOffsets(consumer, topicPartitionsWithInfo.keys)
           val latest = LatestOffsetSpec().getOffsets(consumer, topicPartitionsWithInfo.keys)

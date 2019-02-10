@@ -23,12 +23,12 @@ class TypedKafkaRecord : Encoding {
       .setTopic(consumerRecord.topic())
       .setPartition(consumerRecord.partition())
       .setOffset(consumerRecord.offset())
-      .setTimestamp(consumerRecord.timestamp())//Timestamp.newBuilder().setSeconds(consumerRecord.timestamp()/1000).setNanos(1000000000 * (consumerRecord.timestamp()%1000).toInt()).build()
+      .setTimestamp(consumerRecord.timestamp()) // Timestamp.newBuilder().setSeconds(consumerRecord.timestamp()/1000).setNanos(1000000000 * (consumerRecord.timestamp()%1000).toInt()).build()
 
-    if(consumerRecord.key() != null) {
+    if (consumerRecord.key() != null) {
       builder.key = ByteString.copyFrom(consumerRecord.key())
     }
-    if(consumerRecord.value() != null) {
+    if (consumerRecord.value() != null) {
       builder.value = Any.newBuilder().setValue(ByteString.copyFrom(consumerRecord.value())).setTypeUrl(schema).build()
     }
     return builder.build().toByteArray()

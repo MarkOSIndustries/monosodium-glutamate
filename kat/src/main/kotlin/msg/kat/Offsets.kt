@@ -17,15 +17,15 @@ class Offsets : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the off
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
     val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1))
 
-    val offsetSpec: OffsetSpec = when(timestamp) {
+    val offsetSpec: OffsetSpec = when (timestamp) {
       "latest" -> LatestOffsetSpec()
       "earliest" -> EarliestOffsetSpec()
       else -> TimestampOffsetSpec(timestamp.toLong())
     }
 
-    if(offsetSpec is TimestampOffsetSpec) {
+    if (offsetSpec is TimestampOffsetSpec) {
       offsetSpec.getOffsetsWithTimestamps(consumer, partitions).forEach {
-        if(it.value == null) {
+        if (it.value == null) {
           println("${it.key} has no offset after $timestamp")
         } else {
           println("${it.key} has offset ${it.value!!.offset()} at ${it.value!!.timestamp()}")
@@ -38,4 +38,3 @@ class Offsets : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the off
     }
   }
 }
-

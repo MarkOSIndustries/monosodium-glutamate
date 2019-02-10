@@ -14,15 +14,15 @@ class Produce : KafkaTopicDataCommand(help = "Produce records to Kafka\nReads re
 
     try {
       val reader = encoding.reader(System.`in`)
-      while(reader.hasNext()) {
+      while (reader.hasNext()) {
         val bytes = reader.next()
         futures.add(producer.send(encoding.toProducerRecord(topic, bytes)))
-        while(futures.isNotEmpty() && futures.first.isDone) {
+        while (futures.isNotEmpty() && futures.first.isDone) {
           futures.pop().get() // make the future throw its exception if any
           System.out.print('.')
         }
       }
-    } catch(t: EOFException) {
+    } catch (t: EOFException) {
       // Ignore, we just terminated between hasNext and next()
     }
   }

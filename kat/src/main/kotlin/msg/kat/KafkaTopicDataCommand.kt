@@ -6,5 +6,5 @@ import msg.kafka.KafkaTopicCommand
 import msg.kat.encodings.Encodings
 
 abstract class KafkaTopicDataCommand(help: String) : KafkaTopicCommand(help) {
-  protected val encoding by argument("encoding","the stdin/stdout format for records (and in some cases keys). HEX,Base64 are line delimited ASCII. Others are length-prefixed binary.").choice(Encodings.byName)
+  protected val encoding by argument("encoding", "the stdin/stdout format for records (and in some cases keys). HEX,Base64 are line delimited ASCII. Others are length-prefixed binary.").choice(Encodings.byName)
 }

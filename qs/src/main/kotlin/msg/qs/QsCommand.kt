@@ -1,9 +1,7 @@
 package msg.qs
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.default
-import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
@@ -13,7 +11,7 @@ import io.grpc.ServerBuilder
 import org.rocksdb.RocksDB
 import java.io.File
 
-open class QsCommand(help: String): CliktCommand(help = help) {
+open class QsCommand(help: String) : CliktCommand(help = help) {
   private val path by option(help = "the path to store the db files under").path(fileOkay = false, folderOkay = true)
   private val port by option(help = "the port to bind the GRPC endpoint to").int().default(8083)
 

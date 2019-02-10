@@ -3,9 +3,7 @@ package msg.kat.encodings
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.io.InputStream
-import java.io.OutputStream
 import java.io.PrintStream
-import java.nio.ByteBuffer
 
 class Binary : Encoding {
   override fun reader(input: InputStream): Iterator<ByteArray> {
