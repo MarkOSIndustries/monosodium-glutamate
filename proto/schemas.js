@@ -13,7 +13,9 @@ function schemas({query, protobufs}) {
   const index = protobuf.makeFlatIndex(allSchemas)
   Object.keys(index.messages).forEach(schemaName => {
     if(query.test(schemaName)) {
-      console.log(schemaName, Object.keys(index.messages[schemaName].fields))
+      console.log(schemaName, Object.values(index.messages[schemaName].fields).map(field => {
+        return `${field.name}: ${field.repeated ? 'repeated ' : ''}${field.resolvedType ? field.resolvedType.name : field.type}`
+      }))
     }
   })
 }
