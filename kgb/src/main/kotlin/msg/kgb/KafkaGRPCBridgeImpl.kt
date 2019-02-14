@@ -27,7 +27,7 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
     )
 
     val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
-    val limit = if (request.limit <= 0L) Long.MAX_VALUE else request.limit
+    val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
     var count = 0
     while (iterator.hasNext() && count++ < limit) {
       val record = iterator.next()

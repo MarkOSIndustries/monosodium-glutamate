@@ -88,7 +88,6 @@ class Http2Channel {
     this.closed = false
 
     this.events = new stream.Readable()
-    console.log("New http2 channel", this.host, this.port, this.scheme)
     self.connected = false
     this.events.on('request', () => {
       if(!self.connected) {
@@ -102,16 +101,13 @@ class Http2Channel {
     this.events.emit('connecting', this)
     this.client = http2.connect(self.address)
     this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer))
-    this.client.on('goaway', () => console.log('Http2Channel server requested channel shutdown'))
+    this.client.on('goaway', () => console.error('Http2Channel server requested channel shutdown'))
     this.client.on('close', () => {
       self.connected = false
       self.events.emit('disconnected', this)
-      console.log('Http2Channel closed. Will reconnect when needed')
     })
-    // client.on('stream', () => console.log('Http2Channel stream initiated'))
     this.client.on('error', err => console.error('Http2Channel error', err))
     this.client.on('connect', () => {
-      console.log('Http2Channel connected', self.address)
       self.events.emit('connected', this)
     })
     this.connected = true
@@ -170,7 +166,6 @@ class Http2Request {
         acceptedRequestEncodings.split(',').forEach(newRequestEncoding => {
           if(encoding.GRPCEncodingsByName.hasOwnProperty(newRequestEncoding)) {
             self.options.requestEncoding = encoding.GRPCEncodingsByName[newRequestEncoding]
-            console.log("Request encoding negotatiated", self.options.requestEncoding.name)
           }
         })
       }
@@ -179,7 +174,6 @@ class Http2Request {
         acceptedResponseEncodings.split(',').forEach(newResponseEncoding => {
           if(encoding.GRPCEncodingsByName.hasOwnProperty(newResponseEncoding)) {
             self.options.responseEncoding = encoding.GRPCEncodingsByName[newResponseEncoding]
-            console.log("Response encoding negotatiated", self.options.responseEncoding.name)
           }
         })
       }
@@ -236,7 +230,7 @@ class Http2Request {
     if(buffer.length >= 5) {
       const compression = buffer.readUInt8(0)
       if(compression != responseEncoding.compressed) {
-        console.log('Message compression mismatch, guessing...')
+        console.error('Message compression mismatch, guessing...')
         if(compression === 0) {
           responseEncoding = encoding.IdentityEncoding
         } else {

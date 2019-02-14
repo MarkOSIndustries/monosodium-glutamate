@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const {transform} = require('./transform')
+const {invoke} = require('./invoke')
 const {schemas} = require('./schemas')
 const {coerceFilter} = require('./filter')
 const {coerceShape} = require('./shape.js')
@@ -38,6 +39,51 @@ const yargs = require('yargs') // eslint-disable-line
       addTransformOptions(argsSpec)
   }, argv => {
     transform(argv)
+  })
+  .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method by reading requests from stdin and writing responses to stdout', (argsSpec) => {
+    argsSpec
+      .positional('service', {
+        describe: 'GRPC service containing the method to invoke',
+      })
+      .positional('method', {
+        describe: 'GRPC service method to invoke',
+      })
+      .positional('input', {
+        describe: 'the input format to expect for requests',
+        choices: [
+          'json',
+          'json_hex',
+          'json_base64',
+          'base64',
+          'hex',
+          'binary',
+        ],
+      })
+      .positional('output', {
+        describe: 'the output format to use for responses',
+        choices: [
+          'json',
+          'json_hex',
+          'json_base64',
+          'base64',
+          'hex',
+          'binary',
+        ],
+      })
+      .option('host', {
+        alias: 'h',
+        describe: 'the host to connect to',
+        default: 'localhost',
+      })
+      .option('port', {
+        alias: 'p',
+        describe: 'the port to connect to',
+        default: 8082
+      })
+
+      addTransformOptions(argsSpec)
+  }, argv => {
+    invoke(argv)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
     argsSpec
@@ -104,7 +150,6 @@ function addTransformOptions(argsSpec) {
       coerce: hex => Buffer.from(hex, "hex"),
     })
     .option('prefix', {
-      alias: 'p',
       describe: 'length prefix format',
       default: 'Int32BE',
       choices: [

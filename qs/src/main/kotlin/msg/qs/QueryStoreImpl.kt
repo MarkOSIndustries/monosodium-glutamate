@@ -49,7 +49,7 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
   }
 
   override fun scan(request: MSG.ScanRequest, responseObserver: StreamObserver<MSG.GetResponse>) {
-    val limit = if (request.limit == 0L) 10L else request.limit
+    val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
     try {
       val iterator = rocksDB.newIterator()
       iterator.seek(request.keyPrefix.toByteArray())

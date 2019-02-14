@@ -57,7 +57,10 @@ message PutResponse {}
 message ScanRequest {
   bytes key_prefix = 1;
   string schema = 2;
-  uint64 limit = 3;
+  oneof limit_oneof {
+    uint64 limit = 3;
+    bool unlimited = 4;
+  }
 }
 
 message DeleteRequest {
@@ -78,7 +81,10 @@ message ConsumeRequest {
     bool until_latest = 6;
     int64 until_timestamp = 7;
   }
-  uint64 limit = 8;
+  oneof limit_oneof {
+    uint64 limit = 8;
+    bool unlimited = 9;
+  }
 }
 
 message OffsetsRequest {
