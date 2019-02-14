@@ -2,13 +2,14 @@ package msg.qs.encodings
 
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.PrintStream
 import java.nio.ByteBuffer
 import java.util.Random
 
 interface Encoding {
   fun reader(input: InputStream): Iterator<ByteArray>
-  fun getKVPair(bytes: ByteArray): Pair<ByteArray, ByteArray>
-//  fun writer(output: PrintStream): (ByteArray)->Unit
+  fun decodeKeyValuePair(bytes: ByteArray): Pair<ByteArray, ByteArray>
+  fun writer(output: PrintStream): (ByteArray) -> Unit
 
   companion object {
     private val random = Random()

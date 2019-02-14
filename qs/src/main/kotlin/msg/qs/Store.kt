@@ -15,7 +15,7 @@ class Store : QsCommand("Accept new records on stdin, while providing a GRPC que
       val reader = encoding.reader(System.`in`)
       while (reader.hasNext()) {
         val bytes = reader.next()
-        val kv = encoding.getKVPair(bytes)
+        val kv = encoding.decodeKeyValuePair(bytes)
         rocksDB.put(kv.first, kv.second)
       }
     } catch (t: EOFException) {
