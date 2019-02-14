@@ -2,6 +2,7 @@
 const {transform} = require('./transform')
 const {invoke} = require('./invoke')
 const {schemas} = require('./schemas')
+const {services} = require('./services')
 const {coerceFilter} = require('./filter')
 const {coerceShape} = require('./shape.js')
 const {coerceTemplate} = require('./template.js')
@@ -114,6 +115,16 @@ const yargs = require('yargs') // eslint-disable-line
       })
   }, argv => {
     schemas(argv)
+  })
+  .command('services [query]', 'list all known GRPC services', (argsSpec) => {
+    argsSpec
+      .positional('query', {
+        describe: 'show only services containing the given substring (case insensitive)',
+        default: '',
+        coerce: query => new RegExp(query, 'i'),
+      })
+  }, argv => {
+    services(argv)
   })
   .option('protobufs', {
     describe: 'paths which contain protobuf schemas (comma separated, env PROTO_HOME to override)',

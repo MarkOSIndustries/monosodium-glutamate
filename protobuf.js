@@ -21,12 +21,17 @@ function initWithProtobufJS(protobufjs) {
           }
 
           if(filename.endsWith('.proto')) {
-            messages.loadSync(filePath,{
-                  keepCase: true,
-                  enums: String,
-                  defaults: true,
-                  oneofs: true,
-                })
+            try {
+              messages.loadSync(filePath,{
+                    keepCase: true,
+                    enums: String,
+                    defaults: true,
+                    oneofs: true,
+                  })
+
+            } catch(ex) {
+              console.error(filePath, '::', ex.message)
+            }
           }
         })
     })
