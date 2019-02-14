@@ -79,7 +79,11 @@ const yargs = require('yargs') // eslint-disable-line
       .option('port', {
         alias: 'p',
         describe: 'the port to connect to',
-        default: 8082
+        default: 8082,
+      })
+      .option('timeout', {
+        describe: 'the GRPC deadline in minutes',
+        default: 5,
       })
 
       addTransformOptions(argsSpec)

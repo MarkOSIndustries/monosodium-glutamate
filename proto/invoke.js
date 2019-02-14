@@ -64,7 +64,7 @@ const outputFormats = {
   },
 }
 
-function invoke({input, output, service, method, host, port, prefix, encoding, delimiter, protobufs, template}) {
+function invoke({input, output, service, method, host, port, prefix, encoding, delimiter, protobufs, template, timeout}) {
   const methodObject = protobuf.describeServiceMethods(tryToLoadService(protobufs, service))[method]
 
   const transformConfig = {
@@ -97,7 +97,9 @@ function invoke({input, output, service, method, host, port, prefix, encoding, d
     try {
       const requestSchemaObject = inputFormat.unmarshal(data, inputConfig)
       requestsSent = requestsSent + 1
-      const responseStream = methodObject.invokeWith(channelManager.getChannel(host, port), requestSchemaObject)
+      const responseStream = methodObject.invokeWith(channelManager.getChannel(host, port), requestSchemaObject, {
+        timeoutValue: timeout
+      })
       responseStream.on('data', responseSchemaObject => {
         responsesReceived = responsesReceived + 1
         outStream.write(outputFormat.marshal(responseSchemaObject, outputConfig))
