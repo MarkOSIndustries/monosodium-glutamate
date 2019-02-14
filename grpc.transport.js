@@ -228,7 +228,7 @@ class Http2Request {
 
   unpackMessages(responseEncoding, buffer, fnMessageUnpacked) {
     if(buffer.length >= 5) {
-      const compression = buffer.readUInt8(0)
+      const compression = buffer.readUInt8(0,1)
       if(compression != responseEncoding.compressed) {
         console.error('Message compression mismatch, guessing...')
         if(compression === 0) {
@@ -237,7 +237,7 @@ class Http2Request {
           responseEncoding = encoding.GZIPEncoding
         }
       }
-      const messageSize = buffer.readUInt32BE(1)
+      const messageSize = buffer.readUInt32BE(1,4)
 
       if(buffer.length >= (5 + messageSize)) {
         responseEncoding.decode(buffer.slice(5, 5 + messageSize)).then(fnMessageUnpacked)

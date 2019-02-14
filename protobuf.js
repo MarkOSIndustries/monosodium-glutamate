@@ -142,14 +142,14 @@ function initWithProtobufJS(protobufjs) {
   function makeTypeSample(fieldType, fieldName) {
     switch(fieldType) {
       case "bool":
-        return Boolean(rng(1).readUIntBE()%2)
+        return Boolean(rng(1).readUIntBE(0, 1)%2)
       case "string":
-        return `${fieldName} ${rng(2).readUInt16BE()}`
+        return `${fieldName} ${rng(2).readUInt16BE(0, 2)}`
       case "bytes":
         return Buffer.concat([Buffer.from(fieldName), rng(12)]).toString("base64")
       default:
         // everything else is a number :)
-        return rng(2).readUInt16BE()
+        return rng(2).readUInt16BE(0,2)
     }
   }
 
