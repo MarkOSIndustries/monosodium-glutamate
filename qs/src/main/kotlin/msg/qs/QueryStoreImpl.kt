@@ -3,6 +3,7 @@ package msg.qs
 import com.google.protobuf.Any
 import com.google.protobuf.ByteString
 import io.grpc.Status
+import io.grpc.stub.ServerCallStreamObserver
 import io.grpc.stub.StreamObserver
 import msg.schemas.MSG
 import msg.schemas.QueryStoreGrpc
@@ -50,24 +51,27 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
 
   override fun scan(request: MSG.ScanRequest, responseObserver: StreamObserver<MSG.GetResponse>) {
     val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
+    val serverCallStreamObserver = responseObserver as ServerCallStreamObserver<MSG.GetResponse>
     try {
       rocksDB.newIterator().use { iterator ->
-        if (request.keyPrefix.isEmpty) {
-          iterator.seekToFirst()
-        } else {
-          iterator.seek(request.keyPrefix.toByteArray())
-        }
-        for (i in 1..limit) {
-          if (!iterator.isValid) {
-            break
+        iterator.seek(request.keyPrefix.toByteArray())
+        var sent = 0L
+        val drain = Runnable {
+          while (iterator.isValid && sent < limit && serverCallStreamObserver.isReady && !serverCallStreamObserver.isCancelled) {
+            responseObserver.onNext(MSG.GetResponse.newBuilder()
+              .setKey(ByteString.copyFrom(iterator.key()))
+              .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(iterator.value())).build()).build())
+
+            iterator.next()
+            sent += 1
           }
-          responseObserver.onNext(MSG.GetResponse.newBuilder()
-            .setKey(ByteString.copyFrom(iterator.key()))
-            .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(iterator.value())).build()).build())
-          iterator.next()
+          if (!iterator.isValid || sent == limit) {
+            responseObserver.onCompleted()
+          }
         }
+        serverCallStreamObserver.setOnReadyHandler(drain)
+        drain.run()
       }
-      responseObserver.onCompleted()
     } catch (t: Throwable) {
       t.printStackTrace()
       responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
