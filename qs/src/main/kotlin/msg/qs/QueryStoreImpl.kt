@@ -52,7 +52,11 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
     val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
     try {
       val iterator = rocksDB.newIterator()
-      iterator.seek(request.keyPrefix.toByteArray())
+      if (request.keyPrefix.isEmpty) {
+        iterator.seekToFirst()
+      } else {
+        iterator.seek(request.keyPrefix.toByteArray())
+      }
       for (i in 1..limit) {
         if (!iterator.isValid) {
           break
