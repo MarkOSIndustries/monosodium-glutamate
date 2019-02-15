@@ -21,8 +21,8 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
         responseObserver.onError(Status.NOT_FOUND.withDescription("Key does not exist").asRuntimeException())
       }
     } catch (t: Throwable) {
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
   }
 
@@ -32,8 +32,8 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
       responseObserver.onNext(MSG.PutResponse.newBuilder().build())
       responseObserver.onCompleted()
     } catch (t: Throwable) {
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
   }
 
@@ -43,33 +43,34 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
       responseObserver.onNext(MSG.DeleteResponse.newBuilder().build())
       responseObserver.onCompleted()
     } catch (t: Throwable) {
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
   }
 
   override fun scan(request: MSG.ScanRequest, responseObserver: StreamObserver<MSG.GetResponse>) {
     val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
     try {
-      val iterator = rocksDB.newIterator()
-      if (request.keyPrefix.isEmpty) {
-        iterator.seekToFirst()
-      } else {
-        iterator.seek(request.keyPrefix.toByteArray())
-      }
-      for (i in 1..limit) {
-        if (!iterator.isValid) {
-          break
+      rocksDB.newIterator().use { iterator ->
+        if (request.keyPrefix.isEmpty) {
+          iterator.seekToFirst()
+        } else {
+          iterator.seek(request.keyPrefix.toByteArray())
         }
-        responseObserver.onNext(MSG.GetResponse.newBuilder()
-          .setKey(ByteString.copyFrom(iterator.key()))
-          .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(iterator.value())).build()).build())
-        iterator.next()
+        for (i in 1..limit) {
+          if (!iterator.isValid) {
+            break
+          }
+          responseObserver.onNext(MSG.GetResponse.newBuilder()
+            .setKey(ByteString.copyFrom(iterator.key()))
+            .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(iterator.value())).build()).build())
+          iterator.next()
+        }
       }
       responseObserver.onCompleted()
     } catch (t: Throwable) {
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
       t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
   }
 }
