@@ -32,7 +32,10 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
             getFromOffsetSpec(request),
             getUntilOffsetSpec(request)
           )
-          if (request.unlimited) topicIterator else LimitedIterator(topicIterator, request.limit)
+          when (request.limitOneofCase) {
+            MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
+            else -> topicIterator
+          }
         }()
 
         val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema

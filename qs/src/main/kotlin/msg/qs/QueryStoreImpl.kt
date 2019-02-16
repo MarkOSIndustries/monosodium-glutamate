@@ -57,7 +57,10 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
         rocksIterator.seek(request.keyPrefix.toByteArray())
         val iterator = {
           val rocksDBIterator = RocksDBIterator(rocksIterator)
-          if (request.unlimited) rocksDBIterator else LimitedIterator(rocksDBIterator, request.limit)
+          when (request.limitOneofCase) {
+            MSG.ScanRequest.LimitOneofCase.LIMIT -> LimitedIterator(rocksDBIterator, request.limit)
+            else -> rocksDBIterator
+          }
         }()
 
         (responseObserver as ServerCallStreamObserver<MSG.GetResponse>).sendWithBackpressure(iterator) { (key, value) ->
