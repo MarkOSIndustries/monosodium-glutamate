@@ -2,7 +2,11 @@ package msg.kgb
 
 import com.google.protobuf.Any
 import com.google.protobuf.ByteString
+import io.grpc.Status
+import io.grpc.stub.ServerCallStreamObserver
 import io.grpc.stub.StreamObserver
+import msg.grpc.LimitedIterator
+import msg.grpc.sendWithBackpressure
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec
@@ -19,53 +23,64 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
     request: MSG.ConsumeRequest,
     responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>
   ) {
-    val iterator = TopicIterator(
-      newConsumer(),
-      request.topic,
-      getFromOffsetSpec(request),
-      getUntilOffsetSpec(request)
-    )
+    try {
+      newConsumer().use { consumer ->
+        val iterator = {
+          val topicIterator = TopicIterator(
+            consumer,
+            request.topic,
+            getFromOffsetSpec(request),
+            getUntilOffsetSpec(request)
+          )
+          if (request.unlimited) topicIterator else LimitedIterator(topicIterator, request.limit)
+        }()
 
-    val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
-    val limit = if (request.unlimited) Long.MAX_VALUE else request.limit
-    var count = 0
-    while (iterator.hasNext() && count++ < limit) {
-      val record = iterator.next()
-      val builder = MSG.TypedKafkaRecord.newBuilder()
-        .setTopic(record.topic())
-        .setPartition(record.partition())
-        .setOffset(record.offset())
-        .setTimestamp(record.timestamp())
+        val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
+        (responseObserver as ServerCallStreamObserver<MSG.TypedKafkaRecord>).sendWithBackpressure(iterator) { record ->
+          val builder = MSG.TypedKafkaRecord.newBuilder()
+            .setTopic(record.topic())
+            .setPartition(record.partition())
+            .setOffset(record.offset())
+            .setTimestamp(record.timestamp())
 
-      if (record.key() != null) {
-        builder.key = ByteString.copyFrom(record.key())
+          if (record.key() != null) {
+            builder.key = ByteString.copyFrom(record.key())
+          }
+          if (record.value() != null) {
+            builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
+          }
+          builder.build()
+        }
       }
-      if (record.value() != null) {
-        builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
-      }
-      responseObserver.onNext(builder.build())
+    } catch (t: Throwable) {
+      t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
-
-    responseObserver.onCompleted()
   }
 
   override fun offsets(
     request: MSG.OffsetsRequest,
     responseObserver: StreamObserver<MSG.OffsetsResponse>
   ) {
-    val consumer = newConsumer()
-    val partitions = consumer.topicPartitions(request.topic, Duration.ofMinutes(1))
+    try {
+      newConsumer().use { consumer ->
+        val partitions = consumer.topicPartitions(request.topic, Duration.ofMinutes(1))
 
-    TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {
-      val builder = MSG.OffsetsResponse.newBuilder().setTopic(it.key.topic()).setPartition(it.key.partition())
-      if (it.value != null) {
-        builder.offset = it.value!!.offset()
-        builder.timestamp = it.value!!.timestamp()
+        TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {
+          val builder = MSG.OffsetsResponse.newBuilder().setTopic(it.key.topic()).setPartition(it.key.partition())
+          if (it.value != null) {
+            builder.offset = it.value!!.offset()
+            builder.timestamp = it.value!!.timestamp()
+          }
+          responseObserver.onNext(builder.build())
+        }
+
+        responseObserver.onCompleted()
       }
-      responseObserver.onNext(builder.build())
+    } catch (t: Throwable) {
+      t.printStackTrace()
+      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
     }
-
-    responseObserver.onCompleted()
   }
 
   private fun getFromOffsetSpec(request: MSG.ConsumeRequest): OffsetSpec =
