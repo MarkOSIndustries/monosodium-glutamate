@@ -5,6 +5,7 @@ import com.google.protobuf.ByteString
 import msg.schemas.MSG
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.header.internals.RecordHeader
 import java.io.InputStream
 import java.io.PrintStream
 
@@ -15,7 +16,12 @@ class TypedKafkaRecord : Encoding {
 
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
     val record = MSG.TypedKafkaRecord.parseFrom(bytes)
-    return ProducerRecord(topic, record.key.toByteArray(), record.value.value.toByteArray())
+    return ProducerRecord(
+      topic,
+      null,
+      record.key.toByteArray(),
+      record.value.value.toByteArray(),
+      record.headersList.map { header -> RecordHeader(header.key, header.value.asReadOnlyByteBuffer()) })
   }
 
   override fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray {
@@ -31,6 +37,9 @@ class TypedKafkaRecord : Encoding {
     if (consumerRecord.value() != null) {
       builder.value = Any.newBuilder().setValue(ByteString.copyFrom(consumerRecord.value())).setTypeUrl(schema).build()
     }
+
+    builder.addAllHeaders(consumerRecord.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })
+
     return builder.build().toByteArray()
   }
 
