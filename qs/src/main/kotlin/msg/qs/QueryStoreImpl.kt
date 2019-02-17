@@ -53,21 +53,20 @@ class QueryStoreImpl(private val rocksDB: RocksDB) : QueryStoreGrpc.QueryStoreIm
 
   override fun scan(request: MSG.ScanRequest, responseObserver: StreamObserver<MSG.GetResponse>) {
     try {
-      rocksDB.newIterator().use { rocksIterator ->
-        rocksIterator.seek(request.keyPrefix.toByteArray())
-        val iterator = {
-          val rocksDBIterator = RocksDBIterator(rocksIterator)
-          when (request.limitOneofCase) {
-            MSG.ScanRequest.LimitOneofCase.LIMIT -> LimitedIterator(rocksDBIterator, request.limit)
-            else -> rocksDBIterator
-          }
-        }()
-
-        (responseObserver as ServerCallStreamObserver<MSG.GetResponse>).sendWithBackpressure(iterator) { (key, value) ->
-          MSG.GetResponse.newBuilder()
-            .setKey(ByteString.copyFrom(key))
-            .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(value)).build()).build()
+      val rocksIterator = rocksDB.newIterator()
+      rocksIterator.seek(request.keyPrefix.toByteArray())
+      val iterator = {
+        val rocksDBIterator = RocksDBIterator(rocksIterator)
+        when (request.limitOneofCase) {
+          MSG.ScanRequest.LimitOneofCase.LIMIT -> LimitedIterator(rocksDBIterator, request.limit)
+          else -> rocksDBIterator
         }
+      }()
+
+      (responseObserver as ServerCallStreamObserver<MSG.GetResponse>).sendWithBackpressure(iterator, rocksIterator) { (key, value) ->
+        MSG.GetResponse.newBuilder()
+          .setKey(ByteString.copyFrom(key))
+          .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(value)).build()).build()
       }
     } catch (t: Throwable) {
       t.printStackTrace()

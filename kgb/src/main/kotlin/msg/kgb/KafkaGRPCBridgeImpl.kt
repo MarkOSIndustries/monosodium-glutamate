@@ -24,39 +24,38 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
     responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>
   ) {
     try {
-      newConsumer().use { consumer ->
-        val iterator = {
-          val topicIterator = TopicIterator(
-            consumer,
-            request.topic,
-            getFromOffsetSpec(request),
-            getUntilOffsetSpec(request)
-          )
-          when (request.limitOneofCase) {
-            MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
-            else -> topicIterator
-          }
-        }()
-
-        val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
-        (responseObserver as ServerCallStreamObserver<MSG.TypedKafkaRecord>).sendWithBackpressure(iterator) { record ->
-          val builder = MSG.TypedKafkaRecord.newBuilder()
-            .setTopic(record.topic())
-            .setPartition(record.partition())
-            .setOffset(record.offset())
-            .setTimestamp(record.timestamp())
-
-          if (record.key() != null) {
-            builder.key = ByteString.copyFrom(record.key())
-          }
-          if (record.value() != null) {
-            builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
-          }
-
-          builder.addAllHeaders(record.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })
-
-          builder.build()
+      val consumer = newConsumer()
+      val iterator = {
+        val topicIterator = TopicIterator(
+          consumer,
+          request.topic,
+          getFromOffsetSpec(request),
+          getUntilOffsetSpec(request)
+        )
+        when (request.limitOneofCase) {
+          MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
+          else -> topicIterator
         }
+      }()
+
+      val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
+      (responseObserver as ServerCallStreamObserver<MSG.TypedKafkaRecord>).sendWithBackpressure(iterator, consumer) { record ->
+        val builder = MSG.TypedKafkaRecord.newBuilder()
+          .setTopic(record.topic())
+          .setPartition(record.partition())
+          .setOffset(record.offset())
+          .setTimestamp(record.timestamp())
+
+        if (record.key() != null) {
+          builder.key = ByteString.copyFrom(record.key())
+        }
+        if (record.value() != null) {
+          builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
+        }
+
+        builder.addAllHeaders(record.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })
+
+        builder.build()
       }
     } catch (t: Throwable) {
       t.printStackTrace()
