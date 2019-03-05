@@ -19,6 +19,10 @@ function transform(inputStreamDecoder, outputStreamEncoder, filter, shape, templ
     process.exit()
   }
 
+  process.stdin.on('close', function() {
+    exit()
+  })
+
   process.on('SIGINT', function() {
     if(process.stdin.isTTY) {
       exit()
