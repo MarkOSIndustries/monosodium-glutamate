@@ -25,6 +25,8 @@ function readUTF8Lines(inStream) {
   })
 
   inStream.on('end', () => {
+    const lines = buffer.split(/[\r\n]/)
+    lines.filter(l => l!=='').forEach(l => outStream.emit('data', l))
     outStream.emit('end', {})
   })
 
