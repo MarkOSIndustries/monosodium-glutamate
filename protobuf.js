@@ -110,7 +110,7 @@ function initWithProtobufJS(protobufjs) {
     }))
   }
 
-  function makeValidJsonRecord(messageType) {
+  function makeValidJsonRecord(messageType, messageTypeBlacklist = []) {
     switch(messageType.constructor.name) {
       case 'Enum':
         const keys = Object.keys(messageType.values)
@@ -131,7 +131,11 @@ function initWithProtobufJS(protobufjs) {
               (val => { return { [field.name]: val } })
 
           if(field.resolvedType) {
-            return wrap(makeValidJsonRecord(field.resolvedType))
+            // Prevent recursing to generate a type we saw further up the chain
+            if(new Set(messageTypeBlacklist).has(field.resolvedType)) {
+              return {}
+            }
+            return wrap(makeValidJsonRecord(field.resolvedType, [...messageTypeBlacklist, messageType]))
           }
 
           return wrap(makeTypeSample(field.type, field.name))
