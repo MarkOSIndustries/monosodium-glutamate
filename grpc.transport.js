@@ -121,7 +121,7 @@ class Http2Channel {
         return
       }
       this.events.emit('request', requestBuffer)
-      const request = new Http2Request(service, method, this.client, (err, responseBuffer) => {
+      const request = new Http2Request(this, service, method, (err, responseBuffer) => {
         if(responseBuffer == null) {
           self.events.emit('idle')
         } else {
@@ -146,11 +146,10 @@ class Http2Channel {
 }
 
 class Http2Request {
-  constructor(service, method, client, callback, options) {
+  constructor(channel, service, method, callback, options) {
     const self = this
-
     this.responseBuffer = Buffer.from([])
-    this.stream = client.request(this.buildHeaders(service, method, options))
+    this.stream = channel.client.request(this.buildHeaders(channel.scheme, channel.host, channel.port, service, method, options))
     this.callback = callback
     this.options = options
 
@@ -196,13 +195,13 @@ class Http2Request {
       .then(() => self.stream.end())
   }
 
-  buildHeaders(service, method, options) {
+  buildHeaders(scheme, host, port, service, method, options) {
     return {
       [HTTP2_HEADER_METHOD]: 'POST',
-      [HTTP2_HEADER_SCHEME]: this.scheme,
+      [HTTP2_HEADER_SCHEME]: scheme,
       [HTTP2_HEADER_PATH]: `/${service.fullName.slice(1)}/${method.name}`,
       [HTTP2_HEADER_TE]: 'trailers',
-      [HTTP2_HEADER_AUTHORITY]: `${this.host}:${this.port}`,
+      [HTTP2_HEADER_AUTHORITY]: `${host}:${port}`,
       [GRPC_HEADER_TIMEOUT]: `${options.timeoutValue}${options.timeoutUnit}`,
       [HTTP2_HEADER_CONTENT_TYPE]: 'application/grpc+proto',
       [GRPC_HEADER_MESSAGE_TYPE]: method.resolvedRequestType.fullName,
