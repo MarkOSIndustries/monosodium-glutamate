@@ -67,6 +67,19 @@ module.exports = function(channels) {
     dom.invokeButton.setAttribute('disabled', true)
     dom.cancelButton.removeAttribute('disabled')
 
+    let parsedRequestPayload
+    try {
+      parsedRequestPayload = JSON.parse(requestPayload)
+    } catch(parseErr) {
+      console.error('Request payload parsing error', parseErr)
+      setTimeout(() => {
+        channels.invocation.subject('error').next(parseErr.toString())
+        channels.invocation.subject('finished').next()
+      }, 1)
+      state.inFlight = false
+      return
+    }
+
     const request = {
       host: dom.serverHost.value,
       port: dom.serverPort.value,
