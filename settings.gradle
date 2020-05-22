@@ -1,11 +1,9 @@
 rootProject.name = 'monosodium-glutamate'
 
 include 'grpc'
-include 'grpc-gui'
 include 'kafka'
 include 'kafka-clikt'
 include 'kat'
 include 'kgb'
-include 'proto'
 include 'qs'
 include 'schemas'
