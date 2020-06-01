@@ -1,8 +1,8 @@
 const {app, BrowserWindow, Menu, dialog} = require('electron')
-const { createWindow } = require('./window-management.js')
+const { createWindow, getLastFocussedWindow } = require('./electron-window-management.js')
 
 function sendToFocussedWindow() {
-  const focussedWindow = BrowserWindow.getFocusedWindow()
+  const focussedWindow = BrowserWindow.getFocusedWindow() || getLastFocussedWindow()
   if(focussedWindow) {
     focussedWindow.webContents.send(...arguments)
   }

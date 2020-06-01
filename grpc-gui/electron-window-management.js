@@ -7,6 +7,10 @@ const url = require('url')
 var openWindows = []
 var lastFocussedWindow = null
 
+function getLastFocussedWindow() {
+  return lastFocussedWindow;
+}
+
 function createWindow () {
   // Create the browser window.
   var thisWindow = new BrowserWindow({width: 800, height: 600})
@@ -62,4 +66,5 @@ app.on('activate', function () {
 
 module.exports = {
   createWindow,
+  getLastFocussedWindow,
 }
