@@ -1,4 +1,5 @@
 const os = require('os')
+const stream = require('stream')
 
 module.exports = {
   transform,
@@ -6,32 +7,25 @@ module.exports = {
 
 function transform(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
   var messagesTransformed = 0
-  inputStreamDecoder.readJsonObjects(jsonObject => {
-    if(filter(jsonObject)) {
-      const shapedJsonObject = shape(jsonObject)
-      messagesTransformed = messagesTransformed + 1
-      outputStreamEncoder.writeJsonObject(shapedJsonObject)
-    }
-  }, ex => console.error(ex))
 
-  const exit = () => {
-    process.stderr.write(`Transformed ${messagesTransformed} messages${os.EOL}`)
-    process.exit()
-  }
-
-  process.stdin.on('close', function() {
-    exit()
-  })
-
-  process.on('SIGINT', function() {
-    if(process.stdin.isTTY) {
-      exit()
-    } else {
-      setInterval(() => {
-        if(process.stdin.readableLength === 0) {
-          exit()
+  inputStreamDecoder
+    .streamJsonObjects(ex => console.error(ex))
+    .pipe(new stream.Transform({
+      readableObjectMode: true,
+      writableObjectMode: true,
+      
+      transform(jsonObject, encoding, done) {
+        if(filter(jsonObject)) {
+          const shapedJsonObject = shape(jsonObject)
+          messagesTransformed = messagesTransformed + 1
+          this.push(shapedJsonObject)
         }
-      }, 10)
-    }
+        done()
+      }
+    }))
+    .pipe(outputStreamEncoder.streamJsonObjects())
+
+  process.on('exit', function () {
+    process.stderr.write(`Transformed ${messagesTransformed} messages${os.EOL}`)
   })
 }

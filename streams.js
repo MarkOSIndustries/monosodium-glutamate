@@ -9,36 +9,45 @@ module.exports = {
 }
 
 function readUTF8Lines(inStream) {
-  const outStream = new stream.Writable()
-
-  inStream.setEncoding('utf8')
-
   let buffer = ''
-  inStream.on('data', (chunk) => {
-    if (chunk !== null) {
-      buffer += chunk
-      const lines = buffer.split(/[\r\n]/)
-      buffer = lines.pop() // will be empty string if end char was newline
+  const outStream = new stream.Transform({
+    transform(chunk, encoding, done) {
+      if (chunk !== null) {
+        buffer += chunk
+        const lines = buffer.split(/[\r\n]/)
+        buffer = lines.pop() // will be empty string if end char was newline
+        lines.filter(l => l!=='').forEach(l => this.push(l))
+      }
+      done()
+    },
 
-      lines.filter(l => l!=='').forEach(l => outStream.emit('data', l))
+    flush(done) {
+      const lines = buffer.split(/[\r\n]/)
+      lines.filter(l => l!=='').forEach(l => this.push(l))
+      done()
     }
   })
 
-  inStream.on('end', () => {
-    const lines = buffer.split(/[\r\n]/)
-    lines.filter(l => l!=='').forEach(l => outStream.emit('data', l))
-    outStream.emit('end', {})
-  })
+  inStream.setEncoding('utf8')
+
+  inStream.pipe(outStream)
 
   return outStream
 }
 
 function readLineDelimitedJsonObjects(inStream) {
-    const outStream = new stream.Writable()
-    readUTF8Lines(inStream).on('data', line => {
-      outStream.emit('data', JSON.parse(line))
-    })
-    return outStream
+  const outStream = new stream.Transform({
+    readableObjectMode: true,
+
+    transform(chunk, encoding, done) {
+      this.push(JSON.parse(chunk))
+      done()
+    }
+  })
+
+  readUTF8Lines(inStream).pipe(outStream)
+
+  return outStream
 }
 
 const prefixSizeByFormat = {
@@ -55,68 +64,65 @@ const prefixSizeByFormat = {
 }
 
 function readLengthPrefixedBuffers(inStream, prefixFormat) {
-  const outStream = new stream.Writable()
-
   const prefixSize = prefixSizeByFormat[prefixFormat]
   const prefixReadFn = `read${prefixFormat}`
-
-  var chunkBuffer = Buffer.from([])
-  inStream.on('data', chunk => {
-    chunkBuffer = Buffer.concat([chunkBuffer, chunk])
-    while(chunkBuffer.length > prefixSize) {
-      const binaryBufferLength = chunkBuffer[prefixReadFn]()
-      const totalBytesToRead = prefixSize + binaryBufferLength
-      if(chunkBuffer.length >= totalBytesToRead) {
-        outStream.emit('data', chunkBuffer.slice(prefixSize,totalBytesToRead))
-        chunkBuffer = chunkBuffer.slice(totalBytesToRead)
+  let chunkBuffer = Buffer.from([])
+  const outStream = new stream.Transform({
+    transform(chunk, encoding, done) {
+      chunkBuffer = Buffer.concat([chunkBuffer, chunk])
+      while(chunkBuffer.length > prefixSize) {
+        const chunkBufferLength = chunkBuffer[prefixReadFn]()
+        const totalBytesToRead = prefixSize + chunkBufferLength
+        if(chunkBuffer.length >= totalBytesToRead) {
+          this.push(chunkBuffer.slice(prefixSize,totalBytesToRead))
+          chunkBuffer = chunkBuffer.slice(totalBytesToRead)
+        } else {
+          break
+        }
       }
+      done()
     }
   })
 
-  inStream.on('end', () => {
-    outStream.emit('end', {})
-  })
+  
+  inStream.pipe(outStream)
 
   return outStream
 }
 
 function writeLengthPrefixedBuffers(outStream, prefixFormat) {
-  const inStream = new stream.Writable({
-    write(chunk,encoding,cb) {
-      if('string' === typeof chunk) {
-        this.emit('data', Buffer.from(chunk))
-      } else {
-        this.emit('data', chunk)
-      }
-      cb()
-    }
-  })
-
   const prefixSize = prefixSizeByFormat[prefixFormat]
   const prefixWriteFn = `write${prefixFormat}`
 
-  inStream.on('data', binaryBuffer => {
-    const outputBuffer = Buffer.allocUnsafe(prefixSize + binaryBuffer.length)
-    outputBuffer[prefixWriteFn](binaryBuffer.length)
-    binaryBuffer.copy(outputBuffer, prefixSize)
-    outStream.write(outputBuffer)
+  const inStream = new stream.Transform({
+    transform(chunk, encoding, done) {
+      const chunkAsBuffer = ('string' === typeof chunk) ? 
+        Buffer.from(chunk) :
+        chunk
+
+      const outputBuffer = Buffer.allocUnsafe(prefixSize + chunkAsBuffer.length)
+      outputBuffer[prefixWriteFn](chunkAsBuffer.length)
+      chunkAsBuffer.copy(outputBuffer, prefixSize)
+      this.push(outputBuffer)
+      done()
+    }
   })
+
+  inStream.pipe(outStream)
 
   return inStream
 }
 
 function writeDelimited(outStream, delimiterBuffer) {
-  const inStream = new stream.Writable({
-    write(chunk,encoding,cb) {
-      this.emit('data', chunk)
-      cb()
+  const inStream = new stream.Transform({    
+    transform(chunk, encoding, done) {
+      this.push(chunk)
+      this.push(delimiterBuffer)
+      done()
     }
   })
 
-  inStream.on('data', data => {
-    outStream.write(data)
-    outStream.write(delimiterBuffer)
-  })
+  inStream.pipe(outStream)
 
   return inStream
 }

@@ -4,7 +4,6 @@ const transport = require('../grpc.transport')
 const stream = require('stream')
 const streams = require('../streams')
 const { matchesFilter } = require('./filter')
-const { inspect } = require('util')
 const os = require('os')
 
 const encodingFormats = {
@@ -41,16 +40,16 @@ const formats = {
   },
   lineDelimitedEncodedJson: {
     newInputStream: (inStream) => streams.readUTF8Lines(inStream),
-    unmarshalSchemaObject: (line, {converter, encodingName}) => converter.json_object_to_schema_object(JSON.parse(Buffer.from(line, encodingName))),
-    unmarshalJsonObject: (line, {encodingName}) => JSON.parse(Buffer.from(line, encodingName)),
+    unmarshalSchemaObject: (line, {converter, encodingName}) => converter.json_object_to_schema_object(JSON.parse(Buffer.from(line.toString(), encodingName))),
+    unmarshalJsonObject: (line, {encodingName}) => JSON.parse(Buffer.from(line.toString(), encodingName)),
     newOutputStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
     marshalSchemaObject: (schemaObject, {converter, encodingName}) => Buffer.from(JSON.stringify(converter.schema_object_to_json_object(schemaObject))).toString(encodingName),
     marshalJsonObject: (jsonObject, {encodingName}) => Buffer.from(JSON.stringify(jsonObject)).toString(encodingName),
   },
   lineDelimitedEncodedBinary: {
     newInputStream: (inStream) => streams.readUTF8Lines(inStream),
-    unmarshalSchemaObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_schema_object(line, encodingName),
-    unmarshalJsonObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_json_object(line, encodingName),
+    unmarshalSchemaObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_schema_object(line.toString(), encodingName),
+    unmarshalJsonObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_json_object(line.toString(), encodingName),
     newOutputStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
     marshalSchemaObject: (schemaObject, {converter, encodingName}) => converter.schema_object_to_string_encoded_binary(schemaObject, encodingName),
     marshalJsonObject: (jsonObject, {converter, encodingName}) => converter.json_object_to_string_encoded_binary(jsonObject, encodingName),
@@ -66,28 +65,49 @@ class InputStreamDecoder {
       converter: new SchemaConverter(schema),
     }
     this.inputFormat = formats[encodingFormats[encoding]]
-    this.inStream = this.inputFormat.newInputStream(process.stdin, this.inputConfig)
+    this.inStream = this.inputFormat.newInputStream(wrappedStream, this.inputConfig)
   }
 
-  _read(fnUnmarshalObject, fnHandleObject, fnHandleException) {
-    this.inStream.on('data', data => {
-      try {
-        const obj = fnUnmarshalObject(data)
-        fnHandleObject(obj)
-      } catch(ex) {
-        fnHandleException(ex)
+  streamJsonObjects(fnHandleException) {
+    const that = this
+    const transform = new stream.Transform({
+      readableObjectMode: true,
+      writableObjectMode: true,
+      
+      transform(data, encoding, done) {
+        try {
+          this.push(that.inputFormat.unmarshalJsonObject(data, that.inputConfig))
+        } catch(ex) {
+          fnHandleException(ex)
+        }
+        done()
       }
     })
+
+    this.inStream.pipe(transform)
+
+    return transform
   }
 
-  readJsonObjects(fnHandleJsonObject, fnHandleException) {
+  streamSchemaObjects(fnHandleException) {
     const that = this
-    this._read(data => that.inputFormat.unmarshalJsonObject(data, that.inputConfig), fnHandleJsonObject, fnHandleException)
-  }
+    const transform = new stream.Transform({
+      readableObjectMode: true,
+      writableObjectMode: true,
+      
+      transform(data, encoding, done) {
+        try {
+          this.push(that.inputFormat.unmarshalSchemaObject(data, that.inputConfig))
+        } catch(ex) {
+          fnHandleException(ex)
+        }
+        done()
+      }
+    })
 
-  readSchemaObjects(fnHandleSchemaObject, fnHandleException) {
-    const that = this
-    this._read(data => that.inputFormat.unmarshalSchemaObject(data, that.inputConfig), fnHandleSchemaObject, fnHandleException)
+    this.inStream.pipe(transform)
+
+    return transform
   }
 }
 
@@ -101,15 +121,39 @@ class OutputStreamEncoder {
       converter: new SchemaConverter(schema),
     }
     this.outputFormat = formats[encodingFormats[encoding]]
-    this.outStream = this.outputFormat.newOutputStream(process.stdout, this.outputConfig)
+    this.outStream = this.outputFormat.newOutputStream(wrappedStream, this.outputConfig)
   }
 
-  writeJsonObject(jsonObject) {
-    this.outStream.write(this.outputFormat.marshalJsonObject(jsonObject, this.outputConfig))
+  streamJsonObjects() {
+    const that = this
+    const transform = new stream.Transform({
+      writableObjectMode: true,
+      
+      transform(jsonObject, encoding, done) {
+        this.push(that.outputFormat.marshalJsonObject(jsonObject, that.outputConfig))
+        done()
+      }
+    })
+
+    transform.pipe(this.outStream)
+
+    return transform
   }
 
-  writeSchemaObject(schemaObject) {
-    this.outStream.write(this.outputFormat.marshalSchemaObject(schemaObject, this.outputConfig))
+  streamSchemaObjects() {
+    const that = this
+    const transform = new stream.Transform({
+      writableObjectMode: true,
+      
+      transform(schemaObject, encoding, done) {
+        this.push(that.outputFormat.marshalSchemaObject(schemaObject, that.outputConfig))
+        done()
+      }
+    })
+
+    transform.pipe(this.outStream)
+    
+    return transform
   }
 }
 
@@ -119,12 +163,53 @@ class MockInputStreamDecoder {
     this.converter = new SchemaConverter(schema)
   }
 
-  readJsonObjects(fnHandleJsonObject) {
-    setInterval(() => fnHandleJsonObject(protobuf.makeValidJsonRecord(this.schema)), 1)
+  streamJsonObjects() {
+    const that = this
+
+    let closed = false
+
+    const readable = new stream.Readable({
+      objectMode: true,
+
+      read(size) {
+        setTimeout(() => {
+          if(!closed) {
+            this.push(protobuf.makeValidJsonRecord(that.schema))
+          }
+        }, 1)
+      }
+    })
+
+    process.on('SIGINT', function() {
+      closed = true
+      readable.push(null)
+    })
+
+    return readable
   }
 
-  readSchemaObjects(fnHandleSchemaObject) {
-    setInterval(() => fnHandleSchemaObject(this.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(this.schema))), 1)
+  streamSchemaObjects() {
+    const that = this
+
+    let closed = false
+
+    const readable = new stream.Readable({
+      objectMode: true,
+
+      read(size) {
+        if(closed) {
+          this.push(null)
+        } else {
+          this.push(that.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(that.schema)))
+        }
+      }
+    })
+
+    process.on('SIGINT', function() {
+      closed = true
+    })
+
+    return readable
   }
 }
 

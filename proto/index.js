@@ -11,6 +11,11 @@ const {coerceTemplate} = require('./template.js')
 const env = require('../env')
 var os = require('os')
 
+process.on('SIGINT', function() {
+  // Ensure we finish writing all messages in the stream
+  process.stdin.destroy()
+})
+
 const yargs = require('yargs') // eslint-disable-line
   .command('transform <schema> <input> <output>', 'transform protobuf records from stdin to stdout', (argsSpec) => {
     argsSpec
@@ -18,7 +23,7 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'protobuf schema to interpret messages as',
       })
       .positional('input', {
-        describe: 'the input format to expect. spam/generator ignore stdin and generate pseudo-random, valid records',
+        describe: 'the input format to expect',
         choices: supportedEncodings,
       })
       .positional('output', {
