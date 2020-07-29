@@ -2,6 +2,9 @@ package msg.qs
 
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.types.choice
+import msg.qs.RocksDBManager.Companion.countsColumnFamilyIndex
+import msg.qs.RocksDBManager.Companion.defaultColumnFamilyIndex
+import msg.qs.Uint64Serialisation.Companion.longToByteArray
 import msg.qs.encodings.Encodings
 import java.io.EOFException
 
@@ -16,7 +19,9 @@ class Store : QsCommand("Accept new records on stdin, while providing a GRPC que
       while (reader.hasNext()) {
         val bytes = reader.next()
         val kv = encoding.getKVPair(bytes)
-        rocksDB.put(kv.first, kv.second)
+
+        rocksDBManager.rocksdb.put(rocksDBManager.columnFamilyHandleList.get(defaultColumnFamilyIndex), kv.first, kv.second)
+        rocksDBManager.rocksdb.merge(rocksDBManager.columnFamilyHandleList.get(countsColumnFamilyIndex), kv.first, longToByteArray(1L))
       }
     } catch (t: EOFException) {
       // Ignore, we just terminated between hasNext and next()
