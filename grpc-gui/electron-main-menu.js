@@ -32,8 +32,12 @@ const menuTemplate = [
         click () {
           dialog.showOpenDialog({
             properties: ['openDirectory']
-          }, function (paths) {
-            if (paths) sendToFocussedWindow('added-workspace-paths', paths)
+          }).then((openResult) => {
+            if(!openResult.canceled) {
+              if (openResult.filePaths) {
+              sendToFocussedWindow('added-workspace-paths', openResult.filePaths)
+              }
+            }
           })
         }
       },
