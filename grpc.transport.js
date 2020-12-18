@@ -100,7 +100,7 @@ class Http2Channel {
     const self = this
     this.events.emit('connecting', this)
     this.client = http2.connect(self.address)
-    this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer))
+    this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer, (err, duration, pingResponseBuffer) => {}))
     this.client.on('goaway', () => console.error('Http2Channel server requested channel shutdown'))
     this.client.on('close', () => {
       self.connected = false
