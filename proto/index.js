@@ -2,7 +2,7 @@
 const protobuf = require('../protobuf')(require('protobufjs'))
 const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStreamDecoder} = require('./encodings')
 const {transform} = require('./transform')
-const {invoke} = require('./invoke')
+const {invoke, transformToRequestResponsePairs, transformToResponsesOnly} = require('./invoke')
 const {schemas} = require('./schemas')
 const {services} = require('./services')
 const {coerceFilter} = require('./filter')
@@ -72,6 +72,11 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the GRPC deadline in minutes',
         default: 5,
       })
+      .option('requests', {
+        describe: 'what to do with requests when parsing responses. pair will emit msg.RequestResponsePair instead of the response type directly',
+        choices: ['discard', 'pair'],
+        default: 'discard',
+      })
       addEncodingOptions(argsSpec)
   }, argv => {
     const index = indexProtobufs(argv.protobufs)
@@ -80,11 +85,18 @@ const yargs = require('yargs') // eslint-disable-line
     const methods = protobuf.describeServiceMethods(service)
     if(!methods.hasOwnProperty(argv.method)) throw `Method ${argv.service}.${argv.method} not found. Try >proto services ${argv.service}`
     const method = methods[argv.method]
+    const useRequestPairing = argv.requests === 'pair'
+    const transformRequestResponse = useRequestPairing
+        ? transformToRequestResponsePairs(index)
+        : transformToResponsesOnly(index)
+    const responseType = useRequestPairing
+        ? index.messages['msg.RequestResponsePair']
+        : method.responseType
 
     invoke(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, method.responseType, argv.output, argv.prefix, argv.delimiter, argv.template),
-      argv.host, argv.port, argv.timeout)
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, argv.prefix, argv.delimiter, argv.template),
+      argv.host, argv.port, argv.timeout, transformRequestResponse)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
     argsSpec

@@ -4,9 +4,11 @@ const stream = require('stream')
 
 module.exports = {
   invoke,
+  transformToRequestResponsePairs,
+  transformToResponsesOnly,
 }
 
-function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout) {
+function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, transformRequestResponse) {
   const channelManager = new transport.ChannelManager()
 
   var requestsSent = 0
@@ -26,7 +28,7 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
         })
         responseStream.on('data', responseSchemaObject => {
           responsesReceived = responsesReceived + 1
-          this.push(responseSchemaObject)
+          this.push(transformRequestResponse(method, requestSchemaObject, responseSchemaObject))
         })
         responseStream.on('end', () => {
           requestsCompleted = requestsCompleted + 1
@@ -56,4 +58,29 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
   process.on('exit', function () {
     process.stderr.write(`Sent ${requestsSent} requests and received ${responsesReceived} responses${os.EOL}`)
   })
+}
+
+function transformToRequestResponsePairs(protobufIndex) {
+  const Any = protobufIndex.messages['google.protobuf.Any']
+  const RequestResponsePair = protobufIndex.messages['msg.RequestResponsePair']
+
+  return (method, requestSchemaObject, responseSchemaObject) => {
+    //console.log('requestScmeha', method.requestTypeName, method.requestType)
+    return RequestResponsePair.create({
+      request: Any.create({
+        type_url: method.requestTypeName,
+        value: method.requestType.encode(requestSchemaObject).finish(),
+      }),
+      response: Any.create({
+        type_url: method.responseTypeName,
+        value: method.responseType.encode(responseSchemaObject).finish(),
+      }),
+    })
+  }
+}
+
+function transformToResponsesOnly(protobufIndex) {
+  return (method, requestSchemaObject, responseSchemaObject) => {
+    return responseSchemaObject
+  }
 }

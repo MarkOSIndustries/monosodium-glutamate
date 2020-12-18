@@ -119,3 +119,8 @@ message OffsetsResponse {
   int64 offset = 3;
   int64 timestamp = 4;
 }
+
+message RequestResponsePair {
+  google.protobuf.Any request = 1;
+  google.protobuf.Any response = 2;
+}
