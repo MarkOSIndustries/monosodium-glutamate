@@ -27,7 +27,7 @@ class Offsets : KafkaTopicCommand(
     }
 
     if (offsetSpec is TimestampOffsetSpec) {
-      offsetSpec.getOffsetsWithTimestamps(consumer, partitions).forEach {
+      offsetSpec.getOffsetsWithTimestamps(consumer, partitions).entries.sortedBy { it.key.partition() }.forEach {
         if (it.value == null) {
           println("${it.key} has no offset after $timestamp")
         } else {
@@ -35,7 +35,7 @@ class Offsets : KafkaTopicCommand(
         }
       }
     } else {
-      offsetSpec.getOffsets(consumer, partitions).forEach {
+      offsetSpec.getOffsets(consumer, partitions).entries.sortedBy { it.key.partition() }.forEach {
         println("${it.key} has offset ${it.value}")
       }
     }
