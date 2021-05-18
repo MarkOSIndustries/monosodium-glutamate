@@ -146,6 +146,7 @@ const yargs = require('yargs') // eslint-disable-line
   })
   .wrap(null)
   .env('PROTO_')
+  .completion()
 
 function addEncodingOptions(argsSpec) {
   argsSpec

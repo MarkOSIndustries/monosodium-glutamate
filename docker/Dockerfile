@@ -51,5 +51,6 @@ ENV PROTO_HOME=/home/schemas
 RUN mkdir /home/root
 WORKDIR /home/root
 
+RUN (cd $MSG_HOME/bin/ && node ./proto/ completion >> /root/.bashrc)
 RUN echo 'export PS1="[msg]:\w\$ "' >> /root/.bashrc
 CMD bash
