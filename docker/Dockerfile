@@ -21,8 +21,11 @@ RUN (cd proto && npm install)
 
 FROM timbru31/java-node:8-jdk as runtime
 
+ARG MSG_VERSION
+
 WORKDIR /opt/msg
 ENV MSG_HOME=/opt/msg
+ENV MSG_VERSION=${MSG_VERSION}
 
 COPY --from=builder /home/msg/schemas ./bin/schemas
 COPY --from=builder /home/msg/kat/build/libs/*.jar ./bin/kat.jar
@@ -35,6 +38,7 @@ COPY docker/bin/kat.sh /usr/local/bin/kat
 COPY docker/bin/kgb.sh /usr/local/bin/kgb
 COPY docker/bin/qs.sh /usr/local/bin/qs
 COPY docker/bin/proto.sh /usr/local/bin/proto
+COPY docker/bin/version.sh /usr/local/bin/version
 
 # KGB default port
 EXPOSE 8082
