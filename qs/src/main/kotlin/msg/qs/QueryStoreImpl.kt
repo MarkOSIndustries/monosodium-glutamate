@@ -17,9 +17,11 @@ class QueryStoreImpl(private val rocksDBManager: RocksDBManager) : QueryStoreGrp
     try {
       val value = rocksDBManager.rocksdb.get(rocksDBManager.columnFamilyHandleList[RocksDBManager.defaultColumnFamilyIndex], request.key.toByteArray())
       if (value != null) {
-        responseObserver.onNext(MSG.GetResponse.newBuilder()
-          .setKey(request.key)
-          .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(value)).build()).build())
+        responseObserver.onNext(
+          MSG.GetResponse.newBuilder()
+            .setKey(request.key)
+            .setValue(Any.newBuilder().setTypeUrl(request.schema).setValue(ByteString.copyFrom(value)).build()).build()
+        )
         responseObserver.onCompleted()
       } else {
         responseObserver.onError(Status.NOT_FOUND.withDescription("Key does not exist").asRuntimeException())
@@ -33,7 +35,7 @@ class QueryStoreImpl(private val rocksDBManager: RocksDBManager) : QueryStoreGrp
   override fun getKeyCounts(request: MSG.GetKeyCountsRequest, responseObserver: StreamObserver<MSG.GetKeyCountsResponse>) {
     try {
       val rocksIterator = rocksDBManager.rocksdb.newIterator(rocksDBManager.columnFamilyHandleList[RocksDBManager.countsColumnFamilyIndex])
-        rocksIterator.seek(request.keyPrefix.toByteArray())
+      rocksIterator.seek(request.keyPrefix.toByteArray())
       val iterator = {
         val rocksDBIterator = RocksDBIterator(rocksIterator)
         when (request.limitOneofCase) {

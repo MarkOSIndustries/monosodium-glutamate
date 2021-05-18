@@ -16,7 +16,8 @@ class EphemeralConsumer<K, V, DK : Deserializer<K>, DV : Deserializer<V>>(broker
   "monosodium-glutamate",
   "monosodium-glutamate-${UUID.randomUUID()}",
   ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG to false,
-  *config) {
+  *config
+) {
   override fun commitAsync() {
     // NOOP for ephemeral consumer
   }

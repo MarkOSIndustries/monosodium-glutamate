@@ -19,27 +19,35 @@ internal class TopicIteratorTest {
 
   @Test
   fun should_iterate_from_earliest_to_latest() {
-    test_bounded_range(topic, 2, 1000, 2000,
+    test_bounded_range(
+      topic, 2, 1000, 2000,
       EarliestOffsetSpec(),
-      LatestOffsetSpec())
+      LatestOffsetSpec()
+    )
   }
   @Test
   fun should_iterate_from_earliest_to_specific_offset() {
-    test_bounded_range(topic, 2, 1000, 400,
+    test_bounded_range(
+      topic, 2, 1000, 400,
       EarliestOffsetSpec(),
-      ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L)))
+      ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L))
+    )
   }
   @Test
   fun should_iterate_from_specific_offset_to_latest() {
-    test_bounded_range(topic, 2, 1000, 600,
+    test_bounded_range(
+      topic, 2, 1000, 600,
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L)),
-      LatestOffsetSpec())
+      LatestOffsetSpec()
+    )
   }
   @Test
   fun should_iterate_from_specific_offset_to_specific_offset() {
-    test_bounded_range(topic, 2, 1000, 200,
+    test_bounded_range(
+      topic, 2, 1000, 200,
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L)),
-      ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 600L)))
+      ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 600L))
+    )
   }
 
   fun test_bounded_range(topic: String, partitions: Int, recordsPerPartition: Long, expectedRecordCount: Int, from: OffsetSpec, until: OffsetSpec) {

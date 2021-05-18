@@ -10,7 +10,10 @@ import msg.kafka.topicPartitions
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
-class Offsets : KafkaTopicCommand("Query offsets by timestamp\nRetrieves the offsets for each partition at a given timestamp and prints to stdout") {
+class Offsets : KafkaTopicCommand(
+  "Query offsets by timestamp\n\n" +
+    "Retrieves the offsets for each partition at a given timestamp and prints to stdout"
+) {
   val timestamp by argument("timestamp", "the epoch milliseconds timestamp to find offsets from, or one of the strings 'latest' or 'earliest'")
 
   override fun run() {

@@ -7,13 +7,18 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.util.UUID
 
-class ProduceTx : KafkaTopicDataCommand(help = "Produce records to Kafka using transactions\nReads records from stdin and sends them to Kafka") {
+class ProduceTx : KafkaTopicDataCommand(
+  help = "Produce records to Kafka using transactions\n\n" +
+    "Reads records from stdin and sends them to Kafka"
+) {
   val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
 
   override fun run() {
-    val producer = newProducer(ByteArraySerializer::class, ByteArraySerializer::class,
+    val producer = newProducer(
+      ByteArraySerializer::class, ByteArraySerializer::class,
       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
-      ProducerConfig.TRANSACTIONAL_ID_CONFIG to UUID.randomUUID().toString())
+      ProducerConfig.TRANSACTIONAL_ID_CONFIG to UUID.randomUUID().toString()
+    )
     producer.initTransactions()
 
     val reader = encoding.reader(System.`in`)

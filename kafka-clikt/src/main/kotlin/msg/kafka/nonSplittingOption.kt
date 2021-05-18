@@ -21,4 +21,5 @@ fun nonSplittingOption(
   parser = OptionWithValuesParser,
   transformValue = { it },
   transformEach = { it.single() },
-  transformAll = { it.joinToString(" ") })
+  transformAll = { it.joinToString(" ") }
+)

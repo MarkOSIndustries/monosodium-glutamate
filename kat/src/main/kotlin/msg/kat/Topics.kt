@@ -11,7 +11,10 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
-class Topics : KafkaCommand("Query topics\nRetrieves the names of all topics and prints to stdout") {
+class Topics : KafkaCommand(
+  "Query topics\n\n" +
+    "Retrieves the names of all topics from Kafka and prints to stdout"
+) {
   private val query by argument(help = "Filter the topic list (case-insensitive, supports * wildcards)").default("*")
   private val not by option("--not", "-n", help = "Invert the filter to be exclusive rather than inclusive").flag(default = false)
   private val offsets by option("--offsets", "-o", help = "Include offset ranges for each topic").flag(default = false)

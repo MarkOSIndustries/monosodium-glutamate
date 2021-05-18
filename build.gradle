@@ -13,7 +13,7 @@ configure(kotlinProjects()) {
   apply plugin: 'java' // needed for ktlint
 
   repositories {
-    jcenter() // needed for ktlint
+    mavenCentral() // needed for ktlint
   }
 
   configurations {
@@ -21,22 +21,21 @@ configure(kotlinProjects()) {
   }
 
   dependencies {
-    ktlint group: 'com.github.shyiko', name: 'ktlint', version: '0.28.0'
+    ktlint group: 'com.pinterest', name: 'ktlint', version: '0.41.0'
   }
 
   task ktlint(type: JavaExec, group: "verification") {
     description = "Check Kotlin code style."
-    main = "com.github.shyiko.ktlint.Main"
     classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
     args "src/**/*.kt"
   }
-
   check.dependsOn ktlint
 
   task ktlintFormat(type: JavaExec, group: "formatting") {
     description = "Fix Kotlin code style deviations."
-    main = "com.github.shyiko.ktlint.Main"
     classpath = configurations.ktlint
+    main = "com.pinterest.ktlint.Main"
     args "-F", "src/**/*.kt"
   }
 }

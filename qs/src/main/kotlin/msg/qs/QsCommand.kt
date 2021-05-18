@@ -25,13 +25,15 @@ open class QsCommand(help: String) : CliktCommand(help = help) {
   }
 
   override fun run() {
-    Runtime.getRuntime().addShutdownHook(Thread {
-      println("Shutting down...")
-      grpcServer.shutdownNow()
-      grpcServer.awaitTermination()
-      RocksDBManager.closeAll()
-      println("Done.")
-    })
+    Runtime.getRuntime().addShutdownHook(
+      Thread {
+        println("Shutting down...")
+        grpcServer.shutdownNow()
+        grpcServer.awaitTermination()
+        RocksDBManager.closeAll()
+        println("Done.")
+      }
+    )
 
     grpcServer.start()
     println("Listening for GRPC requests on $port")

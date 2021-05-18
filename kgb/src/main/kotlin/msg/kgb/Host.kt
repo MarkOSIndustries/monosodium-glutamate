@@ -15,12 +15,14 @@ class Host : KafkaCommand("Host the bridge on a given port") {
       .addService(KafkaGRPCBridgeImpl { newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class) })
       .build()
 
-    Runtime.getRuntime().addShutdownHook(Thread {
-      println("Shutting down...")
-      server.shutdownNow()
-      server.awaitTermination()
-      println("Done.")
-    })
+    Runtime.getRuntime().addShutdownHook(
+      Thread {
+        println("Shutting down...")
+        server.shutdownNow()
+        server.awaitTermination()
+        println("Done.")
+      }
+    )
 
     server.start()
     println("Listening for GRPC requests on $port")

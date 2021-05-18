@@ -8,9 +8,9 @@ import org.rocksdb.RocksDB
 import org.rocksdb.UInt64AddOperator
 import org.rocksdb.WALRecoveryMode
 import java.io.File
+import java.util.ArrayList
 import java.util.Arrays
 import java.util.concurrent.ConcurrentHashMap
-import java.util.ArrayList
 
 class RocksDBManager(private val path: String) {
   var cfDefaultOpts = ColumnFamilyOptions()

@@ -6,7 +6,10 @@ import java.io.EOFException
 import java.util.LinkedList
 import java.util.concurrent.Future
 
-class Produce : KafkaTopicDataCommand(help = "Produce records to Kafka\nReads records from stdin and sends them to Kafka") {
+class Produce : KafkaTopicDataCommand(
+  help = "Produce records to Kafka\n\n" +
+    "Reads records from stdin and sends them to Kafka"
+) {
   override fun run() {
     val producer = newProducer(ByteArraySerializer::class, ByteArraySerializer::class)
 

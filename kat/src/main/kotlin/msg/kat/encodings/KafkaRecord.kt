@@ -20,7 +20,8 @@ class KafkaRecord : Encoding {
       null,
       record.key.toByteArray(),
       record.value.toByteArray(),
-      record.headersList.map { header -> RecordHeader(header.key, header.value.asReadOnlyByteBuffer()) })
+      record.headersList.map { header -> RecordHeader(header.key, header.value.asReadOnlyByteBuffer()) }
+    )
   }
 
   override fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray {
