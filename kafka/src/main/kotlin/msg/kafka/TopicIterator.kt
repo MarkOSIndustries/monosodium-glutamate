@@ -19,11 +19,13 @@ class TopicIterator<K, V>(private val consumer: Consumer<K, V>, private val topi
       throw NoSuchTopicException(topic)
     }
 
+    val partitionIntersection = startOffsets.keys.intersect(endOffsets.keys)
+
     // Remove partitions we don't have a start AND end offset for
-    partitions.removeAll(partitions.filterNot { startOffsets.keys.intersect(endOffsets.keys).contains(it) })
+    partitions.removeAll(partitions.filterNot { partitionIntersection.contains(it) })
 
     // Remove partitions we'll never get records for
-    partitions.removeAll(endOffsets.filterNot { startOffsets.getOrDefault(it.key, Long.MAX_VALUE) < it.value }.keys)
+    partitions.removeAll(partitionIntersection.filterNot { startOffsets[it]!! < endOffsets[it]!! })
 
     consumer.assign(partitions)
     startOffsets.filterKeys(partitions::contains).forEach(consumer::seek)
@@ -48,12 +50,12 @@ class TopicIterator<K, V>(private val consumer: Consumer<K, V>, private val topi
       val batch = consumer.poll(Duration.ofSeconds(1))
       batch.records(topic).forEach { record ->
         val topicPartition = TopicPartition(record.topic(), record.partition())
-        val endOffset = endOffsets.getOrDefault(topicPartition, 0)
+        val endOffset = endOffsets[topicPartition]!!
         if (record.offset() < endOffset) {
           records.add(record)
         }
       }
-      partitions.removeIf { consumer.position(it) >= endOffsets.getOrDefault(it, 0) }
+      partitions.removeIf { consumer.position(it) >= endOffsets[it]!! }
     }
   }
 }
