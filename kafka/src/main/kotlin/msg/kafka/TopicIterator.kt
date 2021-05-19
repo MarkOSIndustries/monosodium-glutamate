@@ -19,6 +19,9 @@ class TopicIterator<K, V>(private val consumer: Consumer<K, V>, private val topi
       throw NoSuchTopicException(topic)
     }
 
+    // Remove partitions we don't have a start AND end offset for
+    partitions.removeAll(partitions.filterNot { startOffsets.keys.intersect(endOffsets.keys).contains(it) })
+
     // Remove partitions we'll never get records for
     partitions.removeAll(endOffsets.filterNot { startOffsets.getOrDefault(it.key, Long.MAX_VALUE) < it.value }.keys)
 
