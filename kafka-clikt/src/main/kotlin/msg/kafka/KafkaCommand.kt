@@ -3,7 +3,9 @@ package msg.kafka
 import com.github.ajalt.clikt.completion.CompletionCandidates
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.choice
+import com.github.ajalt.clikt.parameters.types.int
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.producer.Producer
@@ -24,6 +26,7 @@ abstract class KafkaCommand(help: String) : CliktCommand(help) {
     completionCandidates = CompletionCandidates.Fixed("PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512", "GSSAPI", "OAUTHBEARER")
   ).default("")
   private val jaas by nonSplittingOption("--jaas", "-j", help = "JAAS configuration - useful when you need to use kat against two different environments with different authentication", envvar = "KAFKA_JAAS").default("")
+  protected val timeoutSeconds by option("--timeout", "-t", help = "The default time to wait for client operations in seconds.").int().default(60)
 
   fun <K, V, DK : Deserializer<K>, DV : Deserializer<V>> newConsumer(keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config: Pair<String, Any>): Consumer<K, V> =
     EphemeralConsumer(
@@ -33,6 +36,7 @@ abstract class KafkaCommand(help: String) : CliktCommand(help) {
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
       SaslConfigs.SASL_MECHANISM to sasl,
       SaslConfigs.SASL_JAAS_CONFIG to jaas,
+      "default.api.timeout.ms" to timeoutSeconds * 1000,
       *config
     )
 
@@ -43,8 +47,9 @@ abstract class KafkaCommand(help: String) : CliktCommand(help) {
       valueSerialiser,
       "monosodium-glutamate",
       CommonClientConfigs.SECURITY_PROTOCOL_CONFIG to protocol,
-      "sasl.mechanism" to sasl,
-      "sasl.jaas.config" to jaas,
+      SaslConfigs.SASL_MECHANISM to sasl,
+      SaslConfigs.SASL_JAAS_CONFIG to jaas,
+      "default.api.timeout.ms" to timeoutSeconds * 1000,
       *config
     )
 }

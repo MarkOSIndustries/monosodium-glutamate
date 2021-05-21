@@ -16,7 +16,6 @@ import msg.kafka.topicPartitions
 import msg.schemas.KafkaGRPCBridgeGrpc
 import msg.schemas.MSG
 import org.apache.kafka.clients.consumer.Consumer
-import java.time.Duration
 
 class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
   override fun consume(
@@ -69,7 +68,7 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
   ) {
     try {
       newConsumer().use { consumer ->
-        val partitions = consumer.topicPartitions(request.topic, Duration.ofMinutes(1))
+        val partitions = consumer.topicPartitions(request.topic)
 
         TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {
           val builder = MSG.OffsetsResponse.newBuilder().setTopic(it.key.topic()).setPartition(it.key.partition())

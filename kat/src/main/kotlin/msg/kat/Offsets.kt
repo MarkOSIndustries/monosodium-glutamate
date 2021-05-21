@@ -1,16 +1,16 @@
 package msg.kat
 
+import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.validate
-import com.github.ajalt.clikt.parameters.options.validate
 import msg.kafka.KafkaTopicCommand
 import msg.kafka.offsets.OffsetSpec
 import msg.kafka.offsets.OffsetSpecs
 import msg.kafka.offsets.TimeBasedOffsetSpec
 import msg.kafka.topicPartitions
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import java.time.Duration
 
+@ExperimentalCompletionCandidates
 class Offsets : KafkaTopicCommand(
   "Query offsets by timestamp\n\n" +
     "Retrieves the offsets for each partition at a given timestamp and prints to stdout"
@@ -24,7 +24,7 @@ class Offsets : KafkaTopicCommand(
 
   override fun run() {
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
-    val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1))
+    val partitions = consumer.topicPartitions(topic)
 
     val offsetSpec: OffsetSpec = OffsetSpecs.parseOffsetSpec(at, topic)!!
 

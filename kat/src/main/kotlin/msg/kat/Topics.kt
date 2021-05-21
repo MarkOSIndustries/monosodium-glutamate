@@ -9,7 +9,6 @@ import msg.kafka.offsets.EarliestOffsetSpec
 import msg.kafka.offsets.LatestOffsetSpec
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
-import java.time.Duration
 
 class Topics : KafkaCommand(
   "Query topics\n\n" +
@@ -24,7 +23,7 @@ class Topics : KafkaCommand(
     val regex = Regex(pattern, RegexOption.IGNORE_CASE)
 
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
-    consumer.listTopics(Duration.ofMinutes(1))
+    consumer.listTopics()
       .filterKeys { if (not) !regex.matches(it) else regex.matches(it) }
       .toSortedMap()
       .forEach { topicWithPartitionInfos ->

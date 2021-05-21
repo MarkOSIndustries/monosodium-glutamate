@@ -1,11 +1,12 @@
 package msg.kat
 
+import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
 import msg.kafka.topicPartitions
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.utils.Utils
 import java.io.EOFException
-import java.time.Duration
 
+@ExperimentalCompletionCandidates
 class Partition : KafkaTopicDataCommand(
   "Apply the default Java Kafka key partitioning strategy.\n\n" +
     "Reads keys from stdin and writes the topic partition they would be produced to by default to stdout"
@@ -13,7 +14,7 @@ class Partition : KafkaTopicDataCommand(
 
   override fun run() {
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
-    val partitions = consumer.topicPartitions(topic, Duration.ofMinutes(1))
+    val partitions = consumer.topicPartitions(topic)
 
     try {
       val reader = encoding.reader(System.`in`)
