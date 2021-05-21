@@ -8,5 +8,8 @@ docker build -f docker/Dockerfile \
  -t markosindustries/monosodium-glutamate:latest \
  -t markosindustries/monosodium-glutamate:$VERSION \
  .
-docker push markosindustries/monosodium-glutamate:latest
-docker push markosindustries/monosodium-glutamate:$VERSION
+
+if [[ $2 == "push" ]]; then
+  docker push markosindustries/monosodium-glutamate:latest
+  docker push markosindustries/monosodium-glutamate:$VERSION
+fi
