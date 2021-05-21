@@ -54,5 +54,5 @@ WORKDIR /home/root
 RUN echo 'if ! [[ -z "$KAFKA_BROKERS" ]]; then export COMPLETIONS_KAFKA_TOPICS=${MSG_HOME}/topics.txt; (kat topics > $COMPLETIONS_KAFKA_TOPICS 2> /dev/null &); fi' >> /root/.bashrc
 RUN (cd $MSG_HOME/bin/ && _KAT_COMPLETE=bash java -jar ./kat.jar >> /root/.bashrc)
 RUN (cd $MSG_HOME/bin/ && node ./proto/ completion >> /root/.bashrc)
-RUN echo 'export PS1="[msg]:\w\$ "' >> /root/.bashrc
+RUN echo 'export PS1="\[\033[01;32m\]msg\[\033[02;37m\]:\[\033[00;01;90m\]v$MSG_VERSION\[\033[02;37m\]:\[\033[00;01;34m\]\w\[\033[02;37m\]\$\[\033[00m\] "' >> /root/.bashrc
 CMD bash
