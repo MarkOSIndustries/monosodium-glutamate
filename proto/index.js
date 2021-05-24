@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 const protobuf = require('../protobuf')(require('protobufjs'))
 const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStreamDecoder} = require('./encodings')
-const {transform} = require('./transform')
+const {transformInSingleProcess} = require('./transform.single.process')
+const {transformInParentProcess, transformInForkedProcess} = require('./transform.multi.process')
 const {invoke, transformToRequestResponsePairs, transformToResponsesOnly} = require('./invoke')
 const {schemas} = require('./schemas')
 const {services} = require('./services')
@@ -30,6 +31,18 @@ const yargs = require('yargs') // eslint-disable-line
         describe: 'the output format to use',
         choices: supportedEncodings,
       })
+      .option('concurrency', {
+        alias: 'c',
+        describe: 'Should we use multiple processes (order will be maintained either way)',
+        choices: ['multi', 'single'],
+        default: 'multi',
+      })
+      .option('parallelism', {
+        alias: 'p',
+        describe: 'How many workers should we use when running in multi-process mode. (defaults to machine CPU core count)',
+        default: os.cpus().length,
+        coerce: x => Number(x)
+      })
       addEncodingOptions(argsSpec)
       addTransformOptions(argsSpec)
   }, argv => {
@@ -37,7 +50,42 @@ const yargs = require('yargs') // eslint-disable-line
     if(!index.messages.hasOwnProperty(argv.schema)) throw `Schema ${argv.schema} not found. Try >proto schemas`
     const schema = index.messages[argv.schema]
 
-    transform(
+    if(argv.concurrency == 'single') {
+      transformInSingleProcess(
+        new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
+        argv.filter, argv.shape, argv.template)
+    } else {
+      if(isNaN(argv.parallelism)) {
+        throw 'Parallelism must be a number'
+      }
+      transformInParentProcess(
+        new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
+        argv.filter, argv.shape, argv.template, argv.parallelism, ['transform.forked', ...process.argv.slice(3)])
+    }
+  })
+  .command('transform.forked <schema> <input> <output>', false, (argsSpec) => {
+    argsSpec
+      .positional('schema', {
+        describe: 'protobuf schema to interpret messages as',
+      })
+      .positional('input', {
+        describe: 'the input format to expect',
+        choices: supportedEncodings,
+      })
+      .positional('output', {
+        describe: 'the output format to use',
+        choices: supportedEncodings,
+      })
+      addEncodingOptions(argsSpec)
+      addTransformOptions(argsSpec)
+  }, argv => {
+    const index = indexProtobufs(argv.protobufs)
+    if(!index.messages.hasOwnProperty(argv.schema)) throw `Schema ${argv.schema} not found. Try >proto schemas`
+    const schema = index.messages[argv.schema]
+
+    transformInForkedProcess(
       new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
       new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
       argv.filter, argv.shape, argv.template)

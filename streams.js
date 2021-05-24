@@ -6,6 +6,9 @@ module.exports = {
   readLengthPrefixedBuffers,
   writeLengthPrefixedBuffers,
   writeDelimited,
+  sendMessagesToParent,
+  readMessagesFromParent,
+  readMessagesFromForked,
 }
 
 function readUTF8Lines(inStream) {
@@ -125,4 +128,37 @@ function writeDelimited(outStream, delimiterBuffer) {
   inStream.pipe(outStream)
 
   return inStream
+}
+
+function sendMessagesToParent() {
+  const childMessagesStream = new stream.Transform({
+    writableObjectMode: true,
+
+    write(jsonObject, encoding, done) {
+      process.send(jsonObject)
+      done()
+    }
+  })
+  return childMessagesStream
+}
+
+function readMessagesFromParent() {
+  const parentMessagesStream = new stream.Transform({
+    readableObjectMode: true
+  })
+  process.on('message', (message) => {
+    parentMessagesStream.push(message)
+  })
+  return parentMessagesStream
+}
+
+
+function readMessagesFromForked(forkedProcess) {
+  const forkedMessagesStream = new stream.Transform({
+    readableObjectMode: true
+  })
+  forkedProcess.on('message', (message) => {
+    forkedMessagesStream.push(message)
+  })
+  return forkedMessagesStream
 }

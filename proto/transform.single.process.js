@@ -2,10 +2,10 @@ const os = require('os')
 const stream = require('stream')
 
 module.exports = {
-  transform,
+  transformInSingleProcess,
 }
 
-function transform(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
+function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
   var messagesTransformed = 0
 
   inputStreamDecoder
