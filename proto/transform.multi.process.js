@@ -24,10 +24,12 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
 
   function shutdown() {
     for (const forkedWorker of forkedWorkers) {
-      forkedWorker.send({finished: true})
+      forkedWorker.kill('SIGINT')
     }
     process.exit()
   }
+
+  process.on('SIGINT', shutdown)
 
   var processedMessagesBuffer = []
   const processedMessages = new stream.Transform({
@@ -71,15 +73,24 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       }
     })
 
-    process.on('SIGINT', () => forkedWorker.kill('SIGINT'))
-
     readMessagesFromForked(forkedWorker).pipe(processedMessages)
 
     return forkedWorker
   }))
 
-  const batchSize = 100
   var sendBuffer = []
+
+  function flushSendBuffer() {
+    if(sendBuffer.length > 0) {
+      const index = sendIndex++
+      forkedWorkers[index%forkedWorkers.length].send({index,messages:sendBuffer})
+      sendBuffer = []
+    }
+  }
+
+  const flushInterval = setInterval(() => {
+    flushSendBuffer()
+  }, 10)
 
   const streamToWorkers = inputStreamDecoder.makeInputStream()
     .pipe(new stream.Transform({
@@ -87,21 +98,24 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       
       transform(message, encoding, done) {
         sendBuffer.push(Buffer.from(message).toString(workerEncoding))
-        if(sendBuffer.length >= batchSize) {
-          const index = sendIndex++
-          forkedWorkers[index%forkedWorkers.length].send({index,messages:sendBuffer})
-          sendBuffer = []
-        }
         done()
-      }
+      },
+
+      flush(done) {
+        flushSendBuffer()
+        done()
+      },
     }))
   streamToWorkers.on('finish', () => {
+    clearInterval(flushInterval)
     streamToWorkers.end()
     
     const index = sendIndex++
     forkedWorkers[index%forkedWorkers.length].send({index,messages:sendBuffer})
     sendBuffer = []
     inputExhausted = true
+
+    flushSendBuffer()
   })
 
   process.on('exit', function () {
@@ -119,20 +133,16 @@ function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filte
       readableObjectMode: true,
       writableObjectMode: true,
       
-      transform({index, messages, finished}, encoding, done) {
-        if(finished) {
-          process.exit()
-        } else {
-          const result = {index, messages: []}
-          for(const message of messages) {
-            const jsonObject = inputStreamDecoder.unmarshalJsonObject(Buffer.from(message, workerEncoding))
-            if(filter(jsonObject)) {
-              const shapedJsonObject = shape(jsonObject)
-              result.messages.push(outputStreamEncoder.marshalJsonObject(shapedJsonObject).toString(workerEncoding))
-            }
+      transform({index, messages}, encoding, done) {
+        const result = {index, messages: []}
+        for(const message of messages) {
+          const jsonObject = inputStreamDecoder.unmarshalJsonObject(Buffer.from(message, workerEncoding))
+          if(filter(jsonObject)) {
+            const shapedJsonObject = shape(jsonObject)
+            result.messages.push(outputStreamEncoder.marshalJsonObject(shapedJsonObject).toString(workerEncoding))
           }
-          this.push(result)
         }
+        this.push(result)
         done()
       }
     }))
