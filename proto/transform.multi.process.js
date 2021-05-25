@@ -64,9 +64,11 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
     })
     forkedWorker.on('exit', (code, signal) => {
       if(code != 0) {
+        // the forked worker will log to stderr
         shutdown()
       }
     })
+
     process.on('SIGINT', () => forkedWorker.kill('SIGINT'))
 
     readMessagesFromForked(forkedWorker).pipe(processedMessages)
@@ -106,6 +108,10 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
 }
 
 function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
+  process.on('SIGINT', () => {
+    process.exit()
+  })
+
   readMessagesFromParent()
     .pipe(new stream.Transform({
       readableObjectMode: true,
