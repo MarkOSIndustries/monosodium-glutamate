@@ -58,7 +58,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
   processedMessages.pipe(outputStreamEncoder.makeOutputStream())
 
   forkedWorkers.push(...Array(forkedWorkerCount).fill().map((_, workerIndex) => {
-    const forkedWorker = fork(process.argv[1], forkedWorkerArgs)
+    const forkedWorker = fork(process.argv[1], forkedWorkerArgs, {silent: true})
     forkedWorker.on('error', (err) => {
       shutdown()
     })

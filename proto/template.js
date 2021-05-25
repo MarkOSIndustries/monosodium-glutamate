@@ -1,8 +1,8 @@
 const { inspect } = require('util')
 
-function coerceTemplate(templateString) {
+function coerceTemplate(templateString, stdoutIsTTY) {
   if(templateString == null) {
-    if(process.stdout.isTTY) {
+    if(stdoutIsTTY) {
       // Coloured, multi-line JSON strings
       return (x) => inspect(x, {
         colors: true,

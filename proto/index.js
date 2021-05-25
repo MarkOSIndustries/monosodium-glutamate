@@ -53,20 +53,24 @@ const yargs = require('yargs') // eslint-disable-line
     if(argv.concurrency == 'single') {
       transformInSingleProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
-        argv.filter, argv.shape, argv.template)
+        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty))
     } else {
       if(isNaN(argv.parallelism)) {
         throw 'Parallelism must be a number'
       }
       transformInParentProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
-        argv.filter, argv.shape, argv.template, argv.parallelism, ['transform.forked', ...process.argv.slice(3)])
+        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty), argv.parallelism, ['transform.forked', argv.tty, ...process.argv.slice(3)])
     }
   })
-  .command('transform.forked <schema> <input> <output>', false, (argsSpec) => {
+  .command('transform.forked <isttyparent> <schema> <input> <output>', false, (argsSpec) => {
     argsSpec
+      .positional('isttyparent', {
+        describe: 'Should we assume stdout is a TTY?',
+        choices: ['y','n'],
+      })
       .positional('schema', {
         describe: 'protobuf schema to interpret messages as',
       })
@@ -87,8 +91,8 @@ const yargs = require('yargs') // eslint-disable-line
 
     transformInForkedProcess(
       new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
-      argv.filter, argv.shape, argv.template)
+      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      argv.filter, argv.shape, coerceTemplate(argv.template, argv.isttyparent))
   })
   .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method by reading requests from stdin and writing responses to stdout', (argsSpec) => {
     argsSpec
@@ -143,7 +147,7 @@ const yargs = require('yargs') // eslint-disable-line
 
     invoke(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, responseType, argv.output, argv.prefix, argv.delimiter, argv.template),
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
       argv.host, argv.port, argv.timeout, transformRequestResponse)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
@@ -164,8 +168,8 @@ const yargs = require('yargs') // eslint-disable-line
 
     transform(
       new MockInputStreamDecoder(schema),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, argv.template),
-      argv.filter, argv.shape, argv.template)
+      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty))
   })
   .command('schemas [query]', 'list all known schemas', (argsSpec) => {
     argsSpec
@@ -224,7 +228,17 @@ function addEncodingOptions(argsSpec) {
       alias: 't',
       describe: 'project records through a string template (uses standard js string interpolation syntax) - only applies to json output',
       default: null,
-      coerce: coerceTemplate,
+    })
+    .option('tty', {
+      describe: 'Should we assume stdout is a TTY? (autodetects by default)',
+      choices: ['y','n'],
+      coerce: x => {
+        switch(x) {
+          case 'y': return true
+          case 'n': return false
+          default: return process.stdout.isTTY ? 'y' : 'n'
+        }
+      },
     })
 }
 
