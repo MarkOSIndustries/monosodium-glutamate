@@ -1,11 +1,13 @@
 package msg.kat
 
+import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.io.EOFException
 import java.util.LinkedList
 import java.util.concurrent.Future
 
+@ExperimentalCompletionCandidates
 class Produce : KafkaTopicDataCommand(
   help = "Produce records to Kafka\n\n" +
     "Reads records from stdin and sends them to Kafka"

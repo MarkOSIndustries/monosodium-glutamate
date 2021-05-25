@@ -1,4 +1,4 @@
-FROM timbru31/java-node:8-jdk as builder
+FROM timbru31/java-node:11-jdk-fermium as builder
 
 WORKDIR /home/msg
 
@@ -19,7 +19,7 @@ RUN ./gradlew clean build
 RUN (cd proto && npm install)
 
 
-FROM timbru31/java-node:8-jdk as runtime
+FROM timbru31/java-node:11-jdk-fermium as runtime
 
 ARG MSG_VERSION
 

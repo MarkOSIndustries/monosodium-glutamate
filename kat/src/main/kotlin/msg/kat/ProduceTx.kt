@@ -1,5 +1,6 @@
 package msg.kat
 
+import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
@@ -7,6 +8,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.util.UUID
 
+@ExperimentalCompletionCandidates
 class ProduceTx : KafkaTopicDataCommand(
   help = "Produce records to Kafka using transactions\n\n" +
     "Reads records from stdin and sends them to Kafka"

@@ -44,7 +44,7 @@ class Consume : KafkaTopicDataCommand(
         "Please choose from $metavar"
     }
   }
-  private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.values().map { it.toString().toLowerCase(Locale.ROOT) to it }.toMap()).default(IsolationLevel.READ_COMMITTED)
+  private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.values().map { it.toString().lowercase(Locale.ROOT) to it }.toMap()).default(IsolationLevel.READ_COMMITTED)
   private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
 
   override fun run() {
@@ -62,7 +62,7 @@ class Consume : KafkaTopicDataCommand(
     TopicIterator(
       newConsumer(
         ByteArrayDeserializer::class, ByteArrayDeserializer::class,
-        ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().toLowerCase(Locale.ROOT)
+        ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().lowercase(Locale.ROOT)
       ),
       topic,
       OffsetSpecs.parseOffsetSpec(fromOption, topic)!!,
