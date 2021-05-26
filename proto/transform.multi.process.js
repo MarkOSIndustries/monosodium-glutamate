@@ -14,7 +14,7 @@ module.exports = {
 
 const workerEncoding = 'base64'
 
-function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, template, forkedWorkerCount, forkedWorkerArgs) {
+function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, forkedWorkerCount, forkedWorkerArgs) {
   var messagesTransformed = 0
   var sendIndex = 0
   var recvIndex = 0
@@ -123,7 +123,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
   })
 }
 
-function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
+function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filter, shape) {
   process.on('SIGINT', () => {
     process.exit()
   })

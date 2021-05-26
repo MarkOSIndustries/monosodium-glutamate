@@ -5,7 +5,7 @@ module.exports = {
   transformInSingleProcess,
 }
 
-function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, template) {
+function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filter, shape) {
   var messagesTransformed = 0
 
   inputStreamDecoder

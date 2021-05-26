@@ -1,6 +1,7 @@
 const { inspect } = require('util')
 
-function coerceTemplate(templateString, stdoutIsTTY) {
+function coerceTemplate(templateString, ttyString) {
+  const stdoutIsTTY = coerceTTY(ttyString)
   if(templateString == null) {
     if(stdoutIsTTY) {
       // Coloured, multi-line JSON strings
@@ -19,6 +20,15 @@ function coerceTemplate(templateString, stdoutIsTTY) {
   return (msg) => eval(escapedTemplateString)
 }
 
+function coerceTTY(ttyString) {
+  switch(ttyString) {
+    case 'y': return true
+    case 'n': return false
+    default: return Boolean(process.stdout.isTTY)
+  }
+}
+
 module.exports = {
   coerceTemplate,
+  coerceTTY,
 }

@@ -8,7 +8,7 @@ const {schemas} = require('./schemas')
 const {services} = require('./services')
 const {coerceFilter} = require('./filter')
 const {coerceShape} = require('./shape.js')
-const {coerceTemplate} = require('./template.js')
+const {coerceTemplate, coerceTTY} = require('./template.js')
 const env = require('../env')
 var os = require('os')
 
@@ -54,7 +54,7 @@ const yargs = require('yargs') // eslint-disable-line
       transformInSingleProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
         new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-        argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty))
+        argv.filter, argv.shape)
     } else {
       if(isNaN(argv.parallelism)) {
         throw 'Parallelism must be a number'
@@ -62,7 +62,7 @@ const yargs = require('yargs') // eslint-disable-line
       transformInParentProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
         new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-        argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty), argv.parallelism, ['transform.forked', argv.tty, ...process.argv.slice(3)])
+        argv.filter, argv.shape, argv.parallelism, ['transform.forked', coerceTTY(argv.tty), ...process.argv.slice(3)])
     }
   })
   .command('transform.forked <isttyparent> <schema> <input> <output>', false, (argsSpec) => {
@@ -70,6 +70,7 @@ const yargs = require('yargs') // eslint-disable-line
       .positional('isttyparent', {
         describe: 'Should we assume stdout is a TTY?',
         choices: ['y','n'],
+        coerce: (x) => x === 'true' ? 'y' : 'n',
       })
       .positional('schema', {
         describe: 'protobuf schema to interpret messages as',
@@ -91,8 +92,8 @@ const yargs = require('yargs') // eslint-disable-line
 
     transformInForkedProcess(
       new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.filter, argv.shape, coerceTemplate(argv.template, argv.isttyparent))
+      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.isttyparent)),
+      argv.filter, argv.shape)
   })
   .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method by reading requests from stdin and writing responses to stdout', (argsSpec) => {
     argsSpec
@@ -166,10 +167,10 @@ const yargs = require('yargs') // eslint-disable-line
     if(!index.messages.hasOwnProperty(argv.schema)) throw `Schema ${argv.schema} not found. Try >proto schemas`
     const schema = index.messages[argv.schema]
 
-    transform(
+    transformInSingleProcess(
       new MockInputStreamDecoder(schema),
       new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.filter, argv.shape, coerceTemplate(argv.template, argv.tty))
+      argv.filter, argv.shape)
   })
   .command('schemas [query]', 'list all known schemas', (argsSpec) => {
     argsSpec
@@ -232,13 +233,6 @@ function addEncodingOptions(argsSpec) {
     .option('tty', {
       describe: 'Should we assume stdout is a TTY? (autodetects by default)',
       choices: ['y','n'],
-      coerce: x => {
-        switch(x) {
-          case 'y': return true
-          case 'n': return false
-          default: return process.stdout.isTTY ? 'y' : 'n'
-        }
-      },
     })
 }
 
