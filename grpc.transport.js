@@ -229,7 +229,7 @@ class Http2Request {
     if(buffer.length >= 5) {
       const compression = buffer.readUInt8(0,1)
       if(compression != responseEncoding.compressed) {
-        console.error('Message compression mismatch, guessing...')
+        // Message compression mismatch, guess based on the received compression flag
         if(compression === 0) {
           responseEncoding = encoding.IdentityEncoding
         } else {
