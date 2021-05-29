@@ -43,6 +43,11 @@ const yargs = require('yargs') // eslint-disable-line
         default: os.cpus().length,
         coerce: x => Number(x)
       })
+      .option('progress', {
+        describe: 'Show a progress bar',
+        boolean: true,
+        default: false,
+      })
       addEncodingOptions(argsSpec)
       addTransformOptions(argsSpec)
   }, argv => {
@@ -54,7 +59,7 @@ const yargs = require('yargs') // eslint-disable-line
       transformInSingleProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
         new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-        argv.filter, argv.shape)
+        argv.filter, argv.shape, argv.progress)
     } else {
       if(isNaN(argv.parallelism)) {
         throw 'Parallelism must be a number'
@@ -62,7 +67,7 @@ const yargs = require('yargs') // eslint-disable-line
       transformInParentProcess(
         new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
         new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-        argv.filter, argv.shape, argv.parallelism, ['transform.forked', coerceTTY(argv.tty), ...process.argv.slice(3)])
+        argv.filter, argv.shape, argv.parallelism, ['transform.forked', coerceTTY(argv.tty), ...process.argv.slice(3)], argv.progress)
     }
   })
   .command('transform.forked <isttyparent> <schema> <input> <output>', false, (argsSpec) => {

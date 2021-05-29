@@ -59,6 +59,7 @@ const formats = {
 class InputStreamDecoder {
   constructor(wrappedStream, schema, encoding, prefixFormat, delimiterBuffer) {
     this.wrappedStream = wrappedStream
+    this.schema = schema
     this.inputConfig = {
       prefixFormat,
       delimiterBuffer,
@@ -66,6 +67,10 @@ class InputStreamDecoder {
       converter: new SchemaConverter(schema),
     }
     this.inputFormat = formats[encodingFormats[encoding]]
+  }
+
+  getSchemaName() {
+    return this.schema.fullName
   }
 
   makeInputStream() {
@@ -84,6 +89,7 @@ class InputStreamDecoder {
 class OutputStreamEncoder {
   constructor(wrappedStream, schema, encoding, prefixFormat, delimiterBuffer, stringifyJsonObject) {
     this.wrappedStream = wrappedStream
+    this.schema = schema
     this.outputConfig = {
       prefixFormat,
       delimiterBuffer,
@@ -92,6 +98,10 @@ class OutputStreamEncoder {
       converter: new SchemaConverter(schema),
     }
     this.outputFormat = formats[encodingFormats[encoding]]
+  }
+
+  getSchemaName() {
+    return this.schema.fullName
   }
 
   makeOutputStream() {
@@ -111,6 +121,10 @@ class MockInputStreamDecoder {
   constructor(schema) {
     this.schema = schema
     this.converter = new SchemaConverter(schema)
+  }
+
+  getSchemaName() {
+    return this.schema.fullName
   }
 
   makeInputStream() {

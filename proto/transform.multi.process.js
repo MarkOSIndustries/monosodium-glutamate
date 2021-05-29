@@ -6,6 +6,7 @@ const {
   readMessagesFromParent,
   readMessagesFromForked,
 } = require('../streams.js')
+const { getProgressBars } = require('./transform.progress.bar.js')
 
 module.exports = {
   transformInParentProcess,
@@ -14,14 +15,24 @@ module.exports = {
 
 const workerEncoding = 'base64'
 
-function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, forkedWorkerCount, forkedWorkerArgs) {
-  var messagesReceived = 0
+
+
+function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, forkedWorkerCount, forkedWorkerArgs, showProgressBar) {
+  var messagesToFilter = 0
+  var messagesFiltered = 0
+  var messagesToTransform = 0
   var messagesTransformed = 0
   var sendIndex = 0
   var recvIndex = 0
   var inputExhausted = false
   const workBuffer = new Map()
   const forkedWorkers = []
+
+  const {
+      progressBars,
+      filterProgressBar,
+      transformProgressBar,
+  } = getProgressBars(showProgressBar, inputStreamDecoder.getSchemaName())
 
   function shutdown() {
     for (const forkedWorker of forkedWorkers) {
@@ -37,13 +48,18 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
     readableObjectMode: true,
     writableObjectMode: true,
     
-    transform({index, messages}, encoding, done) {
-      workBuffer.set(index, messages)
+    transform({index, messages, progress}, encoding, done) {
+      workBuffer.set(index, {messages, progress})
+      messagesToTransform += messages.length
+      transformProgressBar.setTotal(messagesToTransform)
       if(index == recvIndex) {
-        while((messages = workBuffer.get(recvIndex))) {
-          for(const message of messages) {
+        while((nextInSequence = workBuffer.get(recvIndex))) {
+          messagesFiltered += nextInSequence.progress
+          filterProgressBar.update(messagesFiltered)
+          for(const message of nextInSequence.messages) {
             this.push(Buffer.from(message, workerEncoding))
             messagesTransformed++
+            transformProgressBar.update(messagesTransformed)
           }
           workBuffer.delete(recvIndex)
           recvIndex++
@@ -100,7 +116,8 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       readableObjectMode: true,
       
       transform(message, encoding, done) {
-        messagesReceived++
+        messagesToFilter++
+        filterProgressBar.setTotal(messagesToFilter)
         sendBuffer.push(Buffer.from(message).toString(workerEncoding))
         done()
       },
@@ -123,7 +140,10 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
   })
 
   process.on('exit', function () {
-    process.stderr.write(`Transformed ${messagesTransformed} of ${messagesReceived} messages${os.EOL}`)
+    progressBars.stop()
+    if(!showProgressBar) {
+      process.stderr.write(`Transformed ${messagesTransformed} of ${messagesFiltered} messages${os.EOL}`)
+    }
   })
 }
 
@@ -138,7 +158,7 @@ function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filte
       writableObjectMode: true,
       
       transform({index, messages}, encoding, done) {
-        const result = {index, messages: []}
+        const result = {index, messages: [], progress: messages.length}
         for(const message of messages) {
           try {
             const jsonObject = inputStreamDecoder.unmarshalJsonObject(Buffer.from(message, workerEncoding))
