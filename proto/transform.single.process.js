@@ -6,26 +6,40 @@ module.exports = {
 }
 
 function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filter, shape) {
+  var messagesReceived = 0
   var messagesTransformed = 0
 
   inputStreamDecoder
-    .streamJsonObjects(ex => console.error(ex))
+    .makeInputStream()
     .pipe(new stream.Transform({
       readableObjectMode: true,
-      writableObjectMode: true,
       
-      transform(jsonObject, encoding, done) {
-        if(filter(jsonObject)) {
-          const shapedJsonObject = shape(jsonObject)
-          messagesTransformed = messagesTransformed + 1
-          this.push(shapedJsonObject)
+      transform(data, encoding, done) {
+        try {
+          const jsonObject = inputStreamDecoder.unmarshalJsonObject(data)
+          if(filter(jsonObject)) {
+            const shapedJsonObject = shape(jsonObject)
+            this.push(shapedJsonObject)
+            messagesTransformed++
+          }
+          messagesReceived++
+        } catch(ex) {
+          console.error(ex)
         }
         done()
       }
     }))
-    .pipe(outputStreamEncoder.streamJsonObjects())
+    .pipe(new stream.Transform({
+      writableObjectMode: true,
+      
+      transform(jsonObject, encoding, done) {
+        this.push(outputStreamEncoder.marshalJsonObject(jsonObject))
+        done()
+      }
+    }))
+    .pipe(outputStreamEncoder.makeOutputStream())
 
   process.on('exit', function () {
-    process.stderr.write(`Transformed ${messagesTransformed} messages${os.EOL}`)
+    process.stderr.write(`Transformed ${messagesTransformed} of ${messagesReceived} messages${os.EOL}`)
   })
 }

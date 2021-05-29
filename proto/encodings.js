@@ -76,50 +76,8 @@ class InputStreamDecoder {
     return this.inputFormat.unmarshalJsonObject(data, this.inputConfig)
   }
 
-  streamJsonObjects(fnHandleException) {
-    const self = this
-    const transform = new stream.Transform({
-      readableObjectMode: true,
-      writableObjectMode: true,
-      
-      transform(data, encoding, done) {
-        try {
-          this.push(self.unmarshalJsonObject(data))
-        } catch(ex) {
-          fnHandleException(ex)
-        }
-        done()
-      }
-    })
-
-    this.makeInputStream().pipe(transform)
-
-    return transform
-  }
-
   unmarshalSchemaObject(data) {
     return this.inputFormat.unmarshalSchemaObject(data, this.inputConfig)
-  }
-
-  streamSchemaObjects(fnHandleException) {
-    const self = this
-    const transform = new stream.Transform({
-      readableObjectMode: true,
-      writableObjectMode: true,
-      
-      transform(data, encoding, done) {
-        try {
-          this.push(self.unmarshalSchemaObject(data))
-        } catch(ex) {
-          fnHandleException(ex)
-        }
-        done()
-      }
-    })
-
-    this.makeInputStream().pipe(transform)
-
-    return transform
   }
 }
 
@@ -144,40 +102,8 @@ class OutputStreamEncoder {
     return this.outputFormat.marshalJsonObject(jsonObject, this.outputConfig)
   }
 
-  streamJsonObjects() {
-    const self = this
-    const transform = new stream.Transform({
-      writableObjectMode: true,
-      
-      transform(jsonObject, encoding, done) {
-        this.push(self.marshalJsonObject(jsonObject))
-        done()
-      }
-    })
-
-    transform.pipe(this.makeOutputStream())
-
-    return transform
-  }
-
   marshalSchemaObject(schemaObject) {
     return this.outputFormat.marshalSchemaObject(schemaObject, this.outputConfig)
-  }
-
-  streamSchemaObjects() {
-    const self = this
-    const transform = new stream.Transform({
-      writableObjectMode: true,
-      
-      transform(schemaObject, encoding, done) {
-        this.push(self.marshalSchemaObject(schemaObject))
-        done()
-      }
-    })
-
-    transform.pipe(this.makeOutputStream())
-    
-    return transform
   }
 }
 
@@ -187,9 +113,7 @@ class MockInputStreamDecoder {
     this.converter = new SchemaConverter(schema)
   }
 
-  // TODO: Improve this to match the real InputStreamDecoder (new composable methods)
-
-  streamJsonObjects() {
+  makeInputStream() {
     const self = this
 
     let closed = false
@@ -200,7 +124,7 @@ class MockInputStreamDecoder {
       read(size) {
         setTimeout(() => {
           if(!closed) {
-            this.push(protobuf.makeValidJsonRecord(self.schema))
+            this.push('msg')
           }
         }, 1)
       }
@@ -214,28 +138,12 @@ class MockInputStreamDecoder {
     return readable
   }
 
-  streamSchemaObjects() {
-    const self = this
+  unmarshalJsonObject(data) {
+    return protobuf.makeValidJsonRecord(this.schema)
+  }
 
-    let closed = false
-
-    const readable = new stream.Readable({
-      objectMode: true,
-
-      read(size) {
-        if(closed) {
-          this.push(null)
-        } else {
-          this.push(self.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(self.schema)))
-        }
-      }
-    })
-
-    process.on('SIGINT', function() {
-      closed = true
-    })
-
-    return readable
+  unmarshalSchemaObject(data) {
+    return this.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(this.schema))
   }
 }
 

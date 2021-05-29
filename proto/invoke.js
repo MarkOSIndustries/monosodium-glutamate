@@ -16,7 +16,19 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
   var requestsCompleted = 0
 
   inputStreamDecoder
-    .streamSchemaObjects(ex => console.error(ex))
+    .makeInputStream()
+    .pipe(new stream.Transform({
+      readableObjectMode: true,
+      
+      transform(data, encoding, done) {
+        try {
+          this.push(inputStreamDecoder.unmarshalSchemaObject(data))
+        } catch(ex) {
+          console.error(ex)
+        }
+        done()
+      }
+    }))
     .pipe(new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
@@ -47,7 +59,15 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
         }, 10)
       }
     }))
-    .pipe(outputStreamEncoder.streamSchemaObjects())
+    .pipe(new stream.Transform({
+      writableObjectMode: true,
+      
+      transform(schemaObject, encoding, done) {
+        this.push(outputStreamEncoder.marshalSchemaObject(schemaObject))
+        done()
+      }
+    }))
+    .pipe(outputStreamEncoder.makeOutputStream())
 
   if(process.stdin.isTTY) {
     process.on('SIGINT', function() {
@@ -65,7 +85,6 @@ function transformToRequestResponsePairs(protobufIndex) {
   const RequestResponsePair = protobufIndex.messages['msg.RequestResponsePair']
 
   return (method, requestSchemaObject, responseSchemaObject) => {
-    //console.log('requestScmeha', method.requestTypeName, method.requestType)
     return RequestResponsePair.create({
       request: Any.create({
         type_url: method.requestTypeName,

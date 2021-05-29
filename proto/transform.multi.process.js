@@ -15,6 +15,7 @@ module.exports = {
 const workerEncoding = 'base64'
 
 function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filter, shape, forkedWorkerCount, forkedWorkerArgs) {
+  var messagesReceived = 0
   var messagesTransformed = 0
   var sendIndex = 0
   var recvIndex = 0
@@ -99,6 +100,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       readableObjectMode: true,
       
       transform(message, encoding, done) {
+        messagesReceived++
         sendBuffer.push(Buffer.from(message).toString(workerEncoding))
         done()
       },
@@ -121,7 +123,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
   })
 
   process.on('exit', function () {
-    process.stderr.write(`Transformed ${messagesTransformed} messages${os.EOL}`)
+    process.stderr.write(`Transformed ${messagesTransformed} of ${messagesReceived} messages${os.EOL}`)
   })
 }
 
