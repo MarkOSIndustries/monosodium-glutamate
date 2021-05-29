@@ -21,6 +21,7 @@ function getProgressBars(showProgressBar, schemaName) {
       barCompleteChar: '\u2588',
       barIncompleteChar: '\u2591',
       hideCursor: true,
+      forceRedraw: true,
     })
 
     const filterProgressBar = progressBars.create(0, 0, {
