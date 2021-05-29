@@ -68,9 +68,11 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
     })
     forkedWorker.on('exit', (code, signal) => {
       if(code != 0) {
-        // the forked worker will log to stderr
         shutdown()
       }
+    })
+    forkedWorker.stderr.on('data', data => {
+      process.stderr.write(data)
     })
 
     readMessagesFromForked(forkedWorker).pipe(processedMessages)
@@ -136,10 +138,14 @@ function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filte
       transform({index, messages}, encoding, done) {
         const result = {index, messages: []}
         for(const message of messages) {
-          const jsonObject = inputStreamDecoder.unmarshalJsonObject(Buffer.from(message, workerEncoding))
-          if(filter(jsonObject)) {
-            const shapedJsonObject = shape(jsonObject)
-            result.messages.push(outputStreamEncoder.marshalJsonObject(shapedJsonObject).toString(workerEncoding))
+          try {
+            const jsonObject = inputStreamDecoder.unmarshalJsonObject(Buffer.from(message, workerEncoding))
+            if(filter(jsonObject)) {
+              const shapedJsonObject = shape(jsonObject)
+              result.messages.push(outputStreamEncoder.marshalJsonObject(shapedJsonObject).toString(workerEncoding))
+            }
+          } catch(ex) {
+            console.error(ex)
           }
         }
         this.push(result)
