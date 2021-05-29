@@ -77,14 +77,14 @@ class InputStreamDecoder {
   }
 
   streamJsonObjects(fnHandleException) {
-    const that = this
+    const self = this
     const transform = new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
       
       transform(data, encoding, done) {
         try {
-          this.push(that.unmarshalJsonObject(data))
+          this.push(self.unmarshalJsonObject(data))
         } catch(ex) {
           fnHandleException(ex)
         }
@@ -102,14 +102,14 @@ class InputStreamDecoder {
   }
 
   streamSchemaObjects(fnHandleException) {
-    const that = this
+    const self = this
     const transform = new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
       
       transform(data, encoding, done) {
         try {
-          this.push(that.unmarshalSchemaObject(data))
+          this.push(self.unmarshalSchemaObject(data))
         } catch(ex) {
           fnHandleException(ex)
         }
@@ -145,12 +145,12 @@ class OutputStreamEncoder {
   }
 
   streamJsonObjects() {
-    const that = this
+    const self = this
     const transform = new stream.Transform({
       writableObjectMode: true,
       
       transform(jsonObject, encoding, done) {
-        this.push(that.marshalJsonObject(jsonObject))
+        this.push(self.marshalJsonObject(jsonObject))
         done()
       }
     })
@@ -165,12 +165,12 @@ class OutputStreamEncoder {
   }
 
   streamSchemaObjects() {
-    const that = this
+    const self = this
     const transform = new stream.Transform({
       writableObjectMode: true,
       
       transform(schemaObject, encoding, done) {
-        this.push(that.marshalSchemaObject(schemaObject))
+        this.push(self.marshalSchemaObject(schemaObject))
         done()
       }
     })
@@ -190,7 +190,7 @@ class MockInputStreamDecoder {
   // TODO: Improve this to match the real InputStreamDecoder (new composable methods)
 
   streamJsonObjects() {
-    const that = this
+    const self = this
 
     let closed = false
 
@@ -200,7 +200,7 @@ class MockInputStreamDecoder {
       read(size) {
         setTimeout(() => {
           if(!closed) {
-            this.push(protobuf.makeValidJsonRecord(that.schema))
+            this.push(protobuf.makeValidJsonRecord(self.schema))
           }
         }, 1)
       }
@@ -215,7 +215,7 @@ class MockInputStreamDecoder {
   }
 
   streamSchemaObjects() {
-    const that = this
+    const self = this
 
     let closed = false
 
@@ -226,7 +226,7 @@ class MockInputStreamDecoder {
         if(closed) {
           this.push(null)
         } else {
-          this.push(that.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(that.schema)))
+          this.push(self.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(self.schema)))
         }
       }
     })
