@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 const protobuf = require('../protobuf')(require('protobufjs'))
-const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStreamDecoder} = require('./encodings')
+const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStreamDecoder} = require('../protobuf.cli.encodings')
 const {transformInSingleProcess} = require('./transform.single.process')
 const {transformInParentProcess, transformInForkedProcess} = require('./transform.multi.process')
 const {invoke, transformToRequestResponsePairs, transformToResponsesOnly} = require('./invoke')
@@ -173,7 +173,7 @@ const yargs = require('yargs') // eslint-disable-line
     const schema = index.messages[argv.schema]
 
     transformInSingleProcess(
-      new MockInputStreamDecoder(schema),
+      new MockInputStreamDecoder(schema, protobuf.makeValidJsonRecord),
       new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
       argv.filter, argv.shape)
   })

@@ -1,0 +1,35 @@
+{
+  "name": "p2p",
+  "version": "1.0.0",
+  "description": "A tool for converting between protobuf and parquet",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js",
+    "p2p": "node ./index.js"
+  },
+  "bin": {
+    "p2p": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markosindustries/monosodium-glutamate.git"
+  },
+  "keywords": [
+    "parquet",
+    "protobuf",
+    "cli",
+    "base64",
+    "hex"
+  ],
+  "author": "markosindustries",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/markosindustries/monosodium-glutamate/issues"
+  },
+  "homepage": "https://github.com/markosindustries/monosodium-glutamate#readme",
+  "dependencies": {
+    "parquetjs-lite": "^0.8.7",
+    "protobufjs": "^6.11.2",
+    "yargs": "^17.0.1"
+  }
+}

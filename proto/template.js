@@ -1,18 +1,9 @@
-const { inspect } = require('util')
+const { getJsonRenderer } = require('../cli.json')
 
 function coerceTemplate(templateString, ttyString) {
   const stdoutIsTTY = coerceTTY(ttyString)
   if(templateString == null) {
-    if(stdoutIsTTY) {
-      // Coloured, multi-line JSON strings
-      return (x) => inspect(x, {
-        colors: true,
-        depth: null,
-      })
-    } else {
-      // UTF8, single-line JSON strings
-      return (x) => JSON.stringify(x)
-    }
+    return getJsonRenderer(stdoutIsTTY)
   }
 
   // Whatever the user asked for - providing the current json message as 'msg'

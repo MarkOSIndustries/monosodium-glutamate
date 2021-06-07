@@ -1,9 +1,6 @@
-const protobuf = require('../protobuf')(require('protobufjs'))
-const { SchemaConverter } = require('../protobuf.convert')
-const transport = require('../grpc.transport')
+const { SchemaConverter } = require('./protobuf.convert')
 const stream = require('stream')
-const streams = require('../streams')
-const { matchesFilter } = require('./filter')
+const streams = require('./streams')
 const os = require('os')
 
 const encodingFormats = {
@@ -118,9 +115,10 @@ class OutputStreamEncoder {
 }
 
 class MockInputStreamDecoder {
-  constructor(schema) {
+  constructor(schema, makeValidJsonRecord) {
     this.schema = schema
     this.converter = new SchemaConverter(schema)
+    this.makeValidJsonRecord = makeValidJsonRecord
   }
 
   getSchemaName() {
@@ -153,11 +151,11 @@ class MockInputStreamDecoder {
   }
 
   unmarshalJsonObject(data) {
-    return protobuf.makeValidJsonRecord(this.schema)
+    return this.makeValidJsonRecord(this.schema)
   }
 
   unmarshalSchemaObject(data) {
-    return this.converter.json_object_to_schema_object(protobuf.makeValidJsonRecord(this.schema))
+    return this.converter.json_object_to_schema_object(this.makeValidJsonRecord(this.schema))
   }
 }
 
