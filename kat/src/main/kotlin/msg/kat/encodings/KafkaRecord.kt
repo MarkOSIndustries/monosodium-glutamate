@@ -5,14 +5,8 @@ import msg.schemas.MSG
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
-import java.io.InputStream
-import java.io.PrintStream
 
 class KafkaRecord : Encoding {
-  override fun reader(input: InputStream): Iterator<ByteArray> {
-    return LengthPrefixedByteArrayIterator(input)
-  }
-
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
     val record = MSG.KafkaRecord.parseFrom(bytes)
     return ProducerRecord(
@@ -40,9 +34,5 @@ class KafkaRecord : Encoding {
     builder.addAllHeaders(consumerRecord.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })
 
     return builder.build().toByteArray()
-  }
-
-  override fun writer(output: PrintStream): (ByteArray) -> Unit {
-    return Encoding.lengthPrefixedBinaryValues(output)
   }
 }

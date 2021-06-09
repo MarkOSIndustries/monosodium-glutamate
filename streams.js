@@ -3,6 +3,8 @@ const stream = require('stream')
 module.exports = {
   readUTF8Lines,
   readLineDelimitedJsonObjects,
+  simpleLengthPrefixReader,
+  simpleLengthPrefixWriter,
   readLengthPrefixedBuffers,
   writeLengthPrefixedBuffers,
   writeDelimited,
@@ -66,15 +68,47 @@ const prefixSizeByFormat = {
   'UInt8': 1,
 }
 
-function readLengthPrefixedBuffers(inStream, prefixFormat) {
+function simpleLengthPrefixReader(prefixFormat) {
   const prefixSize = prefixSizeByFormat[prefixFormat]
   const prefixReadFn = `read${prefixFormat}`
+
+  return {
+    tryReadPrefix(buffer, lengthCallback) {
+      if(buffer.length > prefixSize) {
+        lengthCallback(buffer[prefixReadFn](), prefixSize)
+        return true
+      } else {
+        return false
+      }
+    },
+  }
+}
+
+function simpleLengthPrefixWriter(prefixFormat) {
+  const prefixSize = prefixSizeByFormat[prefixFormat]
+  const prefixWriteFn = `write${prefixFormat}`
+
+  return {
+    prefixSize(length) {
+      return prefixSize
+    },
+    writePrefix(buffer, length) {
+      buffer[prefixWriteFn](length)
+    },
+  }
+}
+
+function readLengthPrefixedBuffers(inStream, { tryReadPrefix }) {
   let chunkBuffer = Buffer.from([])
   const outStream = new stream.Transform({
     transform(chunk, encoding, done) {
       chunkBuffer = Buffer.concat([chunkBuffer, chunk])
-      while(chunkBuffer.length > prefixSize) {
-        const chunkBufferLength = chunkBuffer[prefixReadFn]()
+      let chunkBufferLength = 0
+      let prefixSize = 0
+      while(tryReadPrefix(chunkBuffer, (length, bytesRead) => {
+        chunkBufferLength = length
+        prefixSize = bytesRead
+      })) {
         const totalBytesToRead = prefixSize + chunkBufferLength
         if(chunkBuffer.length >= totalBytesToRead) {
           this.push(chunkBuffer.slice(prefixSize,totalBytesToRead))
@@ -93,19 +127,17 @@ function readLengthPrefixedBuffers(inStream, prefixFormat) {
   return outStream
 }
 
-function writeLengthPrefixedBuffers(outStream, prefixFormat) {
-  const prefixSize = prefixSizeByFormat[prefixFormat]
-  const prefixWriteFn = `write${prefixFormat}`
-
+function writeLengthPrefixedBuffers(outStream, { prefixSize, writePrefix }) {
   const inStream = new stream.Transform({
     transform(chunk, encoding, done) {
       const chunkAsBuffer = ('string' === typeof chunk) ? 
         Buffer.from(chunk) :
         chunk
 
-      const outputBuffer = Buffer.allocUnsafe(prefixSize + chunkAsBuffer.length)
-      outputBuffer[prefixWriteFn](chunkAsBuffer.length)
-      chunkAsBuffer.copy(outputBuffer, prefixSize)
+      const prefixBytes = prefixSize(chunkAsBuffer.length)
+      const outputBuffer = Buffer.allocUnsafe(prefixBytes + chunkAsBuffer.length)
+      writePrefix(outputBuffer, chunkAsBuffer.length)
+      chunkAsBuffer.copy(outputBuffer, prefixBytes)
       this.push(outputBuffer)
       done()
     }

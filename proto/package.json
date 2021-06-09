@@ -29,6 +29,7 @@
   "dependencies": {
     "cli-progress": "^3.9.0",
     "protobufjs": "^6.11.2",
+    "varint": "^6.0.0",
     "yargs": "^17.0.1"
   }
 }

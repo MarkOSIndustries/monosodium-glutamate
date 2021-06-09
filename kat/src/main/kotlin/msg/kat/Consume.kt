@@ -48,11 +48,11 @@ class Consume : KafkaTopicDataCommand(
   private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
 
   override fun run() {
-    val write = encoding.writer(System.out)
+    val write = delimiter().writer(System.out)
 
     val interrupted = CompletableFuture<Unit>()
 
-    var receivedCount = AtomicInteger(0)
+    val receivedCount = AtomicInteger(0)
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Received $receivedCount messages.")

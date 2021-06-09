@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const protobuf = require('../protobuf')(require('protobufjs'))
+const varint = require('../varint')(require('varint'))
 const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStreamDecoder} = require('../protobuf.cli.encodings')
 const {transformInSingleProcess} = require('./transform.single.process')
 const {transformInParentProcess, transformInForkedProcess} = require('./transform.multi.process')
@@ -9,6 +10,7 @@ const {services} = require('./services')
 const {coerceFilter} = require('./filter')
 const {coerceShape} = require('./shape.js')
 const {coerceTemplate, coerceTTY} = require('./template.js')
+const streams = require('../streams')
 const env = require('../env')
 var os = require('os')
 
@@ -57,16 +59,16 @@ const yargs = require('yargs') // eslint-disable-line
 
     if(argv.concurrency == 'single') {
       transformInSingleProcess(
-        new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
         argv.filter, argv.shape, argv.progress)
     } else {
       if(isNaN(argv.parallelism)) {
         throw 'Parallelism must be a number'
       }
       transformInParentProcess(
-        new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
         argv.filter, argv.shape, argv.parallelism, ['transform.forked', coerceTTY(argv.tty), ...process.argv.slice(3)], argv.progress)
     }
   })
@@ -96,8 +98,8 @@ const yargs = require('yargs') // eslint-disable-line
     const schema = index.messages[argv.schema]
 
     transformInForkedProcess(
-      new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.isttyparent)),
+      new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
+      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.isttyparent)),
       argv.filter, argv.shape)
   })
   .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method by reading requests from stdin and writing responses to stdout', (argsSpec) => {
@@ -152,8 +154,8 @@ const yargs = require('yargs') // eslint-disable-line
         : method.responseType
 
     invoke(method,
-      new InputStreamDecoder(process.stdin, method.requestType, argv.input, argv.prefix, argv.delimiter),
-      new OutputStreamEncoder(process.stdout, responseType, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
       argv.host, argv.port, argv.timeout, transformRequestResponse)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
@@ -174,7 +176,7 @@ const yargs = require('yargs') // eslint-disable-line
 
     transformInSingleProcess(
       new MockInputStreamDecoder(schema, protobuf.makeValidJsonRecord),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
       argv.filter, argv.shape)
   })
   .command('schemas [query]', 'list all known schemas', (argsSpec) => {
@@ -210,13 +212,13 @@ function addEncodingOptions(argsSpec) {
   argsSpec
     .option('delimiter', {
       alias: 'd',
-      describe: 'delimiter bytes between output records (as hex string) - doesn\'t apply to binary output',
+      describe: 'delimiter bytes between records (as hex string) - doesn\'t apply to binary encoding',
       default: Buffer.from(os.EOL).toString("hex"),
       coerce: hex => Buffer.from(hex, "hex"),
     })
     .option('prefix', {
-      describe: 'length prefix format - only applies to binary output',
-      default: 'Int32BE',
+      describe: 'length prefix format - only applies to binary encoding',
+      default: 'varint',
       choices: [
         'Int32LE',
         'Int32BE',
@@ -228,7 +230,8 @@ function addEncodingOptions(argsSpec) {
         'UInt16LE',
         'UInt16BE',
         'UInt8',
-      ]
+        'varint',
+      ],
     })
     .option('template', {
       alias: 't',
@@ -255,6 +258,21 @@ function addTransformOptions(argsSpec) {
       default: null,
       coerce: coerceShape,
     })
+}
+
+function coercePrefix(prefixFormat) {
+  switch(prefixFormat) {
+    case 'varint':
+      return {
+        lengthPrefixReader: varint.varIntLengthPrefixReader,
+        lengthPrefixWriter: varint.varIntLengthPrefixWriter,
+      }
+    default:
+      return {
+        lengthPrefixReader: streams.simpleLengthPrefixReader(prefixFormat),
+        lengthPrefixWriter: streams.simpleLengthPrefixWriter(prefixFormat),
+      }
+  }
 }
 
 const argv = yargs.argv

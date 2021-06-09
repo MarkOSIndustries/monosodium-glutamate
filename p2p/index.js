@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 const parquet = require('parquetjs-lite')
 const protobuf = require('../protobuf')(require('protobufjs'))
+const varint = require('../varint')(require('varint'))
 const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder} = require('../protobuf.cli.encodings')
 const {getJsonRenderer} = require('../cli.json')
 const {protobufSchemaToParquetSpec} = require('./schema.conversion')
 const stream = require('stream')
-
+const streams = require('../streams')
 const env = require('../env')
 var os = require('os')
 
@@ -46,7 +47,7 @@ const yargs = require('yargs') // eslint-disable-line
 
     const parquetSpec = protobufSchemaToParquetSpec(schema, {compression: argv.compression, enumsAsStrings: argv.enums === 'strings', sparkCompatibleMode: argv.arrays === 'spark' })
     
-    const outputStreamEncoder = new OutputStreamEncoder(process.stdout, schema, argv.output, argv.prefix, argv.delimiter, getJsonRenderer(process.stdout.isTTY))
+    const outputStreamEncoder = new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, getJsonRenderer(process.stdout.isTTY))
     const outputStream = outputStreamEncoder.makeOutputStream()
     
     parquet.ParquetReader.openFile(argv.file).then(parquetReader => {
@@ -114,7 +115,7 @@ const yargs = require('yargs') // eslint-disable-line
     const parquetSpec = protobufSchemaToParquetSpec(schema, {compression: argv.compression, enumsAsStrings: argv.enums === 'strings', sparkCompatibleMode: argv.arrays === 'spark' })
     const parquetSchema = new parquet.ParquetSchema(parquetSpec.schema)
     parquet.ParquetWriter.openFile(parquetSchema, argv.file, { compression: argv.compression, useDataPageV2: argv.pageformat === 'v2' }).then(parquetWriter => {
-      const inputStreamDecoder = new InputStreamDecoder(process.stdin, schema, argv.input, argv.prefix, argv.delimiter)
+      const inputStreamDecoder = new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter)
       const inputStream = inputStreamDecoder.makeInputStream()
       inputStream
         .pipe(new stream.Transform({
@@ -152,13 +153,13 @@ function addEncodingOptions(argsSpec) {
   argsSpec
     .option('delimiter', {
       alias: 'd',
-      describe: 'delimiter bytes between output records (as hex string) - doesn\'t apply to binary output',
+      describe: 'delimiter bytes between records (as hex string) - doesn\'t apply to binary encoding',
       default: Buffer.from(os.EOL).toString("hex"),
       coerce: hex => Buffer.from(hex, "hex"),
     })
     .option('prefix', {
-      describe: 'length prefix format - only applies to binary output',
-      default: 'Int32BE',
+      describe: 'length prefix format - only applies to binary encoding',
+      default: 'varint',
       choices: [
         'Int32LE',
         'Int32BE',
@@ -170,10 +171,25 @@ function addEncodingOptions(argsSpec) {
         'UInt16LE',
         'UInt16BE',
         'UInt8',
+        'varint',
       ]
     })
 }
 
+function coercePrefix(prefixFormat) {
+  switch(prefixFormat) {
+    case 'varint':
+      return {
+        lengthPrefixReader: varint.varIntLengthPrefixReader,
+        lengthPrefixWriter: varint.varIntLengthPrefixWriter,
+      }
+    default:
+      return {
+        lengthPrefixReader: streams.simpleLengthPrefixReader(prefixFormat),
+        lengthPrefixWriter: streams.simpleLengthPrefixWriter(prefixFormat),
+      }
+  }
+}
 
 const argv = yargs.argv
 

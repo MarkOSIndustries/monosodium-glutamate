@@ -23,7 +23,7 @@ class ProduceTx : KafkaTopicDataCommand(
     )
     producer.initTransactions()
 
-    val reader = encoding.reader(System.`in`)
+    val reader = delimiter().reader(System.`in`)
 
     var recordsInTransaction = 0
     producer.beginTransaction()

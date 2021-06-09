@@ -17,7 +17,7 @@ class Partition : KafkaTopicDataCommand(
     val partitions = consumer.topicPartitions(topic)
 
     try {
-      val reader = encoding.reader(System.`in`)
+      val reader = delimiter().reader(System.`in`)
       while (reader.hasNext()) {
         val bytes = reader.next()
         val partition = Utils.toPositive(Utils.murmur2(bytes)) % partitions.size

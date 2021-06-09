@@ -20,10 +20,10 @@ const encodings = {
 
 const formats = {
   lengthPrefixedBinary: {
-    newInputStream: (inStream, {prefixFormat}) => streams.readLengthPrefixedBuffers(inStream, prefixFormat),
+    newInputStream: (inStream, {lengthPrefixReader}) => streams.readLengthPrefixedBuffers(inStream, lengthPrefixReader),
     unmarshalSchemaObject: (binaryBuffer, {converter}) => converter.binary_buffer_to_schema_object(binaryBuffer),
     unmarshalJsonObject: (binaryBuffer, {converter}) => converter.binary_buffer_to_json_object(binaryBuffer),
-    newOutputStream: (outStream, {prefixFormat}) => streams.writeLengthPrefixedBuffers(outStream, prefixFormat),
+    newOutputStream: (outStream, {lengthPrefixWriter}) => streams.writeLengthPrefixedBuffers(outStream, lengthPrefixWriter),
     marshalSchemaObject: (schemaObject, {converter}) => converter.schema_object_to_binary_buffer(schemaObject),
     marshalJsonObject: (jsonObject, {converter}) => converter.json_object_to_binary_buffer(jsonObject),
   },
@@ -54,11 +54,11 @@ const formats = {
 }
 
 class InputStreamDecoder {
-  constructor(wrappedStream, schema, encoding, prefixFormat, delimiterBuffer) {
+  constructor(wrappedStream, schema, encoding, {lengthPrefixReader}, delimiterBuffer) {
     this.wrappedStream = wrappedStream
     this.schema = schema
     this.inputConfig = {
-      prefixFormat,
+      lengthPrefixReader,
       delimiterBuffer,
       encodingName: encodings[encoding],
       converter: new SchemaConverter(schema),
@@ -84,11 +84,11 @@ class InputStreamDecoder {
 }
 
 class OutputStreamEncoder {
-  constructor(wrappedStream, schema, encoding, prefixFormat, delimiterBuffer, stringifyJsonObject) {
+  constructor(wrappedStream, schema, encoding, {lengthPrefixWriter}, delimiterBuffer, stringifyJsonObject) {
     this.wrappedStream = wrappedStream
     this.schema = schema
     this.outputConfig = {
-      prefixFormat,
+      lengthPrefixWriter,
       delimiterBuffer,
       stringifyJsonObject,
       encodingName: encodings[encoding],
