@@ -191,12 +191,6 @@ function coercePrefix(prefixFormat) {
   }
 }
 
-const argv = yargs.argv
-
-if(!argv._[0]) {// no command?
-  yargs.showHelp()
-}
-
 function indexProtobufs(userSuppliedProtobufPaths) {
   const messages =  protobuf.loadFromPaths([
     protobuf.getGoogleSchemasPath(),
@@ -204,4 +198,14 @@ function indexProtobufs(userSuppliedProtobufPaths) {
     ...userSuppliedProtobufPaths,
   ])
   return protobuf.makeFlatIndex(messages)
+}
+
+try {
+  const argv = yargs.argv
+  if(!argv._[0]) {// no command?
+    yargs.showHelp()
+  }
+} catch(ex) {
+  console.error(ex)
+  process.exit(1)
 }

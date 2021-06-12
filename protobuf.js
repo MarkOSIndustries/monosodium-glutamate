@@ -30,7 +30,9 @@ function initWithProtobufJS(protobufjs) {
                   })
 
             } catch(ex) {
-              console.error(filePath, '::', ex.message)
+              if(!ex.message.startsWith('duplicate name')) {
+                console.error(filePath, '::', ex.message)
+              }
             }
           }
         })
