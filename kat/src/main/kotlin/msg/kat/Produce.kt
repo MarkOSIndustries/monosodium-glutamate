@@ -16,7 +16,7 @@ class Produce : KafkaTopicDataCommand(
   help = "Produce records to Kafka\n\n" +
     "Reads records from stdin and sends them to Kafka"
 ) {
-  private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
+  private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 
   override fun run() {
     val producer = newProducer(ByteArraySerializer::class, ByteArraySerializer::class)

@@ -4,16 +4,19 @@ import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.long
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 @ExperimentalCompletionCandidates
 class ProduceTx : KafkaTopicDataCommand(
   help = "Produce records to Kafka using transactions\n\n" +
     "Reads records from stdin and sends them to Kafka"
 ) {
-  val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
+  private val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
+  private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 
   override fun run() {
     val producer = newProducer(
@@ -23,19 +26,31 @@ class ProduceTx : KafkaTopicDataCommand(
     )
     producer.initTransactions()
 
+    val producedCount = AtomicInteger(0)
+    val commitCount = AtomicInteger(0)
+    Runtime.getRuntime().addShutdownHook(
+      Thread {
+        System.err.println("Produced $producedCount messages, $commitCount commits.")
+      }
+    )
+
     val reader = delimiter().reader(System.`in`)
 
     var recordsInTransaction = 0
     producer.beginTransaction()
-    while (reader.hasNext()) {
-      if (recordsInTransaction++ == commit) {
-        producer.commitTransaction()
-        System.out.print('.')
-        recordsInTransaction = 0
-        producer.beginTransaction()
+    try {
+      while (reader.hasNext() && producedCount.getAndIncrement() < limit) {
+        if (recordsInTransaction++ == commit) {
+          producer.commitTransaction()
+          commitCount.incrementAndGet()
+          recordsInTransaction = 0
+          producer.beginTransaction()
+        }
+        val bytes = reader.next()
+        producer.send(encoding.toProducerRecord(topic, bytes))
       }
-      val bytes = reader.next()
-      producer.send(encoding.toProducerRecord(topic, bytes))
+    } finally {
+      producer.commitTransaction()
     }
   }
 }
