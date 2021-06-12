@@ -94,20 +94,24 @@ class Http2Channel {
         self.connect()
       }
     })
+    this.state = 'disconnected'
   }
 
   connect() {
     const self = this
+    this.state = 'connecting'
     this.events.emit('connecting', this)
     this.client = http2.connect(self.address)
     this.client.on('ping', (pingBuffer) => self.client.ping(pingBuffer, (err, duration, pingResponseBuffer) => {}))
     this.client.on('goaway', () => console.error('Http2Channel server requested channel shutdown'))
     this.client.on('close', () => {
       self.connected = false
+      this.state = 'disconnected'
       self.events.emit('disconnected', this)
     })
     this.client.on('error', err => console.error('Http2Channel error', err))
     this.client.on('connect', () => {
+      this.state = 'connected'
       self.events.emit('connected', this)
     })
     this.connected = true

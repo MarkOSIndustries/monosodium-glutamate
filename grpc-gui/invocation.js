@@ -40,7 +40,8 @@ module.exports = function(channels) {
     })
   })
 
-  channels.invocation.subject('channel.state.changed').subscribe(({channelState, channel}) => {
+  function activeChannelStateChanged(channelState, channel) {
+    console.log('channel state changed', channelState, channel, state)
     dom.serverArea.setAttribute('data-state', channelState)
     dom.serverStatus.innerHTML = {
       connected:`Connected to ${channel.address}`,
@@ -49,9 +50,13 @@ module.exports = function(channels) {
     }[channelState]
     localStorage.setItem('last-connected-host', channel.host)
     localStorage.setItem('last-connected-port', channel.port)
-    if(state.inFlight) {
+    if(channelState == 'disconnected') {
       channels.invocation.subject('terminated').next()
     }
+  }
+
+  channels.invocation.subject('channel.state.changed').subscribe(({channelState, channel}) => {
+    activeChannelStateChanged(channelState, channel)
   })
 
   channels.services.subject('method.selection.changed').subscribe(method => {
@@ -92,8 +97,11 @@ module.exports = function(channels) {
     const requestConverter = new SchemaConverter(state.method.requestType)
     const responseConverter = new SchemaConverter(state.method.responseType)
 
+    const http2Channel = channelManager.getChannel(request.host, request.port)
+    activeChannelStateChanged(http2Channel.state, http2Channel)
+
     channels.invocation.subject('sent').next(request)
-    state.responseStream = state.method.invokeWith(channelManager.getChannel(request.host, request.port), requestConverter.json_object_to_schema_object(request.body))
+    state.responseStream = state.method.invokeWith(http2Channel, requestConverter.json_object_to_schema_object(request.body))
     state.responseStream.on('data', response => {
       channels.invocation.subject('received').next(responseConverter.schema_object_to_json_object(response))
     })
