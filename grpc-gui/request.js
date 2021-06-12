@@ -31,7 +31,7 @@ module.exports = function(channels) {
     return monaco.editor.create(document.querySelector(`.request-json`), {
       value: '{}',
       language: 'json',
-      theme: 'vs-light',
+      theme: 'vs-dark',
       automaticLayout: true,
       scrollBeyondLastLine: false,
       minimap: {
