@@ -1,0 +1,30 @@
+{
+  "name": "reduce",
+  "version": "1.0.0",
+  "description": "A CLI for aggregating JSON objects via unique keys and aggregation functions",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./index.js",
+    "reduce": "node ./index.js"
+  },
+  "bin": {
+    "reduce": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/markosindustries/monosodium-glutamate.git"
+  },
+  "keywords": [
+    "cli",
+    "json"
+  ],
+  "author": "markosindustries",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/markosindustries/monosodium-glutamate/issues"
+  },
+  "homepage": "https://github.com/markosindustries/monosodium-glutamate#readme",
+  "dependencies": {
+    "yargs": "^17.0.1"
+  }
+}

@@ -18,6 +18,7 @@ RUN ./gradlew clean build
 # npm install MSG javascript components
 RUN (cd proto && npm install)
 RUN (cd p2p && npm install)
+RUN (cd reduce && npm install)
 
 FROM timbru31/java-node:11-jdk-fermium as runtime
 
@@ -34,12 +35,14 @@ COPY --from=builder /home/msg/qs/build/libs/*.jar ./bin/qs.jar
 COPY --from=builder /home/msg/*.js ./bin/
 COPY --from=builder /home/msg/proto ./bin/proto
 COPY --from=builder /home/msg/p2p ./bin/p2p
+COPY --from=builder /home/msg/reduce ./bin/reduce
 
 COPY docker/bin/kat.sh /usr/local/bin/kat
 COPY docker/bin/kgb.sh /usr/local/bin/kgb
 COPY docker/bin/qs.sh /usr/local/bin/qs
 COPY docker/bin/proto.sh /usr/local/bin/proto
 COPY docker/bin/p2p.sh /usr/local/bin/p2p
+COPY docker/bin/reduce.sh /usr/local/bin/reduce
 COPY docker/bin/version.sh /usr/local/bin/version
 
 # KGB default port
