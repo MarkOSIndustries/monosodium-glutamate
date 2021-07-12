@@ -9,7 +9,9 @@ function getJsonRenderer(stdoutIsTTY) {
     })
   } else {
     // UTF8, single-line JSON strings
-    return (x) => JSON.stringify(x)
+    return (x) => JSON.stringify(x, (key, value) =>
+      // Handle bigints as Numbers
+      typeof value === 'bigint' ? Number(value) : value)
   }
 }
 
