@@ -15,6 +15,14 @@ const yargs = require('yargs') // eslint-disable-line
     describe: 'a property path to count',
     array: true,
   })
+  .option('min', {
+    describe: 'a property path to get the minimum value of',
+    array: true,
+  })
+  .option('max', {
+    describe: 'a property path to get the maximum value of',
+    array: true,
+  })
   .option('alias', {
     describe: 'alias a property path for output purposes. eg: some.long.property:prop',
     array: true,
@@ -77,7 +85,7 @@ function combinations(keys, msg) {
   return [{}]
 }
 
-function main({key, sum, count, alias, labels}) {
+function main({key, sum, count, min, max, alias, labels}) {
   const streams = require('../streams')
 
   process.on('SIGINT', function() {
@@ -87,6 +95,8 @@ function main({key, sum, count, alias, labels}) {
 
   sum = sum || []
   count = count || []
+  min = min || []
+  max = max || []
   alias = alias || []
 
   const acc = {}
@@ -109,12 +119,30 @@ function main({key, sum, count, alias, labels}) {
 
       for(const s of sum) {
         accIndex[s] = accIndex[s] || {}
-        accIndex[s].sum = (accIndex[s].sum || 0) + getPathElements(msg, s, keyCombination).reduce((a,b) => a+b, 0)
+        accIndex[s].sum = (accIndex[s].sum || 0) +
+          getPathElements(msg, s, keyCombination).reduce((a,b) => a+b, 0)
       }
       
       for(const c of count) {
         accIndex[c] = accIndex[c] || {}
-        accIndex[c].count = (accIndex[c].count || 0) + getPathElements(msg, c, keyCombination).length
+        accIndex[c].count = (accIndex[c].count || 0) +
+          getPathElements(msg, c, keyCombination).length
+      }
+
+      for(const m of min) {
+        accIndex[m] = accIndex[m] || {}
+        accIndex[m].min = [
+          (accIndex[m].min || NaN),
+          ...getPathElements(msg, m, keyCombination)
+        ].reduce((a,b) => Number.isNaN(a) ? b : Math.min(a,b))
+      }
+
+      for(const m of max) {
+        accIndex[m] = accIndex[m] || {}
+        accIndex[m].max = [
+          (accIndex[m].max || NaN),
+          ...getPathElements(msg, m, keyCombination)
+        ].reduce((a,b) => Number.isNaN(a) ? b : Math.max(a,b))
       }
     }
   })
