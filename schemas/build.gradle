@@ -9,9 +9,9 @@ repositories {
 }
 
 dependencies {
-  compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.17.0'
-  compile group: 'io.grpc', name: 'grpc-protobuf', version: '1.38.0'
-  compile group: 'io.grpc', name: 'grpc-stub', version: '1.38.0'
+  compile group: 'com.google.protobuf', name: 'protobuf-java', version: '3.17.3'
+  compile group: 'io.grpc', name: 'grpc-protobuf', version: '1.38.1'
+  compile group: 'io.grpc', name: 'grpc-stub', version: '1.38.1'
 
   // Java 9+ requires this to be here for GRPC to compile properly
   // https://github.com/grpc/grpc-java/issues/3633
