@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 const os = require('os')
+const stream = require('stream')
 
 const yargs = require('yargs') // eslint-disable-line
   .option('key', {
@@ -111,41 +112,77 @@ function main({key, sum, count, min, max, alias, labels}) {
     return accIndex
   }
 
-  streams.readLineDelimitedJsonObjects(process.stdin).on('data', (msg) => {
-    const keyCombinations = combinations(key, msg)
+  process.stdin.setEncoding('utf8')
 
-    for(const keyCombination of keyCombinations) {
-      const accIndex = accForKeyCombination(keyCombination)
+  const theStream = stream.pipeline(
+      process.stdin,
+      streams.readLines(),
+      streams.readJsonObjects(),
+      new stream.Transform({
+        readableObjectMode: true,
+        writableObjectMode: true,
+        
+        transform(msg, encoding, done) {
+          const keyCombinations = combinations(key, msg)
 
-      for(const s of sum) {
-        accIndex[s] = accIndex[s] || {}
-        accIndex[s].sum = (accIndex[s].sum || 0) +
-          getPathElements(msg, s, keyCombination).reduce((a,b) => a+b, 0)
-      }
-      
-      for(const c of count) {
-        accIndex[c] = accIndex[c] || {}
-        accIndex[c].count = (accIndex[c].count || 0) +
-          getPathElements(msg, c, keyCombination).length
-      }
+          for(const keyCombination of keyCombinations) {
+            const accIndex = accForKeyCombination(keyCombination)
 
-      for(const m of min) {
-        accIndex[m] = accIndex[m] || {}
-        accIndex[m].min = [
-          (accIndex[m].min || NaN),
-          ...getPathElements(msg, m, keyCombination)
-        ].reduce((a,b) => Number.isNaN(a) ? b : Math.min(a,b))
-      }
+            for(const s of sum) {
+              accIndex[s] = accIndex[s] || {}
+              accIndex[s].sum = (accIndex[s].sum || 0) +
+                getPathElements(msg, s, keyCombination).reduce((a,b) => a+b, 0)
+            }
+            
+            for(const c of count) {
+              accIndex[c] = accIndex[c] || {}
+              accIndex[c].count = (accIndex[c].count || 0) +
+                getPathElements(msg, c, keyCombination).length
+            }
 
-      for(const m of max) {
-        accIndex[m] = accIndex[m] || {}
-        accIndex[m].max = [
-          (accIndex[m].max || NaN),
-          ...getPathElements(msg, m, keyCombination)
-        ].reduce((a,b) => Number.isNaN(a) ? b : Math.max(a,b))
-      }
-    }
-  })
+            for(const m of min) {
+              accIndex[m] = accIndex[m] || {}
+              accIndex[m].min = [
+                (accIndex[m].min || NaN),
+                ...getPathElements(msg, m, keyCombination)
+              ].reduce((a,b) => Number.isNaN(a) ? b : Math.min(a,b))
+            }
+
+            for(const m of max) {
+              accIndex[m] = accIndex[m] || {}
+              accIndex[m].max = [
+                (accIndex[m].max || NaN),
+                ...getPathElements(msg, m, keyCombination)
+              ].reduce((a,b) => Number.isNaN(a) ? b : Math.max(a,b))
+            }
+          }
+
+          done()
+        }
+      }),
+      () => {
+        function write(prefix, accNode, keys) {
+          if(keys.length > 0) {
+            for(const accIndex in accNode) {
+              const label = labels ? `${makeKeyName(keys[0])}:` : ''
+              write(`${prefix}${label}${accIndex} `, accNode[accIndex], keys.slice(1))
+            }
+          } else {
+            process.stdout.write(prefix)
+            for(const accKey in accNode) {
+              if(labels) {
+                process.stdout.write(makeKeyName(accKey))
+                process.stdout.write(':')
+              }
+              process.stdout.write(JSON.stringify(accNode[accKey]))
+              process.stdout.write(' ')
+            }
+            process.stdout.write(os.EOL)
+          }
+        }
+
+        write('', acc, key)
+      })
 
   const aliases = alias.reduce((a,b) => {
     const bBits = b.split('::')
@@ -155,30 +192,6 @@ function main({key, sum, count, min, max, alias, labels}) {
   function makeKeyName(k) {
     return aliases[k] || k
   }
-
-  process.on('exit', function () {
-    function write(prefix, accNode, keys) {
-      if(keys.length > 0) {
-        for(const accIndex in accNode) {
-          const label = labels ? `${makeKeyName(keys[0])}:` : ''
-          write(`${prefix}${label}${accIndex} `, accNode[accIndex], keys.slice(1))
-        }
-      } else {
-        process.stdout.write(prefix)
-        for(const accKey in accNode) {
-          if(labels) {
-            process.stdout.write(makeKeyName(accKey))
-            process.stdout.write(':')
-          }
-          process.stdout.write(JSON.stringify(accNode[accKey]))
-          process.stdout.write(' ')
-        }
-        process.stdout.write(os.EOL)
-      }
-    }
-
-    write('', acc, key)
-  })
 }
 
 try {

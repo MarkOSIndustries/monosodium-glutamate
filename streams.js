@@ -1,8 +1,8 @@
 const stream = require('stream')
 
 module.exports = {
-  readUTF8Lines,
-  readLineDelimitedJsonObjects,
+  readLines,
+  readJsonObjects,
   simpleLengthPrefixReader,
   simpleLengthPrefixWriter,
   readLengthPrefixedBuffers,
@@ -13,9 +13,9 @@ module.exports = {
   readMessagesFromForked,
 }
 
-function readUTF8Lines(inStream) {
+function readLines() {
   let buffer = ''
-  const outStream = new stream.Transform({
+  return new stream.Transform({
     transform(chunk, encoding, done) {
       if (chunk !== null) {
         buffer += chunk
@@ -32,16 +32,10 @@ function readUTF8Lines(inStream) {
       done()
     }
   })
-
-  inStream.setEncoding('utf8')
-
-  inStream.pipe(outStream)
-
-  return outStream
 }
 
-function readLineDelimitedJsonObjects(inStream) {
-  const outStream = new stream.Transform({
+function readJsonObjects() {
+  return new stream.Transform({
     readableObjectMode: true,
 
     transform(chunk, encoding, done) {
@@ -49,10 +43,6 @@ function readLineDelimitedJsonObjects(inStream) {
       done()
     }
   })
-
-  readUTF8Lines(inStream).pipe(outStream)
-
-  return outStream
 }
 
 const prefixSizeByFormat = {
@@ -98,9 +88,9 @@ function simpleLengthPrefixWriter(prefixFormat) {
   }
 }
 
-function readLengthPrefixedBuffers(inStream, { tryReadPrefix }) {
+function readLengthPrefixedBuffers({ tryReadPrefix }) {
   let chunkBuffer = Buffer.from([])
-  const outStream = new stream.Transform({
+  return new stream.Transform({
     transform(chunk, encoding, done) {
       chunkBuffer = Buffer.concat([chunkBuffer, chunk])
       let chunkBufferLength = 0
@@ -120,15 +110,10 @@ function readLengthPrefixedBuffers(inStream, { tryReadPrefix }) {
       done()
     }
   })
-
-  
-  inStream.pipe(outStream)
-
-  return outStream
 }
 
-function writeLengthPrefixedBuffers(outStream, { prefixSize, writePrefix }) {
-  const inStream = new stream.Transform({
+function writeLengthPrefixedBuffers({ prefixSize, writePrefix }) {
+  return new stream.Transform({
     transform(chunk, encoding, done) {
       const chunkAsBuffer = ('string' === typeof chunk) ? 
         Buffer.from(chunk) :
@@ -142,24 +127,20 @@ function writeLengthPrefixedBuffers(outStream, { prefixSize, writePrefix }) {
       done()
     }
   })
-
-  inStream.pipe(outStream)
-
-  return inStream
 }
 
-function writeDelimited(outStream, delimiterBuffer) {
-  const inStream = new stream.Transform({    
-    transform(chunk, encoding, done) {
-      this.push(chunk)
-      this.push(delimiterBuffer)
-      done()
-    }
-  })
-
-  inStream.pipe(outStream)
-
-  return inStream
+function writeDelimited(delimiterBuffer) {
+  return new stream.Transform({  
+      transform(chunk, encoding, done) {
+        try {
+          this.push(chunk)
+          this.push(delimiterBuffer)
+          done()
+        } catch(ex) {
+          console.error('WTFFFFF', ex)
+        }
+      }
+    })
 }
 
 function sendMessagesToParent() {

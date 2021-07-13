@@ -20,34 +20,38 @@ const encodings = {
 
 const formats = {
   lengthPrefixedBinary: {
-    newInputStream: (inStream, {lengthPrefixReader}) => streams.readLengthPrefixedBuffers(inStream, lengthPrefixReader),
+    configureInputStream: (inStream) => {},
+    newInputTransformer: ({lengthPrefixReader}) => streams.readLengthPrefixedBuffers(lengthPrefixReader),
     unmarshalSchemaObject: (binaryBuffer, {converter}) => converter.binary_buffer_to_schema_object(binaryBuffer),
     unmarshalJsonObject: (binaryBuffer, {converter}) => converter.binary_buffer_to_json_object(binaryBuffer),
-    newOutputStream: (outStream, {lengthPrefixWriter}) => streams.writeLengthPrefixedBuffers(outStream, lengthPrefixWriter),
+    newOutputTransformer: ({lengthPrefixWriter}) => streams.writeLengthPrefixedBuffers(lengthPrefixWriter),
     marshalSchemaObject: (schemaObject, {converter}) => converter.schema_object_to_binary_buffer(schemaObject),
     marshalJsonObject: (jsonObject, {converter}) => converter.json_object_to_binary_buffer(jsonObject),
   },
   lineDelimitedJson: {
-    newInputStream: (inStream) => streams.readUTF8Lines(inStream),
+    configureInputStream: (inStream) => inStream.setEncoding('utf8'),
+    newInputTransformer: () => streams.readLines(),
     unmarshalSchemaObject: (line, {converter}) => converter.json_object_to_schema_object(JSON.parse(line)),
     unmarshalJsonObject: (line) => JSON.parse(line),
-    newOutputStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    newOutputTransformer: ({delimiterBuffer}) => streams.writeDelimited(delimiterBuffer),
     marshalSchemaObject: (schemaObject, {converter, stringifyJsonObject}) => Buffer.from(stringifyJsonObject(converter.schema_object_to_json_object(schemaObject))),
     marshalJsonObject: (jsonObject, {stringifyJsonObject}) => Buffer.from(stringifyJsonObject(jsonObject)),
   },
   lineDelimitedEncodedJson: {
-    newInputStream: (inStream) => streams.readUTF8Lines(inStream),
+    configureInputStream: (inStream) => inStream.setEncoding('utf8'),
+    newInputTransformer: () => streams.readLines(),
     unmarshalSchemaObject: (line, {converter, encodingName}) => converter.json_object_to_schema_object(JSON.parse(Buffer.from(line.toString(), encodingName))),
     unmarshalJsonObject: (line, {encodingName}) => JSON.parse(Buffer.from(line.toString(), encodingName)),
-    newOutputStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    newOutputTransformer: ({delimiterBuffer}) => streams.writeDelimited(delimiterBuffer),
     marshalSchemaObject: (schemaObject, {converter, encodingName}) => Buffer.from(Buffer.from(JSON.stringify(converter.schema_object_to_json_object(schemaObject))).toString(encodingName)),
     marshalJsonObject: (jsonObject, {encodingName}) => Buffer.from(Buffer.from(JSON.stringify(jsonObject)).toString(encodingName)),
   },
   lineDelimitedEncodedBinary: {
-    newInputStream: (inStream) => streams.readUTF8Lines(inStream),
+    configureInputStream: (inStream) => inStream.setEncoding('utf8'),
+    newInputTransformer: () => streams.readLines(),
     unmarshalSchemaObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_schema_object(line.toString(), encodingName),
     unmarshalJsonObject: (line, {converter, encodingName}) => converter.string_encoded_binary_to_json_object(line.toString(), encodingName),
-    newOutputStream: (outStream, {delimiterBuffer}) => streams.writeDelimited(outStream, delimiterBuffer),
+    newOutputTransformer: ({delimiterBuffer}) => streams.writeDelimited(delimiterBuffer),
     marshalSchemaObject: (schemaObject, {converter, encodingName}) => Buffer.from(converter.schema_object_to_string_encoded_binary(schemaObject, encodingName)),
     marshalJsonObject: (jsonObject, {converter, encodingName}) => Buffer.from(converter.json_object_to_string_encoded_binary(jsonObject, encodingName)),
   },
@@ -70,8 +74,14 @@ class InputStreamDecoder {
     return this.schema.fullName
   }
 
-  makeInputStream() {
-    return this.inputFormat.newInputStream(this.wrappedStream, this.inputConfig)
+  getInputStream() {
+    this.inputFormat.configureInputStream(this.wrappedStream)
+
+    return this.wrappedStream
+  }
+
+  makeInputTransformer() {
+    return this.inputFormat.newInputTransformer(this.inputConfig)
   }
 
   unmarshalJsonObject(data) {
@@ -101,8 +111,12 @@ class OutputStreamEncoder {
     return this.schema.fullName
   }
 
-  makeOutputStream() {
-    return this.outputFormat.newOutputStream(this.wrappedStream, this.outputConfig)
+  getOutputStream() {
+    return this.wrappedStream
+  }
+
+  makeOutputTransformer() {
+    return this.outputFormat.newOutputTransformer(this.outputConfig)
   }
 
   marshalJsonObject(jsonObject) {
@@ -125,7 +139,7 @@ class MockInputStreamDecoder {
     return this.schema.fullName
   }
 
-  makeInputStream() {
+  getInputStream() {
     const self = this
 
     let closed = false
@@ -148,6 +162,18 @@ class MockInputStreamDecoder {
     })
 
     return readable
+  }
+
+  makeInputTransformer() {
+    return new stream.Transform({
+      readableObjectMode: true,
+      writableObjectMode: true,
+      
+      transform(data, encoding, done) {
+        this.push(data)
+        done()
+      }
+    })
   }
 
   unmarshalJsonObject(data) {

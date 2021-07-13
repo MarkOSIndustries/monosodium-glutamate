@@ -48,7 +48,19 @@ const yargs = require('yargs') // eslint-disable-line
     const parquetSpec = protobufSchemaToParquetSpec(schema, {compression: argv.compression, enumsAsStrings: argv.enums === 'strings', sparkCompatibleMode: argv.arrays === 'spark' })
     
     const outputStreamEncoder = new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, getJsonRenderer(process.stdout.isTTY))
-    const outputStream = outputStreamEncoder.makeOutputStream()
+
+    const outputStream = new stream.Transform({
+      transform(message, encoding, done) {
+        this.push(message)
+        done()
+      },
+    })
+
+    stream.pipeline(
+      outputStream,
+      outputStreamEncoder.makeOutputTransformer(),
+      outputStreamEncoder.getOutputStream(),
+      () => {})
     
     parquet.ParquetReader.openFile(argv.file).then(parquetReader => {
       const cursor = parquetReader.getCursor()
@@ -116,9 +128,10 @@ const yargs = require('yargs') // eslint-disable-line
     const parquetSchema = new parquet.ParquetSchema(parquetSpec.schema)
     parquet.ParquetWriter.openFile(parquetSchema, argv.file, { compression: argv.compression, useDataPageV2: argv.pageformat === 'v2' }).then(parquetWriter => {
       const inputStreamDecoder = new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter)
-      const inputStream = inputStreamDecoder.makeInputStream()
-      inputStream
-        .pipe(new stream.Transform({
+      stream.pipeline(
+        inputStreamDecoder.getInputStream(),
+        inputStreamDecoder.makeInputTransformer(),
+        new stream.Transform({
           readableObjectMode: true,
           
           transform(message, encoding, done) {
@@ -126,16 +139,15 @@ const yargs = require('yargs') // eslint-disable-line
             const parquetObject = parquetSpec.protoToParquet(jsonObject)
             parquetWriter.appendRow(parquetObject).then(() => done())
           },
-        })).on('finish', () => {
+        }),
+        err => {
           parquetWriter.close().then(() => {
             process.exit()
           })
         })
 
       process.on('SIGINT', function() {
-        parquetWriter.close().then(() => {
-          process.exit()
-        })
+        inputStreamDecoder.getInputStream().destroy()
       })
     })
     .catch(err => console.error(err))

@@ -15,9 +15,10 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
   var responsesReceived = 0
   var requestsCompleted = 0
 
-  inputStreamDecoder
-    .makeInputStream()
-    .pipe(new stream.Transform({
+  stream.pipeline(
+    inputStreamDecoder.getInputStream(),
+    inputStreamDecoder.makeInputTransformer(),
+    new stream.Transform({
       readableObjectMode: true,
       
       transform(data, encoding, done) {
@@ -28,8 +29,8 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
         }
         done()
       }
-    }))
-    .pipe(new stream.Transform({
+    }),
+    new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
       
@@ -58,16 +59,22 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
           }
         }, 10)
       }
-    }))
-    .pipe(new stream.Transform({
+    }),
+    new stream.Transform({
       writableObjectMode: true,
       
       transform(schemaObject, encoding, done) {
         this.push(outputStreamEncoder.marshalSchemaObject(schemaObject))
         done()
       }
-    }))
-    .pipe(outputStreamEncoder.makeOutputStream())
+    }),
+    outputStreamEncoder.makeOutputTransformer(),
+    outputStreamEncoder.getOutputStream(),
+    err => {
+      if(err) {
+        console.error(err)
+      }
+    })
 
   if(process.stdin.isTTY) {
     process.on('SIGINT', function() {

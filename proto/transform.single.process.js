@@ -16,17 +16,16 @@ function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filte
       transformProgressBar,
   } = getProgressBars(showProgressBar, inputStreamDecoder.getSchemaName())
 
-  inputStreamDecoder
-    .makeInputStream()
-    .pipe(new stream.Transform({
-      readableObjectMode: true,
-      
+  const thePipeline = stream.pipeline(
+    inputStreamDecoder.getInputStream(),
+    inputStreamDecoder.makeInputTransformer(),
+    new stream.Transform({
       transform(data, encoding, done) {
         try {
           const jsonObject = inputStreamDecoder.unmarshalJsonObject(data)
           if(filter(jsonObject)) {
             const shapedJsonObject = shape(jsonObject)
-            this.push(shapedJsonObject)
+            this.push(outputStreamEncoder.marshalJsonObject(shapedJsonObject))
             messagesTransformed++
             transformProgressBar.setTotal(messagesTransformed)
             transformProgressBar.update(messagesTransformed)
@@ -39,17 +38,10 @@ function transformInSingleProcess(inputStreamDecoder, outputStreamEncoder, filte
         }
         done()
       }
-    }))
-    .pipe(new stream.Transform({
-      writableObjectMode: true,
-      
-      transform(jsonObject, encoding, done) {
-        this.push(outputStreamEncoder.marshalJsonObject(jsonObject))
-        done()
-      }
-    }))
-    .pipe(outputStreamEncoder.makeOutputStream())
-    .on('finish', () => {
+    }),
+    outputStreamEncoder.makeOutputTransformer(),
+    outputStreamEncoder.getOutputStream(),
+    () => {
       progressBars.stop()
     })
 

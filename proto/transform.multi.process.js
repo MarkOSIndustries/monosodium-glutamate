@@ -43,8 +43,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
 
   process.on('SIGINT', shutdown)
 
-  var processedMessagesBuffer = []
-  const processedMessages = new stream.Transform({
+  const processedMessagesPipeline = new stream.Transform({
     readableObjectMode: true,
     writableObjectMode: true,
     
@@ -73,10 +72,13 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       done()
     }
   })
+  stream.pipeline(
+      processedMessagesPipeline,
+      outputStreamEncoder.makeOutputTransformer(),
+      outputStreamEncoder.getOutputStream(),
+      () => {})
 
-  processedMessages.pipe(outputStreamEncoder.makeOutputStream())
-
-  processedMessages.setMaxListeners(forkedWorkerCount)
+  processedMessagesPipeline.setMaxListeners(forkedWorkerCount+1)
 
   forkedWorkers.push(...Array(forkedWorkerCount).fill().map((_, workerIndex) => {
     const forkedWorker = fork(process.argv[1], forkedWorkerArgs, {silent: true})
@@ -92,7 +94,7 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
       process.stderr.write(data)
     })
 
-    readMessagesFromForked(forkedWorker).pipe(processedMessages)
+    readMessagesFromForked(forkedWorker).pipe(processedMessagesPipeline)
 
     return forkedWorker
   }))
@@ -111,9 +113,12 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
     flushSendBuffer()
   }, 10)
 
-  const streamToWorkers = inputStreamDecoder.makeInputStream()
-    .pipe(new stream.Transform({
+  stream.pipeline(
+    inputStreamDecoder.getInputStream(),
+    inputStreamDecoder.makeInputTransformer(),
+    new stream.Transform({
       readableObjectMode: true,
+      writableObjectMode: true,
       
       transform(message, encoding, done) {
         messagesToFilter++
@@ -126,18 +131,17 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
         flushSendBuffer()
         done()
       },
-    }))
-  streamToWorkers.on('finish', () => {
-    clearInterval(flushInterval)
-    streamToWorkers.end()
-    
-    const index = sendIndex++
-    forkedWorkers[index%forkedWorkers.length].send({index,messages:sendBuffer})
-    sendBuffer = []
-    inputExhausted = true
+    }),
+    err => {
+      clearInterval(flushInterval)
+      
+      const index = sendIndex++
+      forkedWorkers[index%forkedWorkers.length].send({index,messages:sendBuffer})
+      sendBuffer = []
+      inputExhausted = true
 
-    flushSendBuffer()
-  })
+      flushSendBuffer()
+    })
 
   process.on('exit', function () {
     progressBars.stop()
@@ -152,8 +156,9 @@ function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filte
     process.exit()
   })
 
-  readMessagesFromParent()
-    .pipe(new stream.Transform({
+  stream.pipeline(
+    readMessagesFromParent(),
+    new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
       
@@ -173,6 +178,11 @@ function transformInForkedProcess(inputStreamDecoder, outputStreamEncoder, filte
         this.push(result)
         done()
       }
-    }))
-    .pipe(sendMessagesToParent())
+    }),
+    sendMessagesToParent(),
+    err => {
+      if(err) {
+        console.error(err)
+      }
+    })
 }
