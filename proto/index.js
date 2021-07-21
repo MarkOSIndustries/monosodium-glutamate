@@ -37,7 +37,7 @@ const yargs = require('yargs') // eslint-disable-line
         alias: 'c',
         describe: 'Should we use multiple processes (order will be maintained either way)',
         choices: ['multi', 'single'],
-        default: 'multi',
+        default: 'single',
       })
       .option('parallelism', {
         alias: 'p',
