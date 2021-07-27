@@ -8,7 +8,7 @@ module.exports = {
   transformToResponsesOnly,
 }
 
-function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, transformRequestResponse) {
+function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, transformRequestResponse, customHeaders) {
   const channelManager = new transport.ChannelManager()
 
   var requestsSent = 0
@@ -37,7 +37,8 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
       transform(requestSchemaObject, encoding, done) {
         requestsSent = requestsSent + 1
         const responseStream = method.invokeWith(channelManager.getChannel(host, port), requestSchemaObject, {
-          timeoutValue: timeout
+          timeoutValue: timeout,
+          customHeaders,
         })
         responseStream.on('data', responseSchemaObject => {
           responsesReceived = responsesReceived + 1

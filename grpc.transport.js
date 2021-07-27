@@ -19,6 +19,7 @@ const DefaultRequestOptions = {
   timeoutUnit: TimeoutUnits.Minute,
   requestEncoding: encoding.GZIPEncoding,
   responseEncoding: encoding.GZIPEncoding,
+  customHeaders: {}
 }
 
 const {
@@ -200,7 +201,7 @@ class Http2Request {
   }
 
   buildHeaders(scheme, host, port, service, method, options) {
-    return {
+    const headers = {
       [HTTP2_HEADER_METHOD]: 'POST',
       [HTTP2_HEADER_SCHEME]: scheme,
       [HTTP2_HEADER_PATH]: `/${service.fullName.slice(1)}/${method.name}`,
@@ -212,6 +213,12 @@ class Http2Request {
       [GRPC_HEADER_MESSAGE_ENCODING]: options.requestEncoding.name,
       [GRPC_HEADER_ACCEPT_MESSAGE_ENCODING]: options.responseEncoding.name,
     }
+    for(const customHeader in options.customHeaders) {
+      if(!(customHeader in headers)) {
+        headers[customHeader] = options.customHeaders[customHeader]
+      }
+    }
+    return headers
   }
 
   packMessage(requestEncoding, buffer, fnChunkPacked) {

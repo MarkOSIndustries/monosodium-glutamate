@@ -137,6 +137,11 @@ const yargs = require('yargs') // eslint-disable-line
         choices: ['discard', 'pair'],
         default: 'discard',
       })
+      .option('header', {
+        describe: 'a custom header of the form key:value to send with requests. To send binary you must suffix the key with -bin and use base64 to encode the value',
+        array: true,
+        default: [],
+      })
       addEncodingOptions(argsSpec)
   }, argv => {
     const index = indexProtobufs(argv.protobufs)
@@ -152,11 +157,18 @@ const yargs = require('yargs') // eslint-disable-line
     const responseType = useRequestPairing
         ? index.messages['msg.RequestResponsePair']
         : method.responseType
+    const customHeaders = Object.assign({}, ...argv.header.map(header => {
+      const bits = header.split(':')
+      if(bits.length != 2) {
+        throw 'Headers must be specified as: --header key:value'
+      }
+      return { [bits[0]]: bits[1] }
+    }))
 
     invoke(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
       new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.host, argv.port, argv.timeout, transformRequestResponse)
+      argv.host, argv.port, argv.timeout, transformRequestResponse, customHeaders)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
     argsSpec
