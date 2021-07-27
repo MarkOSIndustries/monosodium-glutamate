@@ -64,21 +64,23 @@ function transformInParentProcess(inputStreamDecoder, outputStreamEncoder, filte
           recvIndex++
         }
       }
-
-      if(inputExhausted && recvIndex == sendIndex) {
-        shutdown()
-      }
       
       done()
+
+      if(inputExhausted && recvIndex == sendIndex) {
+        processedMessagesPipeline.end()
+      }
     }
   })
   stream.pipeline(
       processedMessagesPipeline,
       outputStreamEncoder.makeOutputTransformer(),
       outputStreamEncoder.getOutputStream(),
-      () => {})
+      () => {
+        shutdown()
+      })
 
-  processedMessagesPipeline.setMaxListeners(forkedWorkerCount+1)
+  processedMessagesPipeline.setMaxListeners(forkedWorkerCount+2)
 
   forkedWorkers.push(...Array(forkedWorkerCount).fill().map((_, workerIndex) => {
     const forkedWorker = fork(process.argv[1], forkedWorkerArgs, {silent: true})
