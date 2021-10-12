@@ -23,7 +23,7 @@
   },
   "homepage": "https://github.com/markosindustries/monosodium-glutamate#readme",
   "dependencies": {
-    "electron": "^9.4.0",
+    "electron": "^11.5.0",
     "monaco-loader": "^0.8.2",
     "protobufjs": "^6.11.2",
     "rxmq": "^2.0.1"
