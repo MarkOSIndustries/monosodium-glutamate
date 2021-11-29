@@ -106,7 +106,7 @@ module.exports = function(channels) {
       methodButton.innerHTML =
         `<h6 title="Service" style="float:right"><code>${method.serviceName}</code></h6>`+
         `<h4 title="Method"><code>${method.methodName}</code></h4>`+
-        `<h5 title="Signature" style="padding:0px"><code><var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var></code></h5>`
+        `<h5 title="Signature" style="padding:0px"><code><var>${method.requestOf}</var> <var>${method.requestTypeName}</var> ⇒ <var>${method.responseOf}</var> <var>${method.responseTypeName}</var></code></h5>`
 
       methodButton.addEventListener('click', methodButtonClickEvent => {
         const lastSelectedMethodButton = dom.listing.querySelector('.method-listing-entry.selected')

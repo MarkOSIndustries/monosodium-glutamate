@@ -118,26 +118,84 @@ class Http2Channel {
     this.connected = true
   }
 
-  rpcImpl(service, options) {
+  rpcStreams(service, serviceMethod, options) {
     const self = this
-    return (method, requestBuffer, callback) => {
+
+    var sendsInProgress = 0
+    var request = null
+    var maybeEndRequestFn = () => {}
+    const streamingRpcImpl = (method, requestBuffer, callback) => {
       if(method == null) {
         self.events.emit('cancelled')
         return
       }
       this.events.emit('request', requestBuffer)
-      const request = new Http2Request(this, service, method, (err, responseBuffer) => {
-        if(responseBuffer == null) {
-          self.events.emit('idle')
-        } else {
-          self.events.emit('response', responseBuffer)
+      if(!request) {
+        request = new Http2Request(this, service, method, (err, responseBuffer) => {
+          if(responseBuffer == null) {
+            self.events.emit('idle')
+          } else {
+            self.events.emit('response', responseBuffer)
+          }
+          callback(err, responseBuffer)
+        }, Object.assign(DefaultRequestOptions, options || {}))
+        self.events.on('disconnected', () => request.abort(null))
+        self.events.on('cancelled', () => request.abort(null))
+      }
+
+      sendsInProgress = sendsInProgress+1
+      request.send(requestBuffer).then(() => {
+        sendsInProgress = sendsInProgress - 1
+        if(sendsInProgress === 0) {
+          maybeEndRequestFn()
         }
-        callback(err, responseBuffer)
-      }, Object.assign(DefaultRequestOptions, options || {}))
-      self.events.on('disconnected', () => request.abort(null))
-      self.events.on('cancelled', () => request.abort(null))
-      request.send(requestBuffer)
+      })
     }
+
+    const svc = service.create(streamingRpcImpl)
+    // protobufjs generates camelcase method names, so fix anything pascal case
+    const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
+
+    const streams = {
+      requestsStream: new stream.Writable({
+        objectMode: true,
+        
+        write(requestSchemaObject, encoding, done) {
+          svc[svcMethodKey](requestSchemaObject)
+          done()
+        },
+
+        final(done) {
+          maybeEndRequestFn = () => {
+            if(request) {
+              request.end()
+            }
+            done()
+          }
+          if(sendsInProgress === 0) {
+            maybeEndRequestFn()
+          }
+        }
+      }),
+      responsesStream: new stream.Transform({
+        readableObjectMode: true,
+
+        transform(chunk, encoding, done) {
+          // This should never happen, ignore it
+          done()
+        }
+      })
+    }
+
+    // Map svc onto a 'real' stream.Readable
+    svc.on('data', response => streams.responsesStream.push(response))
+    svc.on('end', () => streams.responsesStream.end())
+    svc.on('error', err => {
+      streams.responsesStream.emit('error', err)
+      streams.responsesStream.end()
+    })
+
+    return streams
   }
 
   on(eventName, fnHandle) {
@@ -195,9 +253,11 @@ class Http2Request {
 
   send(requestBuffer) {
     const self = this
-    // TODO: allow streaming requests
-    this.packMessage(this.options.requestEncoding, requestBuffer, chunk => self.stream.write(chunk))
-      .then(() => self.stream.end())
+    return this.packMessage(this.options.requestEncoding, requestBuffer, chunk => self.stream.write(chunk))
+  }
+
+  end() {
+    this.stream.end()
   }
 
   buildHeaders(scheme, host, port, service, method, options) {

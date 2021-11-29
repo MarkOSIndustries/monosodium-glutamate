@@ -94,6 +94,7 @@ function initWithProtobufJS(protobufjs) {
           fqName: `${serviceName}.${serviceMethodKey}`,
           serviceName,
           methodName: serviceMethodKey,
+          requestOf: serviceMethod.requestStream ? "stream of" : "",
           requestType: serviceMethod.resolvedRequestType,
           requestTypeName: serviceMethod.requestType,
           requestSample: makeValidJsonRecord(serviceMethod.resolvedRequestType),
@@ -102,10 +103,13 @@ function initWithProtobufJS(protobufjs) {
           responseTypeName: serviceMethod.responseType,
           responseSample: makeValidJsonRecord(serviceMethod.resolvedResponseType),
           invokeWith: (http2Connection, requestObject, options) => {
-            const svc = service.create(http2Connection.rpcImpl(service, options))
-            const svcMethodKey = serviceMethod.name.replace(/^(.)/, c => c.toLowerCase())
-            svc[svcMethodKey](requestObject)
-            return svc // svc implements stream.Readable
+            const {requestsStream, responsesStream} = http2Connection.rpcStreams(service, serviceMethod, options)
+            requestsStream.write(requestObject)
+            requestsStream.end()
+            return responsesStream
+          },
+          makeRpcStreams: (http2Connection, options) => {
+            return http2Connection.rpcStreams(service, serviceMethod, options)
           }
         }
       }

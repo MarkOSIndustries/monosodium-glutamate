@@ -5,6 +5,7 @@ const {supportedEncodings, InputStreamDecoder, OutputStreamEncoder, MockInputStr
 const {transformInSingleProcess} = require('./transform.single.process')
 const {transformInParentProcess, transformInForkedProcess} = require('./transform.multi.process')
 const {invoke, transformToRequestResponsePairs, transformToResponsesOnly} = require('./invoke')
+const {invokeStream} = require('./invoke.stream')
 const {schemas} = require('./schemas')
 const {services} = require('./services')
 const {coerceFilter} = require('./filter')
@@ -102,7 +103,7 @@ const yargs = require('yargs') // eslint-disable-line
       new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.isttyparent)),
       argv.filter, argv.shape)
   })
-  .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method by reading requests from stdin and writing responses to stdout', (argsSpec) => {
+  .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method once for each request read from stdin and writing responses to stdout', (argsSpec) => {
     argsSpec
       .positional('service', {
         describe: 'GRPC service containing the method to invoke',
@@ -169,6 +170,63 @@ const yargs = require('yargs') // eslint-disable-line
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
       new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
       argv.host, argv.port, argv.timeout, transformRequestResponse, customHeaders)
+  })
+  .command('invoke-stream <service> <method> <input> <output>', 'invoke a GRPC method using a single invocation, streaming all requests from stdin and writing responses to stdout', (argsSpec) => {
+    argsSpec
+      .positional('service', {
+        describe: 'GRPC service containing the method to invoke',
+      })
+      .positional('method', {
+        describe: 'GRPC service method to invoke',
+      })
+      .positional('input', {
+        describe: 'the input format to expect for requests',
+        choices: supportedEncodings,
+      })
+      .positional('output', {
+        describe: 'the output format to use for responses',
+        choices: supportedEncodings,
+      })
+      .option('host', {
+        alias: 'h',
+        describe: 'the host to connect to',
+        default: 'localhost',
+      })
+      .option('port', {
+        alias: 'p',
+        describe: 'the port to connect to',
+        default: 8082,
+      })
+      .option('timeout', {
+        describe: 'the GRPC deadline in minutes',
+        default: 5,
+      })
+      .option('header', {
+        describe: 'a custom header of the form key:value to send with requests. To send binary you must suffix the key with -bin and use base64 to encode the value',
+        array: true,
+        default: [],
+      })
+      addEncodingOptions(argsSpec)
+  }, argv => {
+    const index = indexProtobufs(argv.protobufs)
+    if(!index.services.hasOwnProperty(argv.service)) throw `Service ${argv.service} not found. Try >proto services`
+    const service = index.services[argv.service]
+    const methods = protobuf.describeServiceMethods(service)
+    if(!methods.hasOwnProperty(argv.method)) throw `Method ${argv.service}.${argv.method} not found. Try >proto services ${argv.service}`
+    const method = methods[argv.method]
+    const responseType = method.responseType
+    const customHeaders = Object.assign({}, ...argv.header.map(header => {
+      const bits = header.split(':')
+      if(bits.length != 2) {
+        throw 'Headers must be specified as: --header key:value'
+      }
+      return { [bits[0]]: bits[1] }
+    }))
+
+    invokeStream(method,
+      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      argv.host, argv.port, argv.timeout, customHeaders)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
     argsSpec

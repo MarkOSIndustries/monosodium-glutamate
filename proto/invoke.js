@@ -74,6 +74,7 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
     err => {
       if(err) {
         console.error(err)
+        process.exit()
       }
     })
 
