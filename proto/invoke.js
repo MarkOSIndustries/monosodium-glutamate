@@ -1,4 +1,5 @@
-const transport = require('../grpc.transport')
+const rxmq = require('rxmq').default
+const transport = require('../grpc.transport')(rxmq)
 const os = require('os')
 const stream = require('stream')
 

@@ -1,4 +1,5 @@
-const transport = require('../grpc.transport')
+const rxmq = require('rxmq').default
+const transport = require('../grpc.transport')(rxmq)
 const { SchemaConverter } = require('../protobuf.convert')
 
 module.exports = function(channels) {
