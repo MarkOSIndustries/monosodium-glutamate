@@ -9,8 +9,10 @@ module.exports = {
   transformToResponsesOnly,
 }
 
-function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, maxInflight, transformRequestResponse, customHeaders) {
+function invoke(method, inputStreamDecoder, outputStreamEncoder, hosts, timeout, maxInflight, transformRequestResponse, customHeaders) {
   const channelManager = new transport.ChannelManager()
+
+  var nextHostIndex = 0
 
   var requestsSent = 0
   var responsesReceived = 0
@@ -36,8 +38,12 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
       writableObjectMode: true,
 
       transform(requestSchemaObject, encoding, done) {
+        const {host,port} = hosts[nextHostIndex]
+        nextHostIndex = (nextHostIndex + 1) % hosts.length
+        const channel = channelManager.getChannel(host, port)
+
         requestsSent = requestsSent + 1
-        const responseStream = method.invokeWith(channelManager.getChannel(host, port), requestSchemaObject, {
+        const responseStream = method.invokeWith(channel, requestSchemaObject, {
           timeoutValue: timeout,
           customHeaders,
         })

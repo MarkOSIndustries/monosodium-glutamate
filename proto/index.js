@@ -121,12 +121,13 @@ const yargs = require('yargs') // eslint-disable-line
       })
       .option('host', {
         alias: 'h',
-        describe: 'the host to connect to',
-        default: 'localhost',
+        describe: 'a host to connect to in the format host:port',
+        array: true,
+        default: ['localhost'],
       })
       .option('port', {
         alias: 'p',
-        describe: 'the port to connect to',
+        describe: 'the default port to connect to (if not specified on a host)',
         default: 8082,
       })
       .option('timeout', {
@@ -171,11 +172,15 @@ const yargs = require('yargs') // eslint-disable-line
       }
       return { [bits[0]]: bits[1] }
     }))
+    const hosts = argv.host.map(host => {
+      const bits = host.split(':')
+      return { host: bits[0], port: bits[1] || argv.port }
+    })
 
     invoke(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
       new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.host, argv.port, argv.timeout, argv.inflight, transformRequestResponse, customHeaders)
+      hosts, argv.timeout, argv.inflight, transformRequestResponse, customHeaders)
   })
   .command('invoke-stream <service> <method> <input> <output>', 'invoke a GRPC method using a single invocation, streaming all requests from stdin and writing responses to stdout', (argsSpec) => {
     argsSpec
@@ -195,12 +200,13 @@ const yargs = require('yargs') // eslint-disable-line
       })
       .option('host', {
         alias: 'h',
-        describe: 'the host to connect to',
-        default: 'localhost',
+        describe: 'a host to connect to in the format host:port',
+        array: true,
+        default: ['localhost'],
       })
       .option('port', {
         alias: 'p',
-        describe: 'the port to connect to',
+        describe: 'the default port to connect to (if not specified on a host)',
         default: 8082,
       })
       .option('timeout', {
@@ -228,11 +234,15 @@ const yargs = require('yargs') // eslint-disable-line
       }
       return { [bits[0]]: bits[1] }
     }))
+    const hosts = argv.host.map(host => {
+      const bits = host.split(':')
+      return { host: bits[0], port: bits[1] || argv.port }
+    })
 
     invokeStream(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
       new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.host, argv.port, argv.timeout, customHeaders)
+      hosts, argv.timeout, customHeaders)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
     argsSpec

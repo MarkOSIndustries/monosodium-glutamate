@@ -7,12 +7,14 @@ module.exports = {
   invokeStream,
 }
 
-function invokeStream(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, customHeaders) {
+function invokeStream(method, inputStreamDecoder, outputStreamEncoder, hosts, timeout, customHeaders) {
   const channelManager = new transport.ChannelManager()
 
   var requestsSent = 0
   var responsesReceived = 0
 
+  // We can't round-robin with only one request to make... just pick the first host
+  const {host,port} = hosts[0]
   const {requestsStream, responsesStream} = method.makeRpcStreams(channelManager.getChannel(host, port), {
     timeoutValue: timeout,
     customHeaders,
