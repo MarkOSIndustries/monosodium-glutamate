@@ -9,7 +9,7 @@ module.exports = {
   transformToResponsesOnly,
 }
 
-function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, transformRequestResponse, customHeaders) {
+function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, timeout, maxInflight, transformRequestResponse, customHeaders) {
   const channelManager = new transport.ChannelManager()
 
   var requestsSent = 0
@@ -34,7 +34,7 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
     new stream.Transform({
       readableObjectMode: true,
       writableObjectMode: true,
-      
+
       transform(requestSchemaObject, encoding, done) {
         requestsSent = requestsSent + 1
         const responseStream = method.invokeWith(channelManager.getChannel(host, port), requestSchemaObject, {
@@ -50,7 +50,16 @@ function invoke(method, inputStreamDecoder, outputStreamEncoder, host, port, tim
         })
         responseStream.on('error', error => { console.error(error) })
 
-        done()
+        if(requestsSent - requestsCompleted < maxInflight) {
+          done()
+        } else {
+          const backpressureInterval = setInterval(() => {
+            if(requestsSent - requestsCompleted < maxInflight) {
+              done()
+              clearInterval(backpressureInterval)
+            }
+          }, 1)
+        }
       },
 
       flush(done) {

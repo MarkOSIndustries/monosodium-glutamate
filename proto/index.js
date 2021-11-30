@@ -132,6 +132,12 @@ const yargs = require('yargs') // eslint-disable-line
       .option('timeout', {
         describe: 'the GRPC deadline in minutes',
         default: 5,
+        number: true,
+      })
+      .option('inflight', {
+        describe: 'the maximum simultaneous requests allowed',
+        default: 100,
+        number: true,
       })
       .option('requests', {
         describe: 'what to do with requests when parsing responses. pair will emit msg.RequestResponsePair instead of the response type directly',
@@ -169,7 +175,7 @@ const yargs = require('yargs') // eslint-disable-line
     invoke(method,
       new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
       new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
-      argv.host, argv.port, argv.timeout, transformRequestResponse, customHeaders)
+      argv.host, argv.port, argv.timeout, argv.inflight, transformRequestResponse, customHeaders)
   })
   .command('invoke-stream <service> <method> <input> <output>', 'invoke a GRPC method using a single invocation, streaming all requests from stdin and writing responses to stdout', (argsSpec) => {
     argsSpec
