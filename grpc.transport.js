@@ -203,7 +203,7 @@ module.exports = function(rxmq) {
     }
 
     on(eventName, fnHandle) {
-      this.events.on(eventName, fnHandle)
+      this.events.subject(eventName).subscribe(fnHandle)
     }
 
     close() {
@@ -219,6 +219,13 @@ module.exports = function(rxmq) {
       this.stream = http2channel.client.request(this.buildHeaders(http2channel.scheme, http2channel.host, http2channel.port, service, method, options))
       this.callback = callback
       this.options = options
+
+      this.stream.on('error', err => {
+        self.abort(err)
+      })
+      this.stream.on('frameError', err => {
+        self.abort(err)
+      })
 
       this.stream.on('response', (headers, flags) => {
         const status = headers[GRPC_HEADER_STATUS] || 0
