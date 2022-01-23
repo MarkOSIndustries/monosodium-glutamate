@@ -13,7 +13,14 @@ function getLastFocussedWindow() {
 
 function createWindow () {
   // Create the browser window.
-  var thisWindow = new BrowserWindow({width: 800, height: 600, webPreferences: { nodeIntegration: true } })
+  var thisWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  })
 
   // and load the index.html of the app.
   thisWindow.loadURL(url.format({
