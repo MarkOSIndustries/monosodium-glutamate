@@ -51,6 +51,7 @@ class ProduceTx : KafkaTopicDataCommand(
       }
     } finally {
       producer.commitTransaction()
+      commitCount.incrementAndGet()
     }
   }
 }
