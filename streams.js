@@ -2,6 +2,7 @@ const stream = require('stream')
 
 module.exports = {
   readLines,
+  readDelimited,
   readJsonObjects,
   simpleLengthPrefixReader,
   simpleLengthPrefixWriter,
@@ -29,6 +30,33 @@ function readLines() {
     flush(done) {
       const lines = buffer.split(/[\r\n]/)
       lines.filter(l => l!=='').forEach(l => this.push(l))
+      done()
+    }
+  })
+}
+
+function readDelimited(delimiterBuffer) {
+  let buffer = ''
+  return new stream.Transform({
+    transform(chunk, encoding, done) {
+      if (chunk !== null) {
+        buffer += chunk
+        const lines = buffer.split(delimiterBuffer)
+        buffer = lines.pop() // will be empty string if end char was delimiter
+        lines
+          .map(l => l.trim())
+          .filter(l => l!=='')
+          .forEach(l => this.push(l))
+      }
+      done()
+    },
+
+    flush(done) {
+      const lines = buffer.split(delimiterBuffer)
+      lines
+        .map(l => l.trim())
+        .filter(l => l!=='')
+        .forEach(l => this.push(l))
       done()
     }
   })

@@ -13,7 +13,7 @@ const {coerceShape} = require('./shape.js')
 const {coerceTemplate, coerceTTY} = require('./template.js')
 const streams = require('../streams')
 const env = require('../env')
-var os = require('os')
+const os = require('os')
 
 process.on('SIGINT', function() {
   // Ensure we finish writing all messages in the stream
@@ -60,16 +60,16 @@ const yargs = require('yargs') // eslint-disable-line
 
     if(argv.concurrency == 'single') {
       transformInSingleProcess(
-        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter']),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.tty)),
         argv.filter, argv.shape, argv.progress)
     } else {
       if(isNaN(argv.parallelism)) {
         throw 'Parallelism must be a number'
       }
       transformInParentProcess(
-        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
-        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+        new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter']),
+        new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.tty)),
         argv.filter, argv.shape, argv.parallelism, ['transform.forked', coerceTTY(argv.tty), ...process.argv.slice(3)], argv.progress)
     }
   })
@@ -99,8 +99,8 @@ const yargs = require('yargs') // eslint-disable-line
     const schema = index.messages[argv.schema]
 
     transformInForkedProcess(
-      new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv.delimiter),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.isttyparent)),
+      new InputStreamDecoder(process.stdin, schema, argv.input, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter']),
+      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.isttyparent)),
       argv.filter, argv.shape)
   })
   .command('invoke <service> <method> <input> <output>', 'invoke a GRPC method once for each request read from stdin and writing responses to stdout', (argsSpec) => {
@@ -178,8 +178,8 @@ const yargs = require('yargs') // eslint-disable-line
     })
 
     invoke(method,
-      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
-      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter']),
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.tty)),
       hosts, argv.timeout, argv.inflight, transformRequestResponse, customHeaders)
   })
   .command('invoke-stream <service> <method> <input> <output>', 'invoke a GRPC method using a single invocation, streaming all requests from stdin and writing responses to stdout', (argsSpec) => {
@@ -240,8 +240,8 @@ const yargs = require('yargs') // eslint-disable-line
     })
 
     invokeStream(method,
-      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv.delimiter),
-      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      new InputStreamDecoder(process.stdin, method.requestType, argv.input, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter']),
+      new OutputStreamEncoder(process.stdout, responseType, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.tty)),
       hosts, argv.timeout, customHeaders)
   })
   .command('spam <schema> <output>', 'generate pseudo-random protobuf records to stdout', (argsSpec) => {
@@ -262,7 +262,7 @@ const yargs = require('yargs') // eslint-disable-line
 
     transformInSingleProcess(
       new MockInputStreamDecoder(schema, protobuf.makeValidJsonRecord),
-      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv.delimiter, coerceTemplate(argv.template, argv.tty)),
+      new OutputStreamEncoder(process.stdout, schema, argv.output, coercePrefix(argv.prefix), argv['input-delimiter'], argv['output-delimiter'], coerceTemplate(argv.template, argv.tty)),
       argv.filter, argv.shape)
   })
   .command('schemas [query]', 'list all known schemas', (argsSpec) => {
@@ -296,9 +296,13 @@ const yargs = require('yargs') // eslint-disable-line
 
 function addEncodingOptions(argsSpec) {
   argsSpec
-    .option('delimiter', {
-      alias: 'd',
-      describe: 'delimiter bytes between records (as hex string) - doesn\'t apply to binary encoding',
+    .option('input-delimiter', {
+      describe: 'delimiter bytes between input records (as hex string) - doesn\'t apply to binary encoding',
+      default: Buffer.from(os.EOL).toString("hex"),
+      coerce: hex => Buffer.from(hex, "hex"),
+    })
+    .option('output-delimiter', {
+      describe: 'delimiter bytes between output records (as hex string) - doesn\'t apply to binary encoding',
       default: Buffer.from(os.EOL).toString("hex"),
       coerce: hex => Buffer.from(hex, "hex"),
     })
