@@ -25,7 +25,7 @@
   "dependencies": {
     "electron": "^16.0.7",
     "monaco-loader": "^0.8.2",
-    "protobufjs": "^6.11.2",
+    "protobufjs": "^6.11.3",
     "rxmq": "^2.0.1"
   }
 }
