@@ -1,8 +1,9 @@
 node_modules
-.idea
-.gradle
-gradle*
-build
+.gradle/
+build/
+/.idea/*
+!/.idea/runConfigurations
 *.iml
+out/
 schemas/gen
 msg_qs
