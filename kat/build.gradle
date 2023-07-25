@@ -1,5 +1,5 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.5.10'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
 }
 
 repositories {
@@ -7,14 +7,14 @@ repositories {
 }
 
 dependencies {
-  compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
-  testCompile group: 'junit', name: 'junit', version: '4.11'
-  testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
-  compile group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
-  compile project(':encodings-clikt')
-  compile project(':kafka')
-  compile project(':kafka-clikt')
-  compile project(':schemas')
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+  testImplementation group: 'junit', name: 'junit', version: '4.11'
+  testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+  implementation group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
+  implementation project(':encodings-clikt')
+  implementation project(':kafka')
+  implementation project(':kafka-clikt')
+  implementation project(':schemas')
 }
 
 jar {

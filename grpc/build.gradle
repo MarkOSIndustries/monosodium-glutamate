@@ -1,5 +1,5 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.5.10'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
 }
 
 repositories {
@@ -7,10 +7,10 @@ repositories {
 }
 
 dependencies {
-  compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
-  testCompile group: 'junit', name: 'junit', version: '4.11'
-  testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
-  compile group: 'io.grpc', name: 'grpc-stub', version: '1.14.0'
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+  testImplementation group: 'junit', name: 'junit', version: '4.11'
+  testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+  implementation group: 'io.grpc', name: 'grpc-stub', version: '1.14.0'
 }
 
 compileKotlin {
