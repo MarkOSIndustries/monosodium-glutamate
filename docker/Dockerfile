@@ -1,4 +1,5 @@
-FROM timbru31/java-node:11-jdk-fermium as builder
+FROM eclipse-temurin:11.0.23_9-jdk as builder
+RUN apt update && apt install -y nodejs npm
 
 WORKDIR /home/msg
 
@@ -20,9 +21,8 @@ RUN (cd proto && npm install)
 RUN (cd p2p && npm install)
 RUN (cd reduce && npm install)
 
-FROM timbru31/java-node:11-jdk-fermium as runtime
-
-RUN apt update && apt install -y netcat nano jq
+FROM eclipse-temurin:11.0.23_9-jre as runtime
+RUN apt update && apt install -y nodejs netcat nano jq
 
 ARG MSG_VERSION
 
@@ -38,9 +38,12 @@ COPY --from=builder /home/msg/kgb/build/install/kgb/dependencies ./bin/dependenc
 COPY --from=builder /home/msg/qs/build/install/qs/*.jar ./bin/qs.jar
 COPY --from=builder /home/msg/qs/build/install/qs/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/*.js ./bin/
-COPY --from=builder /home/msg/proto ./bin/proto
-COPY --from=builder /home/msg/p2p ./bin/p2p
-COPY --from=builder /home/msg/reduce ./bin/reduce
+COPY --from=builder /home/msg/proto/*.js ./bin/proto/
+COPY --from=builder /home/msg/proto/node_modules ./bin/proto/node_modules
+COPY --from=builder /home/msg/p2p/*.js ./bin/p2p/
+COPY --from=builder /home/msg/p2p/node_modules ./bin/p2p/node_modules
+COPY --from=builder /home/msg/reduce/*.js ./bin/reduce/
+COPY --from=builder /home/msg/reduce/node_modules ./bin/reduce/node_modules
 
 COPY docker/bin/kat.sh /usr/local/bin/kat
 COPY docker/bin/kgb.sh /usr/local/bin/kgb
