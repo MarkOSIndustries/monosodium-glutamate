@@ -1,5 +1,6 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'java-library'
 }
 
 repositories {
@@ -11,8 +12,8 @@ dependencies {
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
 
-  implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
-  implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
+  api group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
+  api group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
 }
 
 compileKotlin {

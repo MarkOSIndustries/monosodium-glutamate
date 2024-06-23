@@ -22,6 +22,8 @@ RUN (cd reduce && npm install)
 
 FROM timbru31/java-node:11-jdk-fermium as runtime
 
+RUN apt update && apt install -y netcat nano jq
+
 ARG MSG_VERSION
 
 WORKDIR /opt/msg
@@ -29,9 +31,12 @@ ENV MSG_HOME=/opt/msg
 ENV MSG_VERSION=${MSG_VERSION}
 
 COPY --from=builder /home/msg/schemas ./bin/schemas
-COPY --from=builder /home/msg/kat/build/libs/*.jar ./bin/kat.jar
-COPY --from=builder /home/msg/kgb/build/libs/*.jar ./bin/kgb.jar
-COPY --from=builder /home/msg/qs/build/libs/*.jar ./bin/qs.jar
+COPY --from=builder /home/msg/kat/build/install/kat/*.jar ./bin/kat.jar
+COPY --from=builder /home/msg/kat/build/install/kat/dependencies ./bin/dependencies
+COPY --from=builder /home/msg/kgb/build/install/kgb/*.jar ./bin/kgb.jar
+COPY --from=builder /home/msg/kgb/build/install/kgb/dependencies ./bin/dependencies
+COPY --from=builder /home/msg/qs/build/install/qs/*.jar ./bin/qs.jar
+COPY --from=builder /home/msg/qs/build/install/qs/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/*.js ./bin/
 COPY --from=builder /home/msg/proto ./bin/proto
 COPY --from=builder /home/msg/p2p ./bin/p2p

@@ -1,5 +1,6 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'distribution'
 }
 
 repositories {
@@ -20,13 +21,33 @@ dependencies {
   implementation group: 'io.grpc', name: 'grpc-netty', version: '1.14.0'
 }
 
+build {
+  dependsOn("installDist")
+}
+
 jar {
   manifest {
     attributes(
-      'Main-Class': 'msg.qs.MainKt'
+      'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
+      'Implementation-Title': project.name,
+      'Implementation-Version': project.version,
+      'Main-Class': 'msg.qs.MainKt',
     )
   }
-  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+distributions {
+  main {
+    distributionBaseName = project.name
+    contents {
+      into("") {
+        from jar.archiveFile
+      }
+      into("dependencies") {
+        from configurations.runtimeClasspath
+      }
+    }
+  }
 }
 
 compileKotlin {
