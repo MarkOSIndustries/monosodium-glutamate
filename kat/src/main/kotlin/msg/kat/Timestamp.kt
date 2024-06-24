@@ -1,6 +1,6 @@
 package msg.kat
 
-import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
@@ -10,11 +10,13 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
-@ExperimentalCompletionCandidates
-class Timestamp : KafkaTopicCommand(
-  "Query timestamp by offset\n\n" +
-    "Retrieves the timestamp a given offset on a given topic partition and prints to stdout"
-) {
+class Timestamp : KafkaTopicCommand() {
+  override fun help(context: Context) = """
+  Query timestamp by offset
+
+  Retrieves the timestamp a given offset on a given topic partition and prints to stdout
+  """.trimIndent()
+
   val partition by argument("partition", "the partition to query").int()
   val offset by argument("offset", "the offset to get the timestamp for").long()
 

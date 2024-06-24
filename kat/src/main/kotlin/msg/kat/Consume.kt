@@ -1,7 +1,7 @@
 package msg.kat
 
 import com.github.ajalt.clikt.completion.CompletionCandidates
-import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.validate
@@ -16,11 +16,13 @@ import java.util.Locale
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
 
-@ExperimentalCompletionCandidates
-class Consume : KafkaTopicDataCommand(
-  help = "Consume records from Kafka\n\n" +
-    "Reads records from Kafka and emits length-prefixed binary records on stdout"
-) {
+class Consume : KafkaTopicDataCommand() {
+  override fun help(context: Context) = """
+  Consume records from Kafka
+
+  Reads records from Kafka and emits length-prefixed binary records on stdout
+  """.trimIndent()
+
   private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
   private val fromOption by option(
     "--from", "-f",
@@ -29,8 +31,10 @@ class Consume : KafkaTopicDataCommand(
     completionCandidates = CompletionCandidates.Fixed(OffsetSpecs.earliest, OffsetSpecs.latest)
   ).default(OffsetSpecs.earliest).validate {
     require(OffsetSpecs.parseOffsetSpec(it, topic) != null) {
-      "$it isn't a valid offset to start from.\n" +
-        "Please choose from $metavar"
+      """
+        $it isn't a valid offset to start from.
+        Please choose from ${metavar(context)}
+      """.trimIndent()
     }
   }
   private val untilOption by option(
@@ -40,8 +44,10 @@ class Consume : KafkaTopicDataCommand(
     completionCandidates = CompletionCandidates.Fixed(OffsetSpecs.latest, OffsetSpecs.forever)
   ).default(OffsetSpecs.forever).validate {
     require(OffsetSpecs.parseOffsetSpec(it, topic) != null) {
-      "$it isn't a valid offset to end at.\n" +
-        "Please choose from $metavar"
+      """
+        $it isn't a valid offset to end at.
+        Please choose from ${metavar(context)}
+      """.trimIndent()
     }
   }
   private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.values().map { it.toString().lowercase(Locale.ROOT) to it }.toMap()).default(IsolationLevel.READ_COMMITTED)

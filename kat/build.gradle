@@ -1,16 +1,21 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
   id 'distribution'
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
+  maven {
+    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
+    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+  }
 }
 
 dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+  implementation project(':clikt')
   implementation project(':encodings-clikt')
   implementation project(':kafka')
   implementation project(':kafka-clikt')

@@ -1,5 +1,6 @@
 rootProject.name = 'monosodium-glutamate'
 
+include 'clikt'
 include 'encodings-clikt'
 include 'grpc'
 include 'kafka'

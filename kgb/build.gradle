@@ -1,10 +1,14 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.9.0'
+  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
   id 'distribution'
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
+  maven {
+    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
+    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+  }
 }
 
 dependencies {
@@ -14,8 +18,8 @@ dependencies {
 
   implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
   implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
-  implementation group: 'com.github.ajalt', name: 'clikt', version: '1.5.0'
   implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
+  implementation project(':clikt')
   implementation project(':grpc')
   implementation project(':kafka')
   implementation project(':kafka-clikt')

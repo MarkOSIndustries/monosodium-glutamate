@@ -1,6 +1,6 @@
 package msg.kat
 
-import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
@@ -10,11 +10,13 @@ import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-@ExperimentalCompletionCandidates
-class ProduceTx : KafkaTopicDataCommand(
-  help = "Produce records to Kafka using transactions\n\n" +
-    "Reads records from stdin and sends them to Kafka"
-) {
+class ProduceTx : KafkaTopicDataCommand() {
+  override fun help(context: Context) = """
+  Produce records to Kafka using transactions
+
+  Reads records from stdin and sends them to Kafka
+  """.trimIndent()
+
   private val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
   private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 

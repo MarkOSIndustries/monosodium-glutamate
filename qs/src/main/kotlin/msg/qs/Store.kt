@@ -1,5 +1,6 @@
 package msg.qs
 
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
@@ -13,7 +14,9 @@ import msg.qs.Uint64Serialisation.Companion.longToByteArray
 import msg.qs.encodings.Encodings
 import java.io.EOFException
 
-class Store : QsCommand("Accept new records on stdin, while providing a GRPC query endpoint to the query store") {
+class Store : QsCommand() {
+  override fun help(context: Context) = "Accept new records on stdin, while providing a GRPC query endpoint to the query store"
+
   private val encoding by argument("encoding", "the stdin format for records. All are length-prefixed binary of some MSG-specific schema.").choice(Encodings.byName)
   private val prefix by option("--prefix", help = "the prefix type to use for length prefixed binary encodings").choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
   protected fun delimiter(): Delimiter {

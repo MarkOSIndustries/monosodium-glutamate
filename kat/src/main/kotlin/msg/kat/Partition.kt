@@ -1,16 +1,17 @@
 package msg.kat
 
-import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
+import com.github.ajalt.clikt.core.Context
 import msg.kafka.topicPartitions
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.apache.kafka.common.utils.Utils
 import java.io.EOFException
 
-@ExperimentalCompletionCandidates
-class Partition : KafkaTopicDataCommand(
-  "Apply the default Java Kafka key partitioning strategy.\n\n" +
-    "Reads keys from stdin and writes the topic partition they would be produced to by default to stdout"
-) {
+class Partition : KafkaTopicDataCommand() {
+  override fun help(context: Context) = """
+  Apply the default Java Kafka key partitioning strategy
+
+  Reads keys from stdin and writes the topic partition they would be produced to by default to stdout
+  """.trimIndent()
 
   override fun run() {
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)

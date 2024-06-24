@@ -15,18 +15,32 @@ import org.apache.kafka.common.serialization.Deserializer
 import org.apache.kafka.common.serialization.Serializer
 import kotlin.reflect.KClass
 
-abstract class KafkaCommand(help: String) : CliktCommand(help) {
-  private val brokers by nonSplittingOption("--brokers", "-b", help = "comma separated list of broker addresses", envvar = "KAFKA_BROKERS").default("localhost:9092")
-  private val protocol by nonSplittingOption("--protocol", "-p", help = "the security mechanism to use to connect\nAny SASL-based protocol will require a SASL mechanism", envvar = "KAFKA_PROTOCOL")
-    .choice(*SecurityProtocol.names().toTypedArray()).default(SecurityProtocol.PLAINTEXT.toString())
-  private val sasl by nonSplittingOption(
+abstract class KafkaCommand : CliktCommand() {
+  private val brokers by option(
+    "--brokers", "-b",
+    help = "comma separated list of broker addresses",
+    envvar = "KAFKA_BROKERS",
+  ).default("localhost:9092")
+  private val protocol by option(
+    "--protocol", "-p",
+    help = "the security mechanism to use to connect\nAny SASL-based protocol will require a SASL mechanism",
+    envvar = "KAFKA_PROTOCOL",
+  ).choice(*SecurityProtocol.names().toTypedArray()).default(SecurityProtocol.PLAINTEXT.toString())
+  private val sasl by option(
     "--sasl", "-a",
     help = "SASL mechanism to use for authentication. eg: SCRAM-SHA-256",
     envvar = "KAFKA_SASL",
-    completionCandidates = CompletionCandidates.Fixed("PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512", "GSSAPI", "OAUTHBEARER")
+    completionCandidates = CompletionCandidates.Fixed("PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512", "GSSAPI", "OAUTHBEARER"),
   ).default("")
-  private val jaas by nonSplittingOption("--jaas", "-j", help = "JAAS configuration - useful when you need to use kat against two different environments with different authentication", envvar = "KAFKA_JAAS").default("")
-  protected val timeoutSeconds by option("--timeout", "-t", help = "The default time to wait for client operations in seconds.").int().default(60)
+  private val jaas by option(
+    "--jaas", "-j",
+    help = "JAAS configuration - useful when you need to use kat against two different environments with different authentication",
+    envvar = "KAFKA_JAAS",
+  ).default("")
+  protected val timeoutSeconds by option(
+    "--timeout", "-t",
+    help = "The default time to wait for client operations in seconds.",
+  ).int().default(60)
 
   fun <K, V, DK : Deserializer<K>, DV : Deserializer<V>> newConsumer(keyDeserialiser: KClass<DK>, valueDeserialiser: KClass<DV>, vararg config: Pair<String, Any>): Consumer<K, V> =
     EphemeralConsumer(
@@ -52,4 +66,14 @@ abstract class KafkaCommand(help: String) : CliktCommand(help) {
       "default.api.timeout.ms" to timeoutSeconds * 1000,
       *config
     )
+
+  fun debugString(): String {
+    return """
+      brokers $brokers
+      protocol $protocol
+      sasl $sasl
+      jaas $jaas
+      timeoutSeconds $timeoutSeconds
+    """.trimIndent()
+  }
 }

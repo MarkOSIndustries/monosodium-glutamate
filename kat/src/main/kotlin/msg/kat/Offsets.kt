@@ -1,6 +1,6 @@
 package msg.kat
 
-import com.github.ajalt.clikt.completion.ExperimentalCompletionCandidates
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.validate
 import msg.kafka.KafkaTopicCommand
@@ -10,11 +10,13 @@ import msg.kafka.offsets.TimeBasedOffsetSpec
 import msg.kafka.topicPartitions
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 
-@ExperimentalCompletionCandidates
-class Offsets : KafkaTopicCommand(
-  "Query offsets by timestamp\n\n" +
-    "Retrieves the offsets for each partition at a given timestamp and prints to stdout"
-) {
+class Offsets : KafkaTopicCommand() {
+  override fun help(context: Context) = """
+  Query offsets by timestamp
+
+  Retrieves the offsets for each partition at a given timestamp and prints to stdout
+  """.trimIndent()
+
   private val at by argument("at", "the query to use to find offsets choose from [${OffsetSpecs.validFromSpecs.joinToString("|")}]").validate {
     require(OffsetSpecs.parseOffsetSpec(it, topic) != null) {
       "$it isn't a valid offset query.\n" +

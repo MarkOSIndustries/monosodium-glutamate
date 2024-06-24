@@ -9,8 +9,8 @@ import io.grpc.Server
 import io.grpc.ServerBuilder
 import java.io.File
 
-open class QsCommand(help: String) : CliktCommand(help = help) {
-  private val path by option(help = "the path to store the db files under").path(fileOkay = false, folderOkay = true)
+open class QsCommand : CliktCommand() {
+  private val path by option(help = "the path to store the db files under").path(canBeFile = false)
   private val port by option(help = "the port to bind the GRPC endpoint to").int().default(8083)
 
   protected val rocksDBManager: RocksDBManager by lazy {

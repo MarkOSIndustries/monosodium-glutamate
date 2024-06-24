@@ -1,7 +1,9 @@
 package msg.kgb
 
-import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.Context
+import msg.clikt.ProfileAwareCommand
 
-class Kgb : CliktCommand(name = "kgb", help = "Kafka GRPC Bridge") {
+class Kgb(args: Array<String>) : ProfileAwareCommand(args = args, name = "kgb") {
+  override fun help(context: Context) = "Kafka GRPC Bridge"
   override fun run() = Unit
 }
