@@ -28,7 +28,7 @@ internal class TopicIteratorTest {
   @Test
   fun should_iterate_from_earliest_to_specific_offset() {
     test_bounded_range(
-      topic, 2, 1000, 400,
+      topic, 1, 1000, 400,
       EarliestOffsetSpec(),
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L))
     )
@@ -36,7 +36,7 @@ internal class TopicIteratorTest {
   @Test
   fun should_iterate_from_specific_offset_to_latest() {
     test_bounded_range(
-      topic, 2, 1000, 600,
+      topic, 1, 1000, 600,
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L)),
       LatestOffsetSpec()
     )
@@ -44,7 +44,7 @@ internal class TopicIteratorTest {
   @Test
   fun should_iterate_from_specific_offset_to_specific_offset() {
     test_bounded_range(
-      topic, 2, 1000, 200,
+      topic, 1, 1000, 200,
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 400L)),
       ConfiguredOffsetSpec(mapOf(TopicPartition(topic, 0) to 600L))
     )

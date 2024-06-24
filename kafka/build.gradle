@@ -12,7 +12,7 @@ dependencies {
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
 
-  api group: 'org.apache.kafka', name: 'kafka-clients', version: '2.0.0'
+  api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
   api group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
 }
 

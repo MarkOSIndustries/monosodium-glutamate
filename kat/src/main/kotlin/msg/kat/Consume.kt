@@ -10,7 +10,7 @@ import com.github.ajalt.clikt.parameters.types.long
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.OffsetSpecs
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.common.requests.IsolationLevel
+import org.apache.kafka.common.IsolationLevel
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
@@ -50,7 +50,7 @@ class Consume : KafkaTopicDataCommand() {
       """.trimIndent()
     }
   }
-  private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.values().map { it.toString().lowercase(Locale.ROOT) to it }.toMap()).default(IsolationLevel.READ_COMMITTED)
+  private val isolation by option("--isolation", "-i", help = "the isolation level to read with").choice(IsolationLevel.entries.associate { it.toString().lowercase(Locale.ROOT) to it }).default(IsolationLevel.READ_COMMITTED)
   private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
 
   override fun run() {

@@ -1,5 +1,5 @@
 plugins {
-  id 'com.google.protobuf' version '0.8.16'
+  id 'com.google.protobuf' version '0.9.4'
   id 'java'
   id 'java-library'
   id 'idea'
@@ -10,9 +10,9 @@ repositories {
 }
 
 dependencies {
-  api group: 'com.google.protobuf', name: 'protobuf-java', version: '3.17.3'
-  api group: 'io.grpc', name: 'grpc-protobuf', version: '1.38.1'
-  api group: 'io.grpc', name: 'grpc-stub', version: '1.38.1'
+  api group: 'com.google.protobuf', name: 'protobuf-java', version: protobufVersion
+  api group: 'io.grpc', name: 'grpc-protobuf', version: grpcVersion
+  api group: 'io.grpc', name: 'grpc-stub', version: grpcVersion
 
   // Java 9+ requires this to be here for GRPC to compile properly
   // https://github.com/grpc/grpc-java/issues/3633
@@ -29,11 +29,11 @@ sourceSets {
 
 protobuf {
   protoc {
-    artifact = "com.google.protobuf:protoc:3.17.0"
+    artifact = "com.google.protobuf:protoc:$protobufVersion"
   }
   plugins {
     grpc {
-      artifact = 'io.grpc:protoc-gen-grpc-java:1.38.0'
+      artifact = "io.grpc:protoc-gen-grpc-java:$grpcVersion"
     }
   }
   generateProtoTasks {
