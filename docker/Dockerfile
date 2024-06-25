@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11.0.23_9-jdk as builder
+FROM eclipse-temurin:11.0.23_9-jdk AS builder
 RUN apt update && apt install -y nodejs npm
 
 WORKDIR /home/msg
@@ -21,7 +21,7 @@ RUN (cd proto && npm install)
 RUN (cd p2p && npm install)
 RUN (cd reduce && npm install)
 
-FROM eclipse-temurin:11.0.23_9-jre as runtime
+FROM eclipse-temurin:11.0.23_9-jre AS runtime
 RUN apt update && apt install -y nodejs netcat nano jq
 
 ARG MSG_VERSION
