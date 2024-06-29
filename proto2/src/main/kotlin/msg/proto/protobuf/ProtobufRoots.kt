@@ -5,7 +5,7 @@ import com.google.protobuf.TypeRegistry
 import java.nio.file.Path
 
 class ProtobufRoots(protobufPaths: Collection<Path>) {
-  val protobufRoots = protobufPaths.map { ProtobufRoot(it) }
+  val protobufRoots = listOf(MSGProtobufRoot(), *protobufPaths.map { FileSystemProtobufRoot(it) }.toTypedArray())
   val typeRegistry: TypeRegistry by lazy {
     val typeRegistry = TypeRegistry.newBuilder()
     for (protobufRoot in protobufRoots) {
