@@ -15,14 +15,14 @@ dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
-
-  implementation group: 'org.rocksdb', name: 'rocksdbjni', version: '6.11.4'
-  implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
   implementation project(':clikt')
   implementation project(':encodings')
-  implementation project(':grpc')
   implementation project(':schemas')
+
+  implementation group: 'com.squareup.wire', name: 'wire-compiler', version: '4.9.9'
+  implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
   implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
+  implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.51'
 }
 
 build {
@@ -35,7 +35,7 @@ jar {
       'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
       'Implementation-Title': project.name,
       'Implementation-Version': project.version,
-      'Main-Class': 'msg.qs.MainKt',
+      'Main-Class': 'msg.proto.MainKt',
     )
   }
 }

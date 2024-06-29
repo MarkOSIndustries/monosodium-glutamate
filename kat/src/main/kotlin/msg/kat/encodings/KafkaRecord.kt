@@ -6,7 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 
-class KafkaRecord : Encoding {
+class KafkaRecord : KafkaEncoding {
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
     val record = MSG.KafkaRecord.parseFrom(bytes)
     return ProducerRecord(

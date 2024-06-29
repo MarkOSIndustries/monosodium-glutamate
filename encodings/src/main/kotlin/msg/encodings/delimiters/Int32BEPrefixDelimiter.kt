@@ -1,10 +1,11 @@
 package msg.encodings.delimiters
 
+import msg.encodings.Transport
 import java.io.InputStream
 import java.io.PrintStream
 import java.nio.ByteBuffer
 
-class Int32BEPrefixDelimiter : Delimiter {
+class Int32BEPrefixDelimiter : Transport<ByteArray> {
   override fun reader(input: InputStream): Iterator<ByteArray> {
     return Int32PrefixedByteArrayIterator(input)
   }

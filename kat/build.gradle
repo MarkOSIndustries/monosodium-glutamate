@@ -16,7 +16,7 @@ dependencies {
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
   implementation project(':clikt')
-  implementation project(':encodings-clikt')
+  implementation project(':encodings')
   implementation project(':kafka')
   implementation project(':kafka-clikt')
   implementation project(':schemas')

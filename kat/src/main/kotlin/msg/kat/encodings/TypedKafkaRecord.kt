@@ -7,7 +7,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.internals.RecordHeader
 
-class TypedKafkaRecord : Encoding {
+class TypedKafkaRecord : KafkaEncoding {
   override fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray> {
     val record = MSG.TypedKafkaRecord.parseFrom(bytes)
     return ProducerRecord(
@@ -30,7 +30,7 @@ class TypedKafkaRecord : Encoding {
       builder.key = ByteString.copyFrom(consumerRecord.key())
     }
     if (consumerRecord.value() != null) {
-      builder.value = Any.newBuilder().setValue(ByteString.copyFrom(consumerRecord.value())).setTypeUrl(schema).build()
+      builder.value = Any.newBuilder().setValue(ByteString.copyFrom(consumerRecord.value())).setTypeUrl("type/$schema").build()
     }
 
     builder.addAllHeaders(consumerRecord.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })

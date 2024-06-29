@@ -1,6 +1,6 @@
 package msg.kat.encodings
 
-object Encodings {
+object KafkaEncodings {
   val byName = mapOf(
     "hex" to Hex(),
     "base64" to Base64(),

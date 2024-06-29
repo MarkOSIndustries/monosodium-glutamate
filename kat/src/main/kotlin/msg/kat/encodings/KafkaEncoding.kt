@@ -4,7 +4,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.Random
 
-interface Encoding {
+interface KafkaEncoding {
   fun toProducerRecord(topic: String, bytes: ByteArray): ProducerRecord<ByteArray, ByteArray>
   fun fromConsumerRecord(consumerRecord: ConsumerRecord<ByteArray, ByteArray>, schema: String): ByteArray
 

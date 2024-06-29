@@ -1,10 +1,11 @@
 package msg.encodings.delimiters
 
 import com.google.protobuf.CodedOutputStream
+import msg.encodings.Transport
 import java.io.InputStream
 import java.io.PrintStream
 
-class VarInt32PrefixDelimiter : Delimiter {
+class VarInt32PrefixDelimiter : Transport<ByteArray> {
   override fun reader(input: InputStream): Iterator<ByteArray> {
     return VarInt32PrefixedByteArrayIterator(input)
   }

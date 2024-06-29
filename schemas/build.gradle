@@ -42,7 +42,7 @@ protobuf {
       }
     }
   }
-  generatedFilesBaseDir = "$projectDir/gen"
+  generatedFilesBaseDirProperty = "$projectDir/gen"
 }
 
 clean {
@@ -54,6 +54,6 @@ idea {
     // proto files and generated Java files are automatically added as
     // source dirs.
     // If you have additional sources, add them here:
-//    sourceDirs += file("$projectDir/somethign/else/");
+//    sourceDirs += file("$projectDir/something/else/");
   }
 }
