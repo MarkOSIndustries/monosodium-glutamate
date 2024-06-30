@@ -17,6 +17,12 @@ class GrpcResponseWriter(val writer: (Message) -> Unit) : StreamObserver<Dynamic
     }
   }
 
+  fun onStreamCompletion(completionHandler: (Throwable?) -> Unit) {
+    completed.whenComplete { _, ex ->
+      completionHandler(ex)
+    }
+  }
+
   override fun onNext(value: DynamicMessage) {
     writer(value)
   }
