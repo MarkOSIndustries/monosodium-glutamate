@@ -27,16 +27,13 @@ class Transform : ProtobufDataCommand() {
   """.trimIndent()
 
   override fun run() {
-    val messageDescriptor = protobufRoots.findMessageDescriptor(messageName)
-    if (messageDescriptor == null) {
-      System.err.println("Schema $messageName not found. Try >proto schemas")
-      throw ProgramResult(1)
-    }
-    val inputCount = AtomicInteger(0) // TODO better name?
-    val transformedCount = AtomicInteger(0)
+    val messageDescriptor = getMessageDescriptor()
+
+    val inputCount = AtomicInteger(0)
+    val outputCount = AtomicInteger(0)
     Runtime.getRuntime().addShutdownHook(
       Thread {
-        System.err.println("Transformed $transformedCount of $inputCount messages")
+        System.err.println("Transformed $outputCount of $inputCount messages")
       }
     )
 
@@ -51,13 +48,13 @@ class Transform : ProtobufDataCommand() {
       val transport = MessageTransport(messageDescriptor)
       val reader = transport.reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
       val writer = transport.writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
-      while (reader.hasNext() && transformedCount.get() < limit) {
+      while (reader.hasNext() && outputCount.get() < limit) {
         val message = reader.next()
 
         inputCount.incrementAndGet()
 
         if (filter(messageDescriptor, message, filterObject)) {
-          transformedCount.incrementAndGet()
+          outputCount.incrementAndGet()
           writer(message)
         }
       }
