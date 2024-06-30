@@ -15,4 +15,10 @@ abstract class ProtobufCommand : CliktCommand() {
   protected val protobufRoots by lazy {
     ProtobufRoots(protobufPaths)
   }
+
+  fun debugString(): String {
+    return """
+      protobufPaths $protobufPaths
+    """.trimIndent()
+  }
 }
