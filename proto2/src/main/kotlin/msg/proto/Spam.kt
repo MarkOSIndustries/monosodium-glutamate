@@ -23,6 +23,9 @@ class Spam : ProtobufDataCommand() {
   Fills the specified schema with pseudo-random data, and emits it to stdout
   """.trimIndent()
 
+  private val outputEncoding by outputEncodingArgument()
+  private val outputBinaryPrefix by outputBinaryPrefixOption()
+
   private val limit by option("--limit", "-l", help = "the maximum number of messages to output").long().default(Long.MAX_VALUE)
   private val recursionLimit by option("--recursion-limit", "-r", help = "the maximum times a message type can be contained within itself").int().default(3)
 

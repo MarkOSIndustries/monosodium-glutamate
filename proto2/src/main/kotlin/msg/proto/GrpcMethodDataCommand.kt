@@ -10,8 +10,6 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.google.protobuf.Descriptors
-import msg.encodings.delimiters.Delimiters
-import msg.proto.encodings.ProtobufEncodings
 import java.util.concurrent.TimeUnit
 
 abstract class GrpcMethodDataCommand : ProtobufCommand() {
@@ -19,10 +17,12 @@ abstract class GrpcMethodDataCommand : ProtobufCommand() {
   override val invokeWithoutSubcommand: Boolean get() = true
 
   private val serviceName by argument(
+    name = "service",
     help = "the GRPC service to use (fully qualified)",
     completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_PROTO_SERVICES""")
   )
   private val methodName by argument(
+    name = "method",
     help = "the GRPC service method to use"
   )
 
@@ -39,15 +39,10 @@ abstract class GrpcMethodDataCommand : ProtobufCommand() {
     }
   }
 
-  // TODO find a way to reuse these between this class and ProtobufDataCommand
-  protected val inputEncoding by argument("input", help = "the stdin format for messages. hex,base64,json are delimited strings. Others are length-prefixed binary.").choice(
-    ProtobufEncodings.byName
-  )
-  protected val outputEncoding by argument("output", help = "the stdout format for messages. hex,base64,json are delimited strings. Others are length-prefixed binary.").choice(
-    ProtobufEncodings.byName
-  )
-  protected val inputBinaryPrefix by option("--input-prefix", help = "the prefix type to use for length prefixed binary encodings. Has no effect on line delimited string encodings").choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
-  protected val outputBinaryPrefix by option("--output-prefix", help = "the prefix type to use for length prefixed binary encodings. Has no effect on line delimited string encodings").choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
+  protected val inputEncoding by inputEncodingArgument()
+  protected val outputEncoding by outputEncodingArgument()
+  protected val inputBinaryPrefix by inputBinaryPrefixOption()
+  protected val outputBinaryPrefix by outputBinaryPrefixOption()
 
   protected val hostsAndPorts by option("--host", "-h", help = "the host to connect to - can specify multiple times for round robin requests", metavar = "host:port").multiple(default = listOf("localhost:8082"))
   protected val defaultPort by option("--port", "-p", help = "the port to connect on (if not specified in host)").int().default(8082)

@@ -17,6 +17,11 @@ import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 
 class Transform : ProtobufDataCommand() {
+  private val inputEncoding by inputEncodingArgument()
+  private val outputEncoding by outputEncodingArgument()
+  private val inputBinaryPrefix by inputBinaryPrefixOption()
+  private val outputBinaryPrefix by outputBinaryPrefixOption()
+
   private val limit by option("--limit", "-l", help = "the maximum number of messages to transform").long().default(Long.MAX_VALUE)
   private val filterJson by option("--filter", "-f", help = "a JSON object specifying fields and values which must match").default("{}")
 
