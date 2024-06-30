@@ -23,6 +23,7 @@ dependencies {
   implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
   implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
   implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.51'
+  implementation group: 'me.tongfei', name: 'progressbar', version: '0.10.0'
 }
 
 build {

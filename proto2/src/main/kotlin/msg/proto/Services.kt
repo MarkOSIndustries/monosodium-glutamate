@@ -6,7 +6,7 @@ import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.mordant.terminal.Terminal
-import msg.proto.colours.Colours
+import msg.proto.terminal.Colours
 
 class Services : ProtobufCommand() {
   override fun help(context: Context) = """

@@ -5,6 +5,7 @@ import com.alibaba.fastjson2.JSONObject
 import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import com.google.protobuf.ByteString
@@ -12,9 +13,11 @@ import com.google.protobuf.Descriptors
 import com.google.protobuf.Message
 import msg.proto.encodings.MessageTransport
 import msg.proto.protobuf.ProtobufMessage
+import msg.proto.terminal.NoopProgressBar
+import msg.proto.terminal.StderrProgressBar
 import java.io.IOException
 import java.util.Base64
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class Transform : ProtobufDataCommand() {
   private val inputEncoding by inputEncodingArgument()
@@ -24,6 +27,7 @@ class Transform : ProtobufDataCommand() {
 
   private val limit by option("--limit", "-l", help = "the maximum number of messages to transform").long().default(Long.MAX_VALUE)
   private val filterJson by option("--filter", "-f", help = "a JSON object specifying fields and values which must match").default("{}")
+  private val progress by option("--progress", help = "show a progress bar").flag()
 
   override fun help(context: Context) = """
   Transform protobuf messages
@@ -34,13 +38,15 @@ class Transform : ProtobufDataCommand() {
   override fun run() {
     val messageDescriptor = getMessageDescriptor()
 
-    val inputCount = AtomicInteger(0)
-    val outputCount = AtomicInteger(0)
+    val inputCount = AtomicLong(0)
+    val outputCount = AtomicLong(0)
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Transformed $outputCount of $inputCount messages")
       }
     )
+
+    val progressBar = if (progress) StderrProgressBar("transform") else NoopProgressBar()
 
     val filterObject = try {
       JSONObject.parseObject(filterJson)
@@ -50,17 +56,18 @@ class Transform : ProtobufDataCommand() {
     }
 
     try {
-      val transport = MessageTransport(messageDescriptor)
-      val reader = transport.reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
-      val writer = transport.writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
-      while (reader.hasNext() && outputCount.get() < limit) {
-        val message = reader.next()
+      progressBar.use {
+        val transport = MessageTransport(messageDescriptor)
+        val reader = transport.reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
+        val writer = transport.writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
+        while (reader.hasNext() && outputCount.get() < limit) {
+          val message = reader.next()
 
-        inputCount.incrementAndGet()
-
-        if (filter(messageDescriptor, message, filterObject)) {
-          outputCount.incrementAndGet()
-          writer(message)
+          progressBar.setTotal(inputCount.incrementAndGet())
+          if (filter(messageDescriptor, message, filterObject)) {
+            progressBar.setProgress(outputCount.incrementAndGet())
+            writer(message)
+          }
         }
       }
     } catch (t: IOException) {

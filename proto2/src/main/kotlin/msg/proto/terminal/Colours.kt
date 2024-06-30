@@ -1,4 +1,4 @@
-package msg.proto.colours
+package msg.proto.terminal
 
 import com.github.ajalt.mordant.rendering.TextColors
 
