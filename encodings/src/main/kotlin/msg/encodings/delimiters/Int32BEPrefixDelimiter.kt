@@ -1,6 +1,7 @@
 package msg.encodings.delimiters
 
 import msg.encodings.Transport
+import java.io.IOException
 import java.io.InputStream
 import java.io.PrintStream
 import java.nio.ByteBuffer
@@ -18,6 +19,9 @@ class Int32BEPrefixDelimiter : Transport<ByteArray> {
       sizeBuffer.putInt(0, it.size)
       output.write(sizeBufferArray)
       output.write(it)
+      if (output.checkError()) {
+        throw IOException()
+      }
     }
   }
 }

@@ -12,7 +12,7 @@ import com.google.protobuf.Descriptors
 import com.google.protobuf.Message
 import msg.proto.encodings.MessageTransport
 import msg.proto.protobuf.ProtobufMessage
-import java.io.EOFException
+import java.io.IOException
 import java.util.Base64
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -63,8 +63,10 @@ class Transform : ProtobufDataCommand() {
           writer(message)
         }
       }
-    } catch (t: EOFException) {
-      // Ignore, we just terminated between hasNext and next()
+    } catch (t: IOException) {
+      // Ignore, this will be either:
+      // - we just terminated between hasNext and next()
+      // - the output stream was closed
     }
   }
 

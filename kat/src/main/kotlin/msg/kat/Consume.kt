@@ -12,6 +12,7 @@ import msg.kafka.offsets.OffsetSpecs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.IsolationLevel
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.atomic.AtomicInteger
@@ -75,8 +76,15 @@ class Consume : KafkaTopicDataCommand() {
       OffsetSpecs.parseOffsetSpec(untilOption, topic)!!,
       interrupted
     ).forEach {
-      write(encoding.fromConsumerRecord(it, schema ?: topic))
-      if (receivedCount.incrementAndGet() >= limit) {
+      try {
+        write(encoding.fromConsumerRecord(it, schema ?: topic))
+        if (receivedCount.incrementAndGet() >= limit) {
+          interrupted.complete(Unit)
+        }
+      } catch (t: IOException) {
+        // Ignore, this will be either:
+        // - we just terminated between hasNext and next()
+        // - the output stream was closed
         interrupted.complete(Unit)
       }
     }

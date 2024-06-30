@@ -12,7 +12,7 @@ import msg.proto.encodings.MessageTransport
 import msg.proto.grpc.GrpcHosts
 import msg.proto.grpc.GrpcMethod
 import msg.proto.grpc.GrpcResponseWriter
-import java.io.EOFException
+import java.io.IOException
 import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -68,8 +68,10 @@ class Invoke : GrpcMethodDataCommand() {
           }
         }
       }
-    } catch (t: EOFException) {
-      // Ignore, we just terminated between hasNext and next()
+    } catch (t: IOException) {
+      // Ignore, this will be either:
+      // - we just terminated between hasNext and next()
+      // - the output stream was closed
     }
     inFlightSemaphore.acquire(inFlightLimit)
   }

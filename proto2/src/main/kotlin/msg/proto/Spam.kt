@@ -11,7 +11,7 @@ import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
 import com.google.protobuf.Timestamp
 import msg.proto.encodings.MessageTransport
-import java.io.EOFException
+import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
@@ -48,8 +48,10 @@ class Spam : ProtobufDataCommand() {
         outputCount.incrementAndGet()
         writer(message)
       }
-    } catch (t: EOFException) {
-      // Ignore, we just terminated between hasNext and next()
+    } catch (t: IOException) {
+      // Ignore, this will be either:
+      // - we just terminated between hasNext and next()
+      // - the output stream was closed
     }
   }
 

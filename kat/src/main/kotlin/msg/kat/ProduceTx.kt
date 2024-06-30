@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.ByteArraySerializer
+import java.io.EOFException
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -51,6 +52,8 @@ class ProduceTx : KafkaTopicDataCommand() {
         val bytes = reader.next()
         producer.send(encoding.toProducerRecord(topic, bytes))
       }
+    } catch (t: EOFException) {
+      // Ignore, we just terminated between hasNext and next()
     } finally {
       producer.commitTransaction()
       commitCount.incrementAndGet()

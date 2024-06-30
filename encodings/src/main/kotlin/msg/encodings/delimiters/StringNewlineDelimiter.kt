@@ -2,6 +2,7 @@ package msg.encodings.delimiters
 
 import msg.encodings.StringEncoding
 import msg.encodings.Transport
+import java.io.IOException
 import java.io.InputStream
 import java.io.PrintStream
 
@@ -11,6 +12,11 @@ class StringNewlineDelimiter<T>(private val stringEncoding: StringEncoding<T>) :
   }
 
   override fun writer(output: PrintStream): (T) -> Unit {
-    return { output.println(stringEncoding.encode(it)) }
+    return {
+      output.println(stringEncoding.encode(it))
+      if (output.checkError()) {
+        throw IOException()
+      }
+    }
   }
 }

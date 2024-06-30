@@ -9,7 +9,7 @@ import msg.proto.encodings.MessageTransport
 import msg.proto.grpc.GrpcHosts
 import msg.proto.grpc.GrpcMethod
 import msg.proto.grpc.GrpcResponseWriter
-import java.io.EOFException
+import java.io.IOException
 
 class InvokeStream : GrpcMethodDataCommand() {
   override fun help(context: Context) = """
@@ -40,8 +40,10 @@ class InvokeStream : GrpcMethodDataCommand() {
       }
       requestObserver.onCompleted()
       grpcResponseWriter.awaitStreamCompletion()
-    } catch (t: EOFException) {
-      // Ignore, we just terminated between hasNext and next()
+    } catch (t: IOException) {
+      // Ignore, this will be either:
+      // - we just terminated between hasNext and next()
+      // - the output stream was closed
     } catch (ex: StatusRuntimeException) {
       System.err.println("${ex.message} - ${ex.status}")
       throw ProgramResult(ex.status.code.value())
