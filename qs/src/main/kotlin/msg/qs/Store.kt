@@ -37,8 +37,8 @@ class Store : QsCommand() {
         val bytes = reader.next()
         val kv = encoding.getKVPair(bytes)
 
-        rocksDBManager.rocksdb.put(rocksDBManager.columnFamilyHandleList.get(defaultColumnFamilyIndex), kv.first, kv.second)
-        rocksDBManager.rocksdb.merge(rocksDBManager.columnFamilyHandleList.get(countsColumnFamilyIndex), kv.first, longToByteArray(1L))
+        rocksDBManager.rocksdb.put(rocksDBManager.columnFamilyHandleList[defaultColumnFamilyIndex], kv.first, kv.second)
+        rocksDBManager.rocksdb.merge(rocksDBManager.columnFamilyHandleList[countsColumnFamilyIndex], kv.first, longToByteArray(1L))
       }
     } catch (t: EOFException) {
       // Ignore, we just terminated between hasNext and next()
