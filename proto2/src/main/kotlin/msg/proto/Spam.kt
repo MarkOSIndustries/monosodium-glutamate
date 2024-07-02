@@ -111,7 +111,6 @@ class Spam : ProtobufDataCommand() {
     }
     return when {
       field.isRepeated -> listOf(fieldValue)
-      field.isMapField -> hashMapOf(field.name to fieldValue)
       else -> fieldValue
     }
   }
