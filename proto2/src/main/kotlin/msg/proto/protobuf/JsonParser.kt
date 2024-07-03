@@ -92,12 +92,7 @@ class JsonParser(private val typeRegistry: TypeRegistry = TypeRegistry.getEmptyT
     val typeUrl = value.getString("@type")
     val descriptor = typeUrl?.let { typeRegistry.getDescriptorForTypeUrl(it) }
     return if (descriptor != null) {
-      // DynamicMessage will let us put the "real" message in where an Any should be
-      // We take advantage of this to avoid needing to serialise it here only to
-      // deserialise it later on for use
-      // The "correct" code would be:
-      //   return com.google.protobuf.Any.newBuilder().setTypeUrl(typeUrl).setValue(readMessage(value, descriptor).toByteString()).build()
-      return readMessage(value, descriptor)
+      return com.google.protobuf.Any.newBuilder().setTypeUrl(typeUrl).setValue(readMessage(value, descriptor).toByteString()).build()
     } else {
       readMessage(value, field.messageType)
     }
