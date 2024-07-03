@@ -14,14 +14,14 @@ RUN ./gradlew
 COPY . .
 
 # gradle build MSG kotlin components
-RUN ./gradlew clean build
+RUN ./gradlew clean build --parallel
 
 # npm install MSG javascript components
 RUN (cd proto && npm install)
 RUN (cd p2p && npm install)
 RUN (cd reduce && npm install)
 
-FROM eclipse-temurin:11.0.23_9-jre AS runtime
+FROM eclipse-temurin:21.0.3_9-jre AS runtime
 RUN apt update && apt install -y nodejs netcat nano jq
 
 ARG MSG_VERSION
@@ -35,6 +35,8 @@ COPY --from=builder /home/msg/kat/build/install/kat/*.jar ./bin/kat.jar
 COPY --from=builder /home/msg/kat/build/install/kat/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/kgb/build/install/kgb/*.jar ./bin/kgb.jar
 COPY --from=builder /home/msg/kgb/build/install/kgb/dependencies ./bin/dependencies
+COPY --from=builder /home/msg/proto2/build/install/proto2/*.jar ./bin/proto2.jar
+COPY --from=builder /home/msg/proto2/build/install/proto2/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/qs/build/install/qs/*.jar ./bin/qs.jar
 COPY --from=builder /home/msg/qs/build/install/qs/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/*.js ./bin/
