@@ -40,7 +40,11 @@ class InvokeStream : GrpcMethodDataCommand() {
       }
       requestObserver.onCompleted()
       grpcResponseWriter.awaitStreamCompletion()
-    } catch (t: IOException) {
+    } catch (ex: com.google.protobuf.InvalidProtocolBufferException) {
+      System.err.println("Invalid message: ${ex.message}")
+      try { requestObserver.onError(ex) } catch (_: Exception) { }
+      throw ProgramResult(2)
+    } catch (_: IOException) {
       // Ignore, this will be either:
       // - we just terminated between hasNext and next()
       // - the output stream was closed

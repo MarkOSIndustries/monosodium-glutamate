@@ -1,6 +1,7 @@
 package msg.proto
 
 import com.github.ajalt.clikt.core.Context
+import com.github.ajalt.clikt.core.ProgramResult
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
@@ -48,7 +49,10 @@ class Spam : ProtobufDataCommand() {
         outputCount.incrementAndGet()
         writer(message)
       }
-    } catch (t: IOException) {
+    } catch (ex: com.google.protobuf.InvalidProtocolBufferException) {
+      System.err.println("Invalid message: ${ex.message}")
+      throw ProgramResult(1)
+    } catch (_: IOException) {
       // Ignore, this will be either:
       // - we just terminated between hasNext and next()
       // - the output stream was closed
