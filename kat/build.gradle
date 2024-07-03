@@ -19,6 +19,7 @@ dependencies {
   implementation project(':encodings')
   implementation project(':kafka')
   implementation project(':kafka-clikt')
+  implementation project(':progressbar')
   implementation project(':schemas')
 }
 
@@ -52,8 +53,8 @@ distributions {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }

@@ -41,7 +41,7 @@ class Spam : ProtobufDataCommand() {
 
     try {
       val transport = MessageTransport(messageDescriptor)
-      val writer = transport.writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
+      val writer = transport.writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
       while (outputCount.get() < limit) {
         val message = spamMessage(messageDescriptor)
 

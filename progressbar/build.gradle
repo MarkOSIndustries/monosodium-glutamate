@@ -5,15 +5,11 @@ plugins {
 
 repositories {
     mavenCentral()
-    maven {
-      // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
-      url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-    }
 }
 
 dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
-  api group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion
+  api group: 'me.tongfei', name: 'progressbar', version: '0.10.0'
 }
 
 compileKotlin {

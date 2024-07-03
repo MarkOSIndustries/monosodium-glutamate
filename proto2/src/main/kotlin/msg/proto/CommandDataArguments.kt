@@ -15,7 +15,7 @@ fun ProtobufCommand.outputEncodingArgument() =
     .choice(ProtobufEncodings.byName)
 fun ProtobufCommand.inputBinaryPrefixOption() =
   option("--input-prefix", help = "the prefix type to use for binary encoding")
-    .choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
+    .choice(Delimiters.lengthPrefixedBinary).default(Delimiters.lengthPrefixedBinary["varint"]!!)
 fun ProtobufCommand.outputBinaryPrefixOption() =
   option("--output-prefix", help = "the prefix type to use for binary encoding")
-    .choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
+    .choice(Delimiters.lengthPrefixedBinary).default(Delimiters.lengthPrefixedBinary["varint"]!!)

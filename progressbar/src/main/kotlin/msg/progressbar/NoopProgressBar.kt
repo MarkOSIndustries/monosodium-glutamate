@@ -1,4 +1,4 @@
-package msg.proto.terminal
+package msg.progressbar
 
 class NoopProgressBar : ProgressBar {
   override fun setTotal(total: Long) {}

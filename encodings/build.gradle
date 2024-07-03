@@ -1,5 +1,6 @@
 plugins {
   id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'java-library'
 }
 
 repositories {
@@ -12,12 +13,12 @@ dependencies {
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
 
   implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
-  implementation project(':schemas')
+  api project(':schemas')
 }
 
 compileKotlin {
-  kotlinOptions.jvmTarget = "11"
+  kotlinOptions.jvmTarget = targetJvmVersion
 }
 compileTestKotlin {
-  kotlinOptions.jvmTarget = "11"
+  kotlinOptions.jvmTarget = targetJvmVersion
 }

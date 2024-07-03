@@ -17,13 +17,13 @@ dependencies {
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
   implementation project(':clikt')
   implementation project(':encodings')
+  implementation project(':progressbar')
   implementation project(':schemas')
 
   implementation group: 'com.squareup.wire', name: 'wire-compiler', version: '4.9.9'
   implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
   implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
   implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.51'
-  implementation group: 'me.tongfei', name: 'progressbar', version: '0.10.0'
 }
 
 build {
@@ -56,8 +56,8 @@ distributions {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }

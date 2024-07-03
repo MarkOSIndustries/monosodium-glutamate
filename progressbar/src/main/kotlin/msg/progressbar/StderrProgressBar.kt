@@ -1,4 +1,4 @@
-package msg.proto.terminal
+package msg.progressbar
 
 import me.tongfei.progressbar.ProgressBarStyle
 

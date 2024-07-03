@@ -5,11 +5,14 @@ import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
+import msg.kat.encodings.KafkaRecordTransport
+import msg.progressbar.NoopProgressBar
+import msg.progressbar.StderrProgressBar
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.ByteArraySerializer
 import java.io.EOFException
 import java.util.UUID
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class ProduceTx : KafkaTopicDataCommand() {
   override fun help(context: Context) = """
@@ -18,7 +21,7 @@ class ProduceTx : KafkaTopicDataCommand() {
   Reads records from stdin and sends them to Kafka
   """.trimIndent()
 
-  private val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(5)
+  private val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(500)
   private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 
   override fun run() {
@@ -29,34 +32,44 @@ class ProduceTx : KafkaTopicDataCommand() {
     )
     producer.initTransactions()
 
-    val producedCount = AtomicInteger(0)
-    val commitCount = AtomicInteger(0)
+    val producedCount = AtomicLong(0L)
+    val commitCount = AtomicLong(0L)
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Produced $producedCount messages, $commitCount commits.")
       }
     )
 
-    val reader = delimiter().reader(System.`in`)
+    val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()
+    if (limit != Long.MAX_VALUE) {
+      progressBar.setTotal(limit)
+    }
 
-    var recordsInTransaction = 0
-    producer.beginTransaction()
-    try {
-      while (reader.hasNext() && producedCount.getAndIncrement() < limit) {
-        if (recordsInTransaction++ == commit) {
-          producer.commitTransaction()
-          commitCount.incrementAndGet()
-          recordsInTransaction = 0
-          producer.beginTransaction()
+    val transport = KafkaRecordTransport(topic, topic)
+    val reader = transport.reader(encoding(prefix), System.`in`)
+
+    progressBar.use {
+      var recordsInTransaction = 0
+      producer.beginTransaction()
+      try {
+        while (reader.hasNext() && producedCount.get() < limit) {
+          val producerRecord = reader.next()
+          producer.send(producerRecord)
+          progressBar.setProgress(producedCount.incrementAndGet())
+          if (recordsInTransaction++ == commit) {
+            producer.commitTransaction()
+            commitCount.incrementAndGet()
+            recordsInTransaction = 0
+            producer.beginTransaction()
+          }
         }
-        val bytes = reader.next()
-        producer.send(encoding.toProducerRecord(topic, bytes))
+      } catch (t: EOFException) {
+        // Ignore, we just terminated between hasNext and next()
+      } finally {
+        producer.commitTransaction()
+        commitCount.incrementAndGet()
+        progressBar.setProgress(producedCount.get())
       }
-    } catch (t: EOFException) {
-      // Ignore, we just terminated between hasNext and next()
-    } finally {
-      producer.commitTransaction()
-      commitCount.incrementAndGet()
     }
   }
 }

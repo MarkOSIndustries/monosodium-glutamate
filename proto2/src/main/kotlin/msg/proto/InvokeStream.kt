@@ -30,8 +30,8 @@ class InvokeStream : GrpcMethodDataCommand() {
       CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits)
     )
 
-    val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
-    val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
+    val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
+    val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
     val grpcResponseWriter = GrpcResponseWriter(writer)
     val requestObserver = ClientCalls.asyncBidiStreamingCall(clientCall, grpcResponseWriter)
     try {

@@ -13,12 +13,12 @@ import com.google.protobuf.Descriptors
 import com.google.protobuf.Descriptors.EnumValueDescriptor
 import com.google.protobuf.Message
 import com.google.protobuf.util.Timestamps
+import msg.progressbar.NoopProgressBar
+import msg.progressbar.StderrProgressBar
 import msg.proto.encodings.MessageTransport
 import msg.proto.protobuf.JsonParser
 import msg.proto.protobuf.JsonPrinter
 import msg.proto.protobuf.ProtobufMessage
-import msg.proto.terminal.NoopProgressBar
-import msg.proto.terminal.StderrProgressBar
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 
@@ -56,7 +56,10 @@ class Transform : ProtobufDataCommand() {
       }
     )
 
-    val progressBar = if (progress) StderrProgressBar("transform") else NoopProgressBar()
+    val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()
+    if (limit != Long.MAX_VALUE) {
+      progressBar.setTotal(limit)
+    }
 
     val filterObject = try {
       JSONObject.parseObject(filterJson)
@@ -65,25 +68,24 @@ class Transform : ProtobufDataCommand() {
       throw ProgramResult(1)
     }
 
-    try {
-      progressBar.use {
+    progressBar.use {
+      try {
         val transport = MessageTransport(messageDescriptor)
-        val reader = transport.reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
-        val writer = transport.writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
+        val reader = transport.reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
+        val writer = transport.writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
         while (reader.hasNext() && outputCount.get() < limit) {
           val message = reader.next()
-
-          progressBar.setTotal(inputCount.incrementAndGet())
+          inputCount.incrementAndGet()
           if (filter(messageDescriptor, message, filterObject)) {
-            progressBar.setProgress(outputCount.incrementAndGet())
             writer(message)
+            progressBar.setProgress(outputCount.incrementAndGet())
           }
         }
+      } catch (t: IOException) {
+        // Ignore, this will be either:
+        // - we just terminated between hasNext and next()
+        // - the output stream was closed
       }
-    } catch (t: IOException) {
-      // Ignore, this will be either:
-      // - we just terminated between hasNext and next()
-      // - the output stream was closed
     }
   }
 

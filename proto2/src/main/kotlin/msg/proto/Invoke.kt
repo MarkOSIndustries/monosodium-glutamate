@@ -42,8 +42,8 @@ class Invoke : GrpcMethodDataCommand() {
     val exitCode = AtomicInteger(0)
     val inFlightSemaphore = Semaphore(inFlightLimit, true)
     try {
-      val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots), inputBinaryPrefix, System.`in`)
-      val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots), outputBinaryPrefix, System.out)
+      val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
+      val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
       while (reader.hasNext() && exitCode.get() == 0) {
         val request = reader.next()
 

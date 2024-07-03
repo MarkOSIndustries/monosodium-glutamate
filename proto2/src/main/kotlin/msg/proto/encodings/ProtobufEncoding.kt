@@ -5,23 +5,22 @@ import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
 import msg.encodings.StringEncoding
 import msg.encodings.Transport
-import msg.encodings.delimiters.Delimiters
 import msg.encodings.delimiters.StringNewlineDelimiter
 
 sealed interface ProtobufEncoding<T> {
   fun toMessage(descriptor: Descriptors.Descriptor, data: T): Message
   fun fromMessage(message: Message): T
-  fun getDelimiter(binaryPrefix: String): Transport<T>
+  fun getTransport(): Transport<T>
 
-  abstract class OfBinary : ProtobufEncoding<ByteArray> {
-    override fun toMessage(descriptor: Descriptors.Descriptor, data: ByteArray): DynamicMessage {
+  abstract class OfBinary(private val transport: Transport<ByteArray>) : ProtobufEncoding<ByteArray> {
+    final override fun toMessage(descriptor: Descriptors.Descriptor, data: ByteArray): DynamicMessage {
       return DynamicMessage.parseFrom(descriptor, data)
     }
-    override fun fromMessage(message: Message): ByteArray {
+    final override fun fromMessage(message: Message): ByteArray {
       return message.toByteArray()
     }
-    final override fun getDelimiter(binaryPrefix: String): Transport<ByteArray> {
-      return Delimiters.lengthPrefixedBinary[binaryPrefix]!!
+    final override fun getTransport(): Transport<ByteArray> {
+      return transport
     }
   }
 
@@ -32,13 +31,13 @@ sealed interface ProtobufEncoding<T> {
     final override fun fromMessage(message: Message): ByteArray {
       return message.toByteArray()
     }
-    final override fun getDelimiter(binaryPrefix: String): Transport<ByteArray> {
+    final override fun getTransport(): Transport<ByteArray> {
       return StringNewlineDelimiter(this)
     }
   }
 
   abstract class OfStringsRepresentingJson : ProtobufEncoding<String>, StringEncoding.OfStrings {
-    final override fun getDelimiter(binaryPrefix: String): Transport<String> {
+    final override fun getTransport(): Transport<String> {
       return StringNewlineDelimiter(this)
     }
   }

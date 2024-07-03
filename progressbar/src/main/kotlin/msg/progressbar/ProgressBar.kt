@@ -1,4 +1,4 @@
-package msg.proto.terminal
+package msg.progressbar
 
 interface ProgressBar : AutoCloseable {
   fun setTotal(total: Long)
