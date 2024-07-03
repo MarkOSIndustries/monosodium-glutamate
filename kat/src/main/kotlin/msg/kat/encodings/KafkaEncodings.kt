@@ -15,5 +15,6 @@ object KafkaEncodings {
     "binary" to { Binary(it) },
     "msg.KafkaRecord" to { KafkaRecord(it) },
     "msg.TypedKafkaRecord" to { TypedKafkaRecord(it) },
+    "strings" to { Strings() },
   )
 }
