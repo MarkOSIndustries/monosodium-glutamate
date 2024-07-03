@@ -10,13 +10,16 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import com.google.protobuf.ByteString
 import com.google.protobuf.Descriptors
+import com.google.protobuf.Descriptors.EnumValueDescriptor
 import com.google.protobuf.Message
+import com.google.protobuf.util.Timestamps
 import msg.proto.encodings.MessageTransport
+import msg.proto.protobuf.JsonParser
+import msg.proto.protobuf.JsonPrinter
 import msg.proto.protobuf.ProtobufMessage
 import msg.proto.terminal.NoopProgressBar
 import msg.proto.terminal.StderrProgressBar
 import java.io.IOException
-import java.util.Base64
 import java.util.concurrent.atomic.AtomicLong
 
 class Transform : ProtobufDataCommand() {
@@ -34,6 +37,13 @@ class Transform : ProtobufDataCommand() {
 
   Reads messages from stdin, optionally filters them, and then emits them to stdout
   """.trimIndent()
+
+  private val jsonPrinter by lazy {
+    JsonPrinter(protobufRoots.typeRegistry)
+  }
+  private val jsonParser by lazy {
+    JsonParser(protobufRoots.typeRegistry)
+  }
 
   override fun run() {
     val messageDescriptor = getMessageDescriptor()
@@ -85,33 +95,40 @@ class Transform : ProtobufDataCommand() {
       }
       val fieldValue = message.getField(fieldDescriptor)
 
-      when (fieldDescriptor.type) {
-        Descriptors.FieldDescriptor.Type.GROUP, Descriptors.FieldDescriptor.Type.MESSAGE -> {
-          val protobufMessage = ProtobufMessage(protobufRoots.typeRegistry, fieldDescriptor.messageType, fieldValue as Message)
-          if (!filter(protobufMessage.messageDescriptor, protobufMessage.message, filterObject[key] as JSONObject)) {
-            return false
+      try {
+        when (fieldDescriptor.type) {
+          Descriptors.FieldDescriptor.Type.GROUP, Descriptors.FieldDescriptor.Type.MESSAGE -> {
+            val protobufMessage = ProtobufMessage(protobufRoots.typeRegistry, fieldValue as Message)
+            if (filterObject[key] is String && protobufMessage.messageDescriptor.fullName == "google.protobuf.Timestamp") {
+              filterObject[key] = jsonPrinter.messageToJSON(Timestamps.parse(filterObject[key] as String))
+            }
+            if (!filter(protobufMessage.messageDescriptor, protobufMessage.message, filterObject[key] as JSONObject)) {
+              return false
+            }
           }
-        }
 
-        Descriptors.FieldDescriptor.Type.BYTES -> {
-          if (filterObject[key] is String) {
-            filterObject[key] = Base64.getDecoder().decode(filterObject[key] as String)
+          Descriptors.FieldDescriptor.Type.BYTES -> {
+            val maybeBytes = ByteString.copyFrom(filterObject.getBytes(key))
+            if ((fieldValue as ByteString) != maybeBytes) {
+              return false
+            }
           }
-          if (!(fieldValue as ByteString).toByteArray().contentEquals(filterObject[key] as ByteArray)) {
-            return false
-          }
-        }
 
-        Descriptors.FieldDescriptor.Type.ENUM -> {
-          if (fieldValue.toString() != filterObject[key]) {
-            return false
+          Descriptors.FieldDescriptor.Type.ENUM -> {
+            if ((fieldValue as EnumValueDescriptor) != jsonParser.readField(filterObject, key, fieldDescriptor)) {
+              return false
+            }
+          }
+
+          else -> {
+            if (fieldValue != jsonParser.readField(filterObject, key, fieldDescriptor)) {
+              return false
+            }
           }
         }
-        else -> {
-          if (fieldValue != filterObject[key]) {
-            return false
-          }
-        }
+      } catch (e: Exception) {
+        // Could be we're looking at a message that doesn't match the schema we're expecting (for instance inside an Any)
+        return false
       }
     }
     return true

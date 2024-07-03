@@ -182,7 +182,7 @@ class JsonParser(private val typeRegistry: TypeRegistry = TypeRegistry.getEmptyT
     }
   }
 
-  private fun readField(parentJsonObject: JSONObject, key: String, field: Descriptors.FieldDescriptor): Any {
+  fun readField(parentJsonObject: JSONObject, key: String, field: Descriptors.FieldDescriptor): Any {
     return when (field.type!!) {
       Type.DOUBLE -> parentJsonObject.getDouble(key)
       Type.FLOAT -> parentJsonObject.getFloat(key)
@@ -201,7 +201,7 @@ class JsonParser(private val typeRegistry: TypeRegistry = TypeRegistry.getEmptyT
       Type.GROUP -> TODO()
       Type.MESSAGE -> specialTypes[field.messageType.fullName]?.let { it(parentJsonObject[key], field) }
         ?: readMessage(parentJsonObject.getJSONObject(key), field.messageType)
-      Type.BYTES -> ByteString.copyFrom(Base64.getDecoder().decode(parentJsonObject.getString(key)))
+      Type.BYTES -> ByteString.copyFrom(parentJsonObject.getBytes(key))
       Type.ENUM -> parentJsonObject.getString(key).let { asString ->
         field.enumType.values.firstOrNull { it.name == asString }
           ?: asString.toIntOrNull()?.let { asInt -> field.enumType.values.firstOrNull { it.number == asInt } }
