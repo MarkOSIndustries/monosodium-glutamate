@@ -1,2 +1,2 @@
 #!/bin/bash
-exec node $MSG_HOME/bin/proto/ "$@"
+exec java -jar $MSG_HOME/bin/proto2.jar "$@"

@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.completion.CompletionCandidates
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.options.split
 import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import org.apache.kafka.clients.CommonClientConfigs
@@ -20,7 +21,7 @@ abstract class KafkaCommand : CliktCommand() {
     "--brokers", "-b",
     help = "comma separated list of broker addresses",
     envvar = "KAFKA_BROKERS",
-  ).default("localhost:9092")
+  ).split(",").default(listOf("localhost:9092"))
   private val protocol by option(
     "--protocol", "-p",
     help = "the security mechanism to use to connect\nAny SASL-based protocol will require a SASL mechanism",

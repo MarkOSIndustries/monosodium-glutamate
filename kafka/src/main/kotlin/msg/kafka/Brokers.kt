@@ -1,9 +1,8 @@
 package msg.kafka
 
 object Brokers {
-  fun from(csvBrokers: String): List<Broker> =
-    csvBrokers
-      .split(",")
+  fun from(brokers: List<String>): List<Broker> =
+    brokers
       .map { broker ->
         val hostAndPort = broker.split(":").map { it.trim() }
         if (hostAndPort.size == 1) {

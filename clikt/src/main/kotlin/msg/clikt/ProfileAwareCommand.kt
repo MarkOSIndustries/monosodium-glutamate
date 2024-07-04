@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.core.context
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parsers.CommandLineParser
-import com.github.ajalt.clikt.sources.PropertiesValueSource
 import com.github.ajalt.clikt.sources.ValueSource
 
 abstract class ProfileAwareCommand(val args: Array<String>, name: String? = null) : CliktCommand(name) {
@@ -36,7 +35,7 @@ abstract class ProfileAwareCommand(val args: Array<String>, name: String? = null
         ?: cmd.profileOption.envvar?.let { cmd.currentContext.readEnvvar(it) }
         ?: cmd.profileDefault
 
-      return PropertiesValueSource.from("$profileDir/$profile.profile", false, ValueSource.envvarKey())
+      return ProfileValueSource.from("$profileDir/$profile.profile", ValueSource.envvarKey())
     }
   }
 }

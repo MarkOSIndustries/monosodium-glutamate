@@ -9,12 +9,16 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.long
 import msg.kafka.TopicIterator
 import msg.kafka.offsets.OffsetSpecs
+import msg.kat.encodings.KafkaRecordTransport
+import msg.progressbar.NoopProgressBar
+import msg.progressbar.StderrProgressBar
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.IsolationLevel
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
+import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class Consume : KafkaTopicDataCommand() {
   override fun help(context: Context) = """
@@ -23,7 +27,7 @@ class Consume : KafkaTopicDataCommand() {
   Reads records from Kafka and emits length-prefixed binary records on stdout
   """.trimIndent()
 
-  private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with --encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
+  private val schema by option("--schema", "-s", help = "the schema name to embed in output records. Only works with encoding msg.TypedKafkaRecord", metavar = "uses topic name by default")
   private val fromOption by option(
     "--from", "-f",
     help = "which offsets to start from",
@@ -54,30 +58,48 @@ class Consume : KafkaTopicDataCommand() {
   private val limit by option("--limit", "-l", help = "the maximum number of messages to receive").long().default(Long.MAX_VALUE)
 
   override fun run() {
-    val write = delimiter().writer(System.out)
+    val transport = KafkaRecordTransport(topic, schema ?: topic)
+    val writer = transport.writer(encoding(prefix), System.out)
 
     val interrupted = CompletableFuture<Unit>()
 
-    val receivedCount = AtomicInteger(0)
+    val receivedCount = AtomicLong(0L)
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Received $receivedCount messages.")
       }
     )
 
-    TopicIterator(
-      newConsumer(
-        ByteArrayDeserializer::class, ByteArrayDeserializer::class,
-        ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().lowercase(Locale.ROOT)
-      ),
-      topic,
-      OffsetSpecs.parseOffsetSpec(fromOption, topic)!!,
-      OffsetSpecs.parseOffsetSpec(untilOption, topic)!!,
-      interrupted
-    ).forEach {
-      write(encoding.fromConsumerRecord(it, schema ?: topic))
-      if (receivedCount.incrementAndGet() >= limit) {
-        interrupted.complete(Unit)
+    val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()
+    if (limit != Long.MAX_VALUE) {
+      progressBar.setTotal(limit)
+    }
+
+    progressBar.use {
+      TopicIterator(
+        newConsumer(
+          ByteArrayDeserializer::class, ByteArrayDeserializer::class,
+          ConsumerConfig.ISOLATION_LEVEL_CONFIG to isolation.toString().lowercase(Locale.ROOT)
+        ),
+        topic,
+        OffsetSpecs.parseOffsetSpec(fromOption, topic)!!,
+        OffsetSpecs.parseOffsetSpec(untilOption, topic)!!,
+        interrupted
+      ).forEach {
+        try {
+          writer(it)
+
+          val newReceivedCount = receivedCount.incrementAndGet()
+          progressBar.setProgress(newReceivedCount)
+          if (newReceivedCount >= limit) {
+            interrupted.complete(Unit)
+          }
+        } catch (t: IOException) {
+          // Ignore, this will be either:
+          // - we just terminated between hasNext and next()
+          // - the output stream was closed
+          interrupted.complete(Unit)
+        }
       }
     }
   }

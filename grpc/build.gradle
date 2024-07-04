@@ -10,12 +10,12 @@ dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
-  implementation group: 'io.grpc', name: 'grpc-stub', version: '1.14.0'
+  implementation group: 'io.grpc', name: 'grpc-stub', version: grpcVersion
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }

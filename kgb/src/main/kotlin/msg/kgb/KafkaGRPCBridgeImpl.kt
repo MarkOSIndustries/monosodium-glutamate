@@ -20,22 +20,20 @@ import org.apache.kafka.clients.consumer.Consumer
 class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
   override fun consume(
     request: MSG.ConsumeRequest,
-    responseObserver: io.grpc.stub.StreamObserver<MSG.TypedKafkaRecord>
+    responseObserver: StreamObserver<MSG.TypedKafkaRecord>
   ) {
     try {
       val consumer = newConsumer()
-      val iterator = {
-        val topicIterator = TopicIterator(
-          consumer,
-          request.topic,
-          getFromOffsetSpec(request),
-          getUntilOffsetSpec(request)
-        )
-        when (request.limitOneofCase) {
-          MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
-          else -> topicIterator
-        }
-      }()
+      val topicIterator = TopicIterator(
+        consumer,
+        request.topic,
+        getFromOffsetSpec(request),
+        getUntilOffsetSpec(request)
+      )
+      val iterator = when (request.limitOneofCase) {
+        MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
+        else -> topicIterator
+      }
 
       val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
       (responseObserver as ServerCallStreamObserver<MSG.TypedKafkaRecord>).sendWithBackpressure(iterator, consumer) { record ->
@@ -49,7 +47,7 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
           builder.key = ByteString.copyFrom(record.key())
         }
         if (record.value() != null) {
-          builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl(schema).build()
+          builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl("type/$schema").build()
         }
 
         builder.addAllHeaders(record.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })

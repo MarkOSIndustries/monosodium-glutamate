@@ -1,0 +1,63 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'distribution'
+}
+
+repositories {
+  mavenCentral()
+  maven {
+    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
+    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+  }
+}
+
+dependencies {
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+  testImplementation group: 'junit', name: 'junit', version: '4.11'
+  testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+  implementation project(':clikt')
+  implementation project(':encodings')
+  implementation project(':progressbar')
+  implementation project(':schemas')
+
+  implementation group: 'com.squareup.wire', name: 'wire-compiler', version: '4.9.9'
+  implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
+  implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
+  implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.51'
+}
+
+build {
+  dependsOn("installDist")
+}
+
+jar {
+  manifest {
+    attributes(
+      'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
+      'Implementation-Title': project.name,
+      'Implementation-Version': project.version,
+      'Main-Class': 'msg.proto.MainKt',
+    )
+  }
+}
+
+distributions {
+  main {
+    distributionBaseName = project.name
+    contents {
+      into("") {
+        from jar.archiveFile
+      }
+      into("dependencies") {
+        from configurations.runtimeClasspath
+      }
+    }
+  }
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = targetJvmVersion
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = targetJvmVersion
+}

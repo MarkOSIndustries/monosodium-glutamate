@@ -19,10 +19,10 @@ dependencies {
   implementation group: 'org.rocksdb', name: 'rocksdbjni', version: '6.11.4'
   implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
   implementation project(':clikt')
-  implementation project(':encodings-clikt')
+  implementation project(':encodings')
   implementation project(':grpc')
   implementation project(':schemas')
-  implementation group: 'io.grpc', name: 'grpc-netty', version: '1.14.0'
+  implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
 }
 
 build {
@@ -55,8 +55,8 @@ distributions {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = targetJvmVersion
 }

@@ -1,0 +1,20 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+  api group: 'me.tongfei', name: 'progressbar', version: '0.10.0'
+}
+
+compileKotlin {
+  kotlinOptions.jvmTarget = targetJvmVersion
+}
+compileTestKotlin {
+  kotlinOptions.jvmTarget = targetJvmVersion
+}
