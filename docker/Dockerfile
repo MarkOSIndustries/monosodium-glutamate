@@ -68,6 +68,8 @@ WORKDIR /home/root
 
 RUN echo 'export COMPLETIONS_KAFKA_TOPICS=${MSG_HOME}/topics.txt; (kat topics > $COMPLETIONS_KAFKA_TOPICS 2> /dev/null &);' >> /root/.bashrc
 RUN (cd $MSG_HOME/bin/ && _KAT_COMPLETE=bash java -jar ./kat.jar >> /root/.bashrc)
-RUN (cd $MSG_HOME/bin/ && node ./proto/ completion >> /root/.bashrc)
+RUN echo 'export COMPLETIONS_PROTO_SERVICES=${MSG_HOME}/services.txt; (proto services > $COMPLETIONS_PROTO_SERVICES 2> /dev/null &);' >> /root/.bashrc
+RUN echo 'export COMPLETIONS_PROTO_MESSAGES=${MSG_HOME}/messages.txt; (proto schemas > $COMPLETIONS_PROTO_MESSAGES 2> /dev/null &);' >> /root/.bashrc
+RUN (cd $MSG_HOME/bin/ && _PROTO_COMPLETE=bash java -jar ./proto2.jar >> /root/.bashrc)
 RUN echo 'export PS1="\[\033[01;32m\]msg\[\033[02;37m\]:\[\033[00;01;90m\]v$MSG_VERSION\[\033[02;37m\]:\[\033[00;01;34m\]\w\[\033[02;37m\]\$\[\033[00m\] "' >> /root/.bashrc
 CMD bash
