@@ -51,6 +51,7 @@ COPY docker/bin/kat.sh /usr/local/bin/kat
 COPY docker/bin/kgb.sh /usr/local/bin/kgb
 COPY docker/bin/qs.sh /usr/local/bin/qs
 COPY docker/bin/proto.sh /usr/local/bin/proto
+COPY docker/bin/legacy-proto.sh /usr/local/bin/legacy-proto
 COPY docker/bin/p2p.sh /usr/local/bin/p2p
 COPY docker/bin/reduce.sh /usr/local/bin/reduce
 COPY docker/bin/version.sh /usr/local/bin/version
