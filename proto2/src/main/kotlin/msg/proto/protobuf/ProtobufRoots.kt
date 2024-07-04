@@ -5,7 +5,15 @@ import com.google.protobuf.TypeRegistry
 import java.nio.file.Path
 
 class ProtobufRoots(protobufPaths: Collection<Path>) {
-  val protobufRoots = protobufPaths.map { FileSystemProtobufRoot(it) } + MSGProtobufRoot()
+  val protobufRoots = protobufPaths.map {
+    try {
+      FileSystemProtobufRoot(it)
+    } catch (ex: Exception) {
+      System.err.println("Couldn't load protobuf root $it - ${ex.message}")
+      null
+    }
+  }.filterNotNull() + MSGProtobufRoot()
+
   val typeRegistry: TypeRegistry by lazy {
     val typeRegistry = TypeRegistry.newBuilder()
     for (protobufRoot in protobufRoots) {
