@@ -5,9 +5,22 @@ import java.io.DataInputStream
 import java.io.InputStream
 
 class VarInt32PrefixedByteArrayIterator(inputStream: InputStream) : Iterator<ByteArray> {
+  private class ResettableBox<T>(val getter: () -> T) {
+    private var value: T? = null
+    fun get(): T {
+      if (value == null) {
+        value = getter()
+      }
+      return value!!
+    }
+    fun reset() {
+      value = null
+    }
+  }
+
   private val input = DataInputStream(inputStream)
   private var hasNext = true
-  private var nextMessageSize = tryGetNextMessageSize()
+  private var nextMessageSize = ResettableBox(this::tryGetNextMessageSize)
 
   private fun tryGetNextMessageSize(): Int = try {
     val nextFirstByte = input.read()
@@ -22,12 +35,15 @@ class VarInt32PrefixedByteArrayIterator(inputStream: InputStream) : Iterator<Byt
     -1
   }
 
-  override fun hasNext(): Boolean = hasNext
+  override fun hasNext(): Boolean {
+    nextMessageSize.get()
+    return hasNext
+  }
 
   override fun next(): ByteArray {
-    val value = ByteArray(nextMessageSize)
+    val value = ByteArray(nextMessageSize.get())
     input.readFully(value)
-    nextMessageSize = tryGetNextMessageSize()
+    nextMessageSize.reset()
     return value
   }
 }
