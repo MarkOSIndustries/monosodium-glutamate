@@ -1,5 +1,5 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'org.jetbrains.kotlin.jvm'
   id 'java-library'
 }
 
@@ -14,11 +14,4 @@ dependencies {
 
   implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
   api project(':schemas')
-}
-
-compileKotlin {
-  kotlinOptions.jvmTarget = targetJvmVersion
-}
-compileTestKotlin {
-  kotlinOptions.jvmTarget = targetJvmVersion
 }

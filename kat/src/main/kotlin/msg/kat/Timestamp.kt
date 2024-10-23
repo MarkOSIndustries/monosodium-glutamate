@@ -11,20 +11,23 @@ import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import java.time.Duration
 
 class Timestamp : KafkaTopicCommand() {
-  override fun help(context: Context) = """
-  Query timestamp by offset
+  override fun help(context: Context) =
+    """
+    Query timestamp by offset
 
-  Retrieves the timestamp a given offset on a given topic partition and prints to stdout
-  """.trimIndent()
+    Retrieves the timestamp a given offset on a given topic partition and prints to stdout
+    """.trimIndent()
 
   val partition by argument("partition", "the partition to query").int()
   val offset by argument("offset", "the offset to get the timestamp for").long()
 
   override fun run() {
-    val consumer = newConsumer(
-      ByteArrayDeserializer::class, ByteArrayDeserializer::class,
-      ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 1
-    )
+    val consumer =
+      newConsumer(
+        ByteArrayDeserializer::class,
+        ByteArrayDeserializer::class,
+        ConsumerConfig.MAX_POLL_RECORDS_CONFIG to 1,
+      )
     val topicPartition = TopicPartition(topic, partition)
     consumer.assign(listOf(topicPartition))
     consumer.seek(topicPartition, offset)

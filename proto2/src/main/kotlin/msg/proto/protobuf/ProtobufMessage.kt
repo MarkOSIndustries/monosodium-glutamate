@@ -7,7 +7,10 @@ import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
 import com.google.protobuf.TypeRegistry
 
-class ProtobufMessage(typeRegistry: TypeRegistry, message: Message) {
+class ProtobufMessage(
+  typeRegistry: TypeRegistry,
+  message: Message,
+) {
   val messageDescriptor: Descriptors.Descriptor
   val message: Message
 

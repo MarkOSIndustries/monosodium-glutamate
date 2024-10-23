@@ -10,13 +10,16 @@ import com.google.protobuf.Descriptors.FieldDescriptor.Type.MESSAGE
 import msg.proto.terminal.Colours
 
 class Schemas : ProtobufCommand() {
-  override fun help(context: Context) = """
-  Query schemas
+  override fun help(context: Context) =
+    """
+    Query schemas
 
-  Gets the names and fields of all known schemas and prints to stdout
-  """.trimIndent()
+    Gets the names and fields of all known schemas and prints to stdout
+    """.trimIndent()
 
-  private val query by argument(help = "Filter the schema list by fully qualified name (case-insensitive, supports * wildcards)").default("*")
+  private val query by argument(
+    help = "Filter the schema list by fully qualified name (case-insensitive, supports * wildcards)",
+  ).default("*")
   private val not by option("--not", "-n", help = "Invert the filter to be exclusive rather than inclusive").flag(default = false)
   private val fields by option("--fields", "-f", help = "Include a description of the schemas' fields in the output").flag(default = false)
 
@@ -26,7 +29,8 @@ class Schemas : ProtobufCommand() {
 
     val terminal = Terminal()
 
-    protobufRoots.getAllMessageDescriptors()
+    protobufRoots
+      .getAllMessageDescriptors()
       .filter { not xor regex.matches(it.fullName) }
       .sortedBy { it.fullName }
       .distinctBy { it.fullName } // handle multiple sources importing common protobufs, like google ones

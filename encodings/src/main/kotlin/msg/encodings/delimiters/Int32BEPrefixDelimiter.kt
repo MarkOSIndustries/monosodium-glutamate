@@ -7,9 +7,7 @@ import java.io.PrintStream
 import java.nio.ByteBuffer
 
 class Int32BEPrefixDelimiter : Transport<ByteArray> {
-  override fun reader(input: InputStream): Iterator<ByteArray> {
-    return Int32PrefixedByteArrayIterator(input)
-  }
+  override fun reader(input: InputStream): Iterator<ByteArray> = Int32PrefixedByteArrayIterator(input)
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
     val sizeBufferArray = ByteArray(4)

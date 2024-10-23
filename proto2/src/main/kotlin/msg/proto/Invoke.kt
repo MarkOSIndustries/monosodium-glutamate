@@ -18,20 +18,25 @@ import java.util.concurrent.Semaphore
 import java.util.concurrent.atomic.AtomicInteger
 
 class Invoke : GrpcMethodDataCommand() {
-  private val inFlightLimit by option("--inflight", "-l", help = "the maximum number of requests simultaneously awaiting response").int().default(Int.MAX_VALUE).validate {
+  private val inFlightLimit by option(
+    "--inflight",
+    "-l",
+    help = "the maximum number of requests simultaneously awaiting response",
+  ).int().default(Int.MAX_VALUE).validate {
     require(it > 0) {
       """
-        $it
-        At least one request must be allowed in-flight simultaneously
+      $it
+      At least one request must be allowed in-flight simultaneously
       """.trimIndent()
     }
   }
 
-  override fun help(context: Context) = """
+  override fun help(context: Context) =
+    """
     Invoke a GRPC method
 
     Reads requests from stdin and makes a new GRPC call for each request, writing responses to stdout
-  """.trimIndent()
+    """.trimIndent()
 
   override fun run() {
     val serviceDescriptor = getServiceDescriptor()
@@ -49,10 +54,11 @@ class Invoke : GrpcMethodDataCommand() {
         val request = reader.next()
 
         inFlightSemaphore.acquire()
-        val clientCall = grpcHosts.managedChannel.newCall(
-          grpcMethod.methodDescriptor,
-          CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits)
-        )
+        val clientCall =
+          grpcHosts.managedChannel.newCall(
+            grpcMethod.methodDescriptor,
+            CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits),
+          )
         val grpcResponseWriter = GrpcResponseWriter(writer)
         ClientCalls.asyncServerStreamingCall(clientCall, request, grpcResponseWriter)
         grpcResponseWriter.onStreamCompletion { maybeException ->

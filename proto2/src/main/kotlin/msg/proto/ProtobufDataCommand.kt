@@ -11,13 +11,12 @@ abstract class ProtobufDataCommand : ProtobufCommand() {
   private val messageName by argument(
     name = "message",
     help = "protobuf message to use (fully qualified)",
-    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_PROTO_MESSAGES""")
+    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_PROTO_MESSAGES"""),
   )
 
-  protected fun getMessageDescriptor(): Descriptors.Descriptor {
-    return protobufRoots.findMessageDescriptor(messageName) ?: run {
+  protected fun getMessageDescriptor(): Descriptors.Descriptor =
+    protobufRoots.findMessageDescriptor(messageName) ?: run {
       System.err.println("Schema $messageName not found. Try >proto schemas")
       throw ProgramResult(1)
     }
-  }
 }

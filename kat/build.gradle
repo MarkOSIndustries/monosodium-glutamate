@@ -1,5 +1,5 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'org.jetbrains.kotlin.jvm'
   id 'distribution'
 }
 
@@ -30,11 +30,11 @@ build {
 jar {
   manifest {
     attributes(
-      'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
-      'Implementation-Title': project.name,
-      'Implementation-Version': project.version,
-      'Main-Class': 'msg.kat.MainKt',
-    )
+        'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
+        'Implementation-Title': project.name,
+        'Implementation-Version': project.version,
+        'Main-Class': 'msg.kat.MainKt',
+        )
   }
 }
 
@@ -50,11 +50,4 @@ distributions {
       }
     }
   }
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = targetJvmVersion
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = targetJvmVersion
 }

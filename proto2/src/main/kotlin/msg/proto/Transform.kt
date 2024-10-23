@@ -32,11 +32,12 @@ class Transform : ProtobufDataCommand() {
   private val filterJson by option("--filter", "-f", help = "a JSON object specifying fields and values which must match").default("{}")
   private val progress by option("--progress", help = "show a progress bar").flag()
 
-  override fun help(context: Context) = """
-  Transform protobuf messages
+  override fun help(context: Context) =
+    """
+    Transform protobuf messages
 
-  Reads messages from stdin, optionally filters them, and then emits them to stdout
-  """.trimIndent()
+    Reads messages from stdin, optionally filters them, and then emits them to stdout
+    """.trimIndent()
 
   private val jsonPrinter by lazy {
     JsonPrinter(protobufRoots.typeRegistry)
@@ -53,7 +54,7 @@ class Transform : ProtobufDataCommand() {
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Transformed $outputCount of $inputCount messages")
-      }
+      },
     )
 
     val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()
@@ -61,12 +62,13 @@ class Transform : ProtobufDataCommand() {
       progressBar.setTotal(limit)
     }
 
-    val filterObject = try {
-      JSONObject.parseObject(filterJson)
-    } catch (e: JSONException) {
-      System.err.println("Invalid filter JSON: ${e.message}")
-      throw ProgramResult(1)
-    }
+    val filterObject =
+      try {
+        JSONObject.parseObject(filterJson)
+      } catch (e: JSONException) {
+        System.err.println("Invalid filter JSON: ${e.message}")
+        throw ProgramResult(1)
+      }
 
     progressBar.use {
       try {
@@ -92,7 +94,11 @@ class Transform : ProtobufDataCommand() {
     }
   }
 
-  private fun filter(messageDescriptor: Descriptors.Descriptor, message: Message, filterObject: JSONObject): Boolean {
+  private fun filter(
+    messageDescriptor: Descriptors.Descriptor,
+    message: Message,
+    filterObject: JSONObject,
+  ): Boolean {
     for (key in filterObject.keys) {
       val fieldDescriptor = messageDescriptor.findFieldByName(key) ?: return false
       if (!message.hasField(fieldDescriptor)) {

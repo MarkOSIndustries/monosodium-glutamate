@@ -6,17 +6,21 @@ import java.io.IOException
 import java.io.InputStream
 import java.io.PrintStream
 
-class StringNewlineDelimiter<T>(private val stringEncoding: StringEncoding<T>) : Transport<T> {
-  override fun reader(input: InputStream): Iterator<T> {
-    return input.bufferedReader().lineSequence().map { stringEncoding.decode(it) }.iterator()
-  }
+class StringNewlineDelimiter<T>(
+  private val stringEncoding: StringEncoding<T>,
+) : Transport<T> {
+  override fun reader(input: InputStream): Iterator<T> =
+    input
+      .bufferedReader()
+      .lineSequence()
+      .map { stringEncoding.decode(it) }
+      .iterator()
 
-  override fun writer(output: PrintStream): (T) -> Unit {
-    return {
+  override fun writer(output: PrintStream): (T) -> Unit =
+    {
       output.println(stringEncoding.encode(it))
       if (output.checkError()) {
         throw IOException()
       }
     }
-  }
 }

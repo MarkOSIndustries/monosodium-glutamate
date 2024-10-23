@@ -12,8 +12,11 @@ class ProfileValueSource(
   private val values: Map<String, String>,
   private val getKey: (Context, Option) -> String = ValueSource.envvarKey(),
 ) : ValueSource {
-  override fun getValues(context: Context, option: Option): List<ValueSource.Invocation> {
-    return values[option.valueSourceKey ?: getKey(context, option)]
+  override fun getValues(
+    context: Context,
+    option: Option,
+  ): List<ValueSource.Invocation> =
+    values[option.valueSourceKey ?: getKey(context, option)]
       ?.let {
         if (option is OptionWithValues<*, *, *> && option.valueSplit != null) {
           listOf(ValueSource.Invocation(option.valueSplit!!.split(it)))
@@ -21,10 +24,12 @@ class ProfileValueSource(
           ValueSource.Invocation.just(it)
         }
       }.orEmpty()
-  }
 
   companion object {
-    fun from(file: String, getKey: (Context, Option) -> String = ValueSource.envvarKey()): ProfileValueSource {
+    fun from(
+      file: String,
+      getKey: (Context, Option) -> String = ValueSource.envvarKey(),
+    ): ProfileValueSource {
       val path = Path.of(file)
       val properties = Properties()
       if (Files.isRegularFile(path)) {

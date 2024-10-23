@@ -8,5 +8,6 @@ class Hex : KafkaEncoding.OfStringsRepresentingBinary() {
   private val decoder = BaseEncoding.base16().ignoreCase()
 
   override fun encode(data: ByteArray): String = encoder.encode(data)
+
   override fun decode(string: String): ByteArray = decoder.decode(string)
 }

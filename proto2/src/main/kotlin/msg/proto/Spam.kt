@@ -18,17 +18,22 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.random.Random
 
 class Spam : ProtobufDataCommand() {
-  override fun help(context: Context) = """
-  Generate pseudo-random protobuf records
+  override fun help(context: Context) =
+    """
+    Generate pseudo-random protobuf records
 
-  Fills the specified schema with pseudo-random data, and emits it to stdout
-  """.trimIndent()
+    Fills the specified schema with pseudo-random data, and emits it to stdout
+    """.trimIndent()
 
   private val outputEncoding by outputEncodingArgument()
   private val outputBinaryPrefix by outputBinaryPrefixOption()
 
   private val limit by option("--limit", "-l", help = "the maximum number of messages to output").long().default(Long.MAX_VALUE)
-  private val recursionLimit by option("--recursion-limit", "-r", help = "the maximum times a message type can be contained within itself").int().default(3)
+  private val recursionLimit by option(
+    "--recursion-limit",
+    "-r",
+    help = "the maximum times a message type can be contained within itself",
+  ).int().default(3)
 
   override fun run() {
     val messageDescriptor = getMessageDescriptor()
@@ -37,7 +42,7 @@ class Spam : ProtobufDataCommand() {
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Spammed $outputCount messages")
-      }
+      },
     )
 
     try {
@@ -59,13 +64,16 @@ class Spam : ProtobufDataCommand() {
     }
   }
 
-  private fun spamMessage(messageDescriptor: Descriptors.Descriptor, messageTypeOccurrences: List<String> = emptyList()): Message {
+  private fun spamMessage(
+    messageDescriptor: Descriptors.Descriptor,
+    messageTypeOccurrences: List<String> = emptyList(),
+  ): Message {
     val isValidField = { field: Descriptors.FieldDescriptor ->
       !field.options.hasDeprecated() &&
         !(
           field.type == Descriptors.FieldDescriptor.Type.MESSAGE &&
             messageTypeOccurrences.count { it == field.messageType.fullName } > recursionLimit
-          )
+        )
     }
 
     val setField = { message: DynamicMessage.Builder, field: Descriptors.FieldDescriptor ->
@@ -73,7 +81,14 @@ class Spam : ProtobufDataCommand() {
     }
 
     return when (messageDescriptor.fullName) {
-      "google.protobuf.Timestamp" -> Instant.now().let { Timestamp.newBuilder().setSeconds(it.epochSecond).setNanos(it.nano).build() }
+      "google.protobuf.Timestamp" ->
+        Instant.now().let {
+          Timestamp
+            .newBuilder()
+            .setSeconds(it.epochSecond)
+            .setNanos(it.nano)
+            .build()
+        }
       else -> {
         val message = DynamicMessage.newBuilder(messageDescriptor)
         for (realOneof in messageDescriptor.realOneofs) {
@@ -92,27 +107,33 @@ class Spam : ProtobufDataCommand() {
     }
   }
 
-  private fun spamField(field: Descriptors.FieldDescriptor, messageTypeOccurrences: List<String>): Any {
-    val fieldValue: Any = when (field.type!!) {
-      Descriptors.FieldDescriptor.Type.DOUBLE -> Random.nextDouble() * 65536
-      Descriptors.FieldDescriptor.Type.FLOAT -> Random.nextFloat() * 65536
-      Descriptors.FieldDescriptor.Type.INT64,
-      Descriptors.FieldDescriptor.Type.SINT64,
-      Descriptors.FieldDescriptor.Type.FIXED64,
-      Descriptors.FieldDescriptor.Type.SFIXED64,
-      Descriptors.FieldDescriptor.Type.UINT64 -> Random.nextLong(0, 65536)
-      Descriptors.FieldDescriptor.Type.INT32,
-      Descriptors.FieldDescriptor.Type.SINT32,
-      Descriptors.FieldDescriptor.Type.FIXED32,
-      Descriptors.FieldDescriptor.Type.SFIXED32,
-      Descriptors.FieldDescriptor.Type.UINT32 -> Random.nextInt(0, 65536)
-      Descriptors.FieldDescriptor.Type.BOOL -> Random.nextBoolean()
-      Descriptors.FieldDescriptor.Type.STRING -> "${field.name} ${Random.nextInt(0, 65536)}"
-      Descriptors.FieldDescriptor.Type.GROUP -> TODO()
-      Descriptors.FieldDescriptor.Type.MESSAGE -> spamMessage(field.messageType, messageTypeOccurrences)
-      Descriptors.FieldDescriptor.Type.BYTES -> ByteString.copyFrom(Random.nextBytes(16))
-      Descriptors.FieldDescriptor.Type.ENUM -> field.enumType.values[(0 until field.enumType.values.size).random()]
-    }
+  private fun spamField(
+    field: Descriptors.FieldDescriptor,
+    messageTypeOccurrences: List<String>,
+  ): Any {
+    val fieldValue: Any =
+      when (field.type!!) {
+        Descriptors.FieldDescriptor.Type.DOUBLE -> Random.nextDouble() * 65536
+        Descriptors.FieldDescriptor.Type.FLOAT -> Random.nextFloat() * 65536
+        Descriptors.FieldDescriptor.Type.INT64,
+        Descriptors.FieldDescriptor.Type.SINT64,
+        Descriptors.FieldDescriptor.Type.FIXED64,
+        Descriptors.FieldDescriptor.Type.SFIXED64,
+        Descriptors.FieldDescriptor.Type.UINT64,
+        -> Random.nextLong(0, 65536)
+        Descriptors.FieldDescriptor.Type.INT32,
+        Descriptors.FieldDescriptor.Type.SINT32,
+        Descriptors.FieldDescriptor.Type.FIXED32,
+        Descriptors.FieldDescriptor.Type.SFIXED32,
+        Descriptors.FieldDescriptor.Type.UINT32,
+        -> Random.nextInt(0, 65536)
+        Descriptors.FieldDescriptor.Type.BOOL -> Random.nextBoolean()
+        Descriptors.FieldDescriptor.Type.STRING -> "${field.name} ${Random.nextInt(0, 65536)}"
+        Descriptors.FieldDescriptor.Type.GROUP -> TODO()
+        Descriptors.FieldDescriptor.Type.MESSAGE -> spamMessage(field.messageType, messageTypeOccurrences)
+        Descriptors.FieldDescriptor.Type.BYTES -> ByteString.copyFrom(Random.nextBytes(16))
+        Descriptors.FieldDescriptor.Type.ENUM -> field.enumType.values[(0 until field.enumType.values.size).random()]
+      }
     return when {
       field.isRepeated -> listOf(fieldValue)
       else -> fieldValue

@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11.0.23_9-jdk AS builder
+FROM eclipse-temurin:21.0.3_9-jdk AS builder
 RUN apt update && apt install -y nodejs npm
 
 WORKDIR /home/msg

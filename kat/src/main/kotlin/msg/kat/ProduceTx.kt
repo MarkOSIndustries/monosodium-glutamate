@@ -15,21 +15,24 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 
 class ProduceTx : KafkaTopicDataCommand() {
-  override fun help(context: Context) = """
-  Produce records to Kafka using transactions
+  override fun help(context: Context) =
+    """
+    Produce records to Kafka using transactions
 
-  Reads records from stdin and sends them to Kafka
-  """.trimIndent()
+    Reads records from stdin and sends them to Kafka
+    """.trimIndent()
 
   private val commit by option("-c", "--commit", help = "How many records should be sent per transaction").int().default(500)
   private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 
   override fun run() {
-    val producer = newProducer(
-      ByteArraySerializer::class, ByteArraySerializer::class,
-      ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
-      ProducerConfig.TRANSACTIONAL_ID_CONFIG to UUID.randomUUID().toString()
-    )
+    val producer =
+      newProducer(
+        ByteArraySerializer::class,
+        ByteArraySerializer::class,
+        ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG to true,
+        ProducerConfig.TRANSACTIONAL_ID_CONFIG to UUID.randomUUID().toString(),
+      )
     producer.initTransactions()
 
     val producedCount = AtomicLong(0L)
@@ -37,7 +40,7 @@ class ProduceTx : KafkaTopicDataCommand() {
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Produced $producedCount messages, $commitCount commits.")
-      }
+      },
     )
 
     val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()

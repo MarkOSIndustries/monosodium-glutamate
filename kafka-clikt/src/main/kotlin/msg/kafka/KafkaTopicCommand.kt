@@ -8,6 +8,6 @@ abstract class KafkaTopicCommand : KafkaCommand() {
 
   protected val topic by argument(
     help = "the name of the topic",
-    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_KAFKA_TOPICS""")
+    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_KAFKA_TOPICS"""),
   )
 }

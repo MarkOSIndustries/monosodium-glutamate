@@ -12,11 +12,12 @@ import msg.proto.grpc.GrpcResponseWriter
 import java.io.IOException
 
 class InvokeStream : GrpcMethodDataCommand() {
-  override fun help(context: Context) = """
+  override fun help(context: Context) =
+    """
     Invoke a GRPC method using client streaming
 
     Reads requests from stdin and makes a single GRPC call to stream them, writing responses to stdout
-  """.trimIndent()
+    """.trimIndent()
 
   override fun run() {
     val serviceDescriptor = getServiceDescriptor()
@@ -25,10 +26,11 @@ class InvokeStream : GrpcMethodDataCommand() {
     val grpcMethod = GrpcMethod(serviceDescriptor, methodDescriptor)
     val grpcHosts = GrpcHosts(hostsAndPorts, defaultPort)
 
-    val clientCall = grpcHosts.managedChannel.newCall(
-      grpcMethod.methodDescriptor,
-      CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits)
-    )
+    val clientCall =
+      grpcHosts.managedChannel.newCall(
+        grpcMethod.methodDescriptor,
+        CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits),
+      )
 
     val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
     val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
@@ -42,7 +44,10 @@ class InvokeStream : GrpcMethodDataCommand() {
       grpcResponseWriter.awaitStreamCompletion()
     } catch (ex: com.google.protobuf.InvalidProtocolBufferException) {
       System.err.println("Invalid message: ${ex.message}")
-      try { requestObserver.onError(ex) } catch (_: Exception) { }
+      try {
+        requestObserver.onError(ex)
+      } catch (_: Exception) {
+      }
       throw ProgramResult(2)
     } catch (_: IOException) {
       // Ignore, this will be either:
@@ -53,7 +58,10 @@ class InvokeStream : GrpcMethodDataCommand() {
       throw ProgramResult(ex.status.code.value())
     } catch (ex: Exception) {
       System.err.println("${ex.message}")
-      try { requestObserver.onError(ex) } catch (_: Exception) { }
+      try {
+        requestObserver.onError(ex)
+      } catch (_: Exception) {
+      }
       throw ProgramResult(2)
     }
   }

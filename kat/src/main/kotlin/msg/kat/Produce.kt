@@ -15,11 +15,12 @@ import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicLong
 
 class Produce : KafkaTopicDataCommand() {
-  override fun help(context: Context) = """
-  Produce records to Kafka
+  override fun help(context: Context) =
+    """
+    Produce records to Kafka
 
-  Reads records from stdin and sends them to Kafka
-  """.trimIndent()
+    Reads records from stdin and sends them to Kafka
+    """.trimIndent()
 
   private val limit by option("--limit", "-l", help = "the maximum number of messages to produce").long().default(Long.MAX_VALUE)
 
@@ -33,7 +34,7 @@ class Produce : KafkaTopicDataCommand() {
     Runtime.getRuntime().addShutdownHook(
       Thread {
         System.err.println("Produced $producedCount messages, $ackedCount ACKed.")
-      }
+      },
     )
 
     val progressBar = if (progress) StderrProgressBar(this.commandName) else NoopProgressBar()

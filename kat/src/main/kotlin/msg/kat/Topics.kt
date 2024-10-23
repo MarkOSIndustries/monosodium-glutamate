@@ -12,11 +12,12 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.ByteArrayDeserializer
 
 class Topics : KafkaCommand() {
-  override fun help(context: Context) = """
-  Query topics
+  override fun help(context: Context) =
+    """
+    Query topics
 
-  Retrieves the names of all topics from Kafka and prints to stdout
-  """.trimIndent()
+    Retrieves the names of all topics from Kafka and prints to stdout
+    """.trimIndent()
 
   private val query by argument(help = "Filter the topic list (case-insensitive, supports * wildcards)").default("*")
   private val not by option("--not", "-n", help = "Invert the filter to be exclusive rather than inclusive").flag(default = false)
@@ -27,7 +28,8 @@ class Topics : KafkaCommand() {
     val regex = Regex(pattern, RegexOption.IGNORE_CASE)
 
     val consumer = newConsumer(ByteArrayDeserializer::class, ByteArrayDeserializer::class)
-    consumer.listTopics()
+    consumer
+      .listTopics()
       .filterKeys { not xor regex.matches(it) }
       .toSortedMap()
       .forEach { topicWithPartitionInfos ->
@@ -38,7 +40,11 @@ class Topics : KafkaCommand() {
           val latest = LatestOffsetSpec().getOffsets(consumer, topicPartitionsWithInfo.keys)
           earliest.forEach {
             val topicPartitionInfo = topicPartitionsWithInfo[it.key]!!
-            println("  ${it.key} | Offset range [${it.value}, ${latest[it.key]}) | ISR <${topicPartitionInfo.inSyncReplicas().joinToString(",")}> | Leader ${topicPartitionInfo.leader()}")
+            println(
+              "  ${it.key} | Offset range [${it.value}, ${latest[it.key]}) | ISR <${topicPartitionInfo.inSyncReplicas().joinToString(
+                ",",
+              )}> | Leader ${topicPartitionInfo.leader()}",
+            )
           }
         }
       }

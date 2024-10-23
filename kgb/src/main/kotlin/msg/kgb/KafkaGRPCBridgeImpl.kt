@@ -17,59 +17,88 @@ import msg.schemas.KafkaGRPCBridgeGrpc
 import msg.schemas.MSG
 import org.apache.kafka.clients.consumer.Consumer
 
-class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, ByteArray>) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
+class KafkaGRPCBridgeImpl(
+  private val newConsumer: () -> Consumer<ByteArray, ByteArray>,
+) : KafkaGRPCBridgeGrpc.KafkaGRPCBridgeImplBase() {
   override fun consume(
     request: MSG.ConsumeRequest,
-    responseObserver: StreamObserver<MSG.TypedKafkaRecord>
+    responseObserver: StreamObserver<MSG.TypedKafkaRecord>,
   ) {
     try {
       val consumer = newConsumer()
-      val topicIterator = TopicIterator(
-        consumer,
-        request.topic,
-        getFromOffsetSpec(request),
-        getUntilOffsetSpec(request)
-      )
-      val iterator = when (request.limitOneofCase) {
-        MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
-        else -> topicIterator
-      }
+      val topicIterator =
+        TopicIterator(
+          consumer,
+          request.topic,
+          getFromOffsetSpec(request),
+          getUntilOffsetSpec(request),
+        )
+      val iterator =
+        when (request.limitOneofCase) {
+          MSG.ConsumeRequest.LimitOneofCase.LIMIT -> LimitedIterator(topicIterator, request.limit)
+          else -> topicIterator
+        }
 
       val schema = if (request.schema.isNullOrEmpty()) request.topic else request.schema
       (responseObserver as ServerCallStreamObserver<MSG.TypedKafkaRecord>).sendWithBackpressure(iterator, consumer) { record ->
-        val builder = MSG.TypedKafkaRecord.newBuilder()
-          .setTopic(record.topic())
-          .setPartition(record.partition())
-          .setOffset(record.offset())
-          .setTimestamp(record.timestamp())
+        val builder =
+          MSG.TypedKafkaRecord
+            .newBuilder()
+            .setTopic(record.topic())
+            .setPartition(record.partition())
+            .setOffset(record.offset())
+            .setTimestamp(record.timestamp())
 
         if (record.key() != null) {
           builder.key = ByteString.copyFrom(record.key())
         }
         if (record.value() != null) {
-          builder.value = Any.newBuilder().setValue(ByteString.copyFrom(record.value())).setTypeUrl("type/$schema").build()
+          builder.value =
+            Any
+              .newBuilder()
+              .setValue(ByteString.copyFrom(record.value()))
+              .setTypeUrl("type/$schema")
+              .build()
         }
 
-        builder.addAllHeaders(record.headers().map { header -> MSG.KafkaHeader.newBuilder().setValue(ByteString.copyFrom(header.value())).setKey(header.key()).build() })
+        builder.addAllHeaders(
+          record.headers().map { header ->
+            MSG.KafkaHeader
+              .newBuilder()
+              .setValue(
+                ByteString.copyFrom(header.value()),
+              ).setKey(header.key())
+              .build()
+          },
+        )
 
         builder.build()
       }
     } catch (t: Throwable) {
       t.printStackTrace()
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
+      responseObserver.onError(
+        Status.INTERNAL
+          .withDescription("Internal error")
+          .withCause(t)
+          .asRuntimeException(),
+      )
     }
   }
 
   override fun offsets(
     request: MSG.OffsetsRequest,
-    responseObserver: StreamObserver<MSG.OffsetsResponse>
+    responseObserver: StreamObserver<MSG.OffsetsResponse>,
   ) {
     try {
       newConsumer().use { consumer ->
         val partitions = consumer.topicPartitions(request.topic)
 
         TimestampOffsetSpec(request.timestamp).getOffsetsWithTimestamps(consumer, partitions).forEach {
-          val builder = MSG.OffsetsResponse.newBuilder().setTopic(it.key.topic()).setPartition(it.key.partition())
+          val builder =
+            MSG.OffsetsResponse
+              .newBuilder()
+              .setTopic(it.key.topic())
+              .setPartition(it.key.partition())
           if (it.value != null) {
             builder.offset = it.value!!.offset()
             builder.timestamp = it.value!!.timestamp()
@@ -81,7 +110,12 @@ class KafkaGRPCBridgeImpl(private val newConsumer: () -> Consumer<ByteArray, Byt
       }
     } catch (t: Throwable) {
       t.printStackTrace()
-      responseObserver.onError(Status.INTERNAL.withDescription("Internal error").withCause(t).asRuntimeException())
+      responseObserver.onError(
+        Status.INTERNAL
+          .withDescription("Internal error")
+          .withCause(t)
+          .asRuntimeException(),
+      )
     }
   }
 

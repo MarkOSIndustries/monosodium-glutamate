@@ -19,7 +19,8 @@ open class QsCommand : CliktCommand() {
   }
 
   protected val grpcServer: Server by lazy {
-    ServerBuilder.forPort(port)
+    ServerBuilder
+      .forPort(port)
       .addService(QueryStoreImpl(rocksDBManager))
       .build()
   }
@@ -32,7 +33,7 @@ open class QsCommand : CliktCommand() {
         grpcServer.awaitTermination()
         RocksDBManager.closeAll()
         println("Done.")
-      }
+      },
     )
 
     grpcServer.start()

@@ -17,16 +17,23 @@ import java.io.EOFException
 class Store : QsCommand() {
   override fun help(context: Context) = "Accept new records on stdin, while providing a GRPC query endpoint to the query store"
 
-  private val encoding by argument("encoding", "the stdin format for records. All are length-prefixed binary of some MSG-specific schema.").choice(Encodings.byName)
-  private val prefix by option("--prefix", help = "the prefix type to use for length prefixed binary encodings").choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
-  protected fun delimiter(): Transport<ByteArray> {
-    return if (encoding is StringEncoding<*>) {
+  private val encoding by argument(
+    "encoding",
+    "the stdin format for records. All are length-prefixed binary of some MSG-specific schema.",
+  ).choice(Encodings.byName)
+  private val prefix by option(
+    "--prefix",
+    help = "the prefix type to use for length prefixed binary encodings",
+  ).choice(*Delimiters.lengthPrefixedBinary.keys.toTypedArray()).default("varint")
+
+  protected fun delimiter(): Transport<ByteArray> =
+    if (encoding is StringEncoding<*>) {
+      @Suppress("UNCHECKED_CAST")
       val asciiEncoding = encoding as StringEncoding<ByteArray>
       Delimiters.makeStringNewlineDelimiter(asciiEncoding)
     } else {
       Delimiters.lengthPrefixedBinary[prefix]!!
     }
-  }
 
   override fun run() {
     super.run()

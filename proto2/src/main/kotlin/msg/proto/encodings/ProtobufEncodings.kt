@@ -10,12 +10,13 @@ import msg.proto.encodings.formats.JsonHex
 import msg.proto.protobuf.ProtobufRoots
 
 object ProtobufEncodings {
-  val byName = mapOf<String, (ProtobufRoots, Transport<ByteArray>) -> ProtobufEncoding<*>>(
-    "hex" to { _, _ -> Hex() },
-    "base64" to { _, _ -> Base64() },
-    "binary" to { _, transport -> Binary(transport) },
-    "json" to { protobufRoots, _ -> Json(protobufRoots) },
-    "json_base64" to { protobufRoots, _ -> JsonBase64(protobufRoots) },
-    "json_hex" to { protobufRoots, _ -> JsonHex(protobufRoots) }
-  )
+  val byName =
+    mapOf<String, (ProtobufRoots, Transport<ByteArray>) -> ProtobufEncoding<*>>(
+      "hex" to { _, _ -> Hex() },
+      "base64" to { _, _ -> Base64() },
+      "binary" to { _, transport -> Binary(transport) },
+      "json" to { protobufRoots, _ -> Json(protobufRoots) },
+      "json_base64" to { protobufRoots, _ -> JsonBase64(protobufRoots) },
+      "json_hex" to { protobufRoots, _ -> JsonHex(protobufRoots) },
+    )
 }

@@ -17,42 +17,71 @@ import kotlin.io.path.isReadable
 import kotlin.io.path.pathString
 import kotlin.streams.toList
 
-class FileSystemProtobufRoot(private val protobufHome: Path) : ProtobufRoot {
+class FileSystemProtobufRoot(
+  private val protobufHome: Path,
+) : ProtobufRoot {
   private val schema = loadSchema(protobufHome)
   private val protoFileEncoder = SchemaEncoder(schema)
-  private val fileDescriptorCache = schema.protoFiles.associate { it.location.path to LazyFileDescriptor(schema, protoFileEncoder, ::getFileDescriptor, it.location.path) }
+  private val fileDescriptorCache =
+    schema.protoFiles.associate {
+      it.location.path to
+        LazyFileDescriptor(schema, protoFileEncoder, ::getFileDescriptor, it.location.path)
+    }
 
-  class LazyFileDescriptor(private val schema: Schema, private val protoFileEncoder: SchemaEncoder, private val getFileDescriptor: (String) -> Descriptors.FileDescriptor, path: String) {
+  class LazyFileDescriptor(
+    private val schema: Schema,
+    private val protoFileEncoder: SchemaEncoder,
+    private val getFileDescriptor: (String) -> Descriptors.FileDescriptor,
+    path: String,
+  ) {
     val fileDescriptor: Descriptors.FileDescriptor by lazy {
-      val fileDescriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(protoFileEncoder.encode(schema.protoFile(path)!!).asByteBuffer())
-      Descriptors.FileDescriptor.buildFrom(fileDescriptorProto, fileDescriptorProto.dependencyList.map { getFileDescriptor(it) }.toTypedArray())
+      val fileDescriptorProto =
+        DescriptorProtos.FileDescriptorProto.parseFrom(
+          protoFileEncoder.encode(schema.protoFile(path)!!).asByteBuffer(),
+        )
+      Descriptors.FileDescriptor.buildFrom(
+        fileDescriptorProto,
+        fileDescriptorProto.dependencyList.map { getFileDescriptor(it) }.toTypedArray(),
+      )
     }
   }
 
-  override fun getMessageDescriptors(): List<Descriptors.Descriptor> {
-    return schema.protoFiles.flatMap { getFileDescriptor(it.location.path).messageTypes }
-  }
+  override fun getMessageDescriptors(): List<Descriptors.Descriptor> =
+    schema.protoFiles.flatMap {
+      getFileDescriptor(it.location.path).messageTypes
+    }
 
   override fun findMessageDescriptor(message: String): Descriptors.Descriptor? {
     val separatorIndex = message.lastIndexOf('.')
     val messageNamespace = message.substring(0 until separatorIndex)
     val messageSimpleName = message.substring(separatorIndex + 1)
 
-    return findFileDescriptor { protoFile -> protoFile.types.any { it.type.enclosingTypeOrPackage == messageNamespace && it.type.simpleName == messageSimpleName } }?.let { fileDescriptor ->
+    return findFileDescriptor { protoFile ->
+      protoFile.types.any {
+        it.type.enclosingTypeOrPackage == messageNamespace &&
+          it.type.simpleName == messageSimpleName
+      }
+    }?.let { fileDescriptor ->
       return fileDescriptor.messageTypes.find { it.fullName == message }
     }
   }
 
-  override fun getServiceDescriptors(): List<Descriptors.ServiceDescriptor> {
-    return schema.protoFiles.flatMap { getFileDescriptor(it.location.path).services }
-  }
+  override fun getServiceDescriptors(): List<Descriptors.ServiceDescriptor> =
+    schema.protoFiles.flatMap {
+      getFileDescriptor(it.location.path).services
+    }
 
   override fun findServiceDescriptor(service: String): Descriptors.ServiceDescriptor? {
     val separatorIndex = service.lastIndexOf('.')
     val serviceNamespace = service.substring(0 until separatorIndex)
     val serviceSimpleName = service.substring(separatorIndex + 1)
 
-    return findFileDescriptor { protoFile -> protoFile.services.any { it.type.enclosingTypeOrPackage == serviceNamespace && it.type.simpleName == serviceSimpleName } }?.let { fileDescriptor ->
+    return findFileDescriptor { protoFile ->
+      protoFile.services.any {
+        it.type.enclosingTypeOrPackage == serviceNamespace &&
+          it.type.simpleName == serviceSimpleName
+      }
+    }?.let { fileDescriptor ->
       return fileDescriptor.services.find { it.fullName == service }
     }
   }
@@ -63,9 +92,7 @@ class FileSystemProtobufRoot(private val protobufHome: Path) : ProtobufRoot {
     }
   }
 
-  private fun getFileDescriptor(path: String): Descriptors.FileDescriptor {
-    return fileDescriptorCache[path]!!.fileDescriptor
-  }
+  private fun getFileDescriptor(path: String): Descriptors.FileDescriptor = fileDescriptorCache[path]!!.fileDescriptor
 
   private fun loadSchema(protobufHome: Path): Schema {
     val schemaLoader = SchemaLoader(FileSystem.SYSTEM)
@@ -77,19 +104,21 @@ class FileSystemProtobufRoot(private val protobufHome: Path) : ProtobufRoot {
     return schemaLoader.loadSchema()
   }
 
-  private fun getLocations(parentDir: Path = protobufHome): List<Location> {
-    return Files.list(parentDir).flatMap { path ->
-      when {
-        path.isDirectory() -> getLocations(path.absolute()).stream()
-        path.isReadable() && path.pathString.endsWith(".proto") -> Stream.of(
-          Location.get(
-            protobufHome.pathString,
-            protobufHome.relativize(path).pathString
-          )
-        )
+  private fun getLocations(parentDir: Path = protobufHome): List<Location> =
+    Files
+      .list(parentDir)
+      .flatMap { path ->
+        when {
+          path.isDirectory() -> getLocations(path.absolute()).stream()
+          path.isReadable() && path.pathString.endsWith(".proto") ->
+            Stream.of(
+              Location.get(
+                protobufHome.pathString,
+                protobufHome.relativize(path).pathString,
+              ),
+            )
 
-        else -> Stream.empty()
-      }
-    }.toList()
-  }
+          else -> Stream.empty()
+        }
+      }.toList()
 }

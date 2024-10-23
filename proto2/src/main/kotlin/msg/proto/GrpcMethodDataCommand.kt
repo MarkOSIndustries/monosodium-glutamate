@@ -19,39 +19,48 @@ abstract class GrpcMethodDataCommand : ProtobufCommand() {
   private val serviceName by argument(
     name = "service",
     help = "the GRPC service to use (fully qualified)",
-    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_PROTO_SERVICES""")
+    completionCandidates = CompletionCandidates.Custom.fromStdout("""cat ${'$'}COMPLETIONS_PROTO_SERVICES"""),
   )
   private val methodName by argument(
     name = "method",
-    help = "the GRPC service method to use"
+    help = "the GRPC service method to use",
   )
 
-  protected fun getServiceDescriptor(): Descriptors.ServiceDescriptor {
-    return protobufRoots.findServiceDescriptor(serviceName) ?: run {
+  protected fun getServiceDescriptor(): Descriptors.ServiceDescriptor =
+    protobufRoots.findServiceDescriptor(serviceName) ?: run {
       System.err.println("Service $serviceName not found. Try >proto services")
       throw ProgramResult(1)
     }
-  }
-  protected fun getMethodDescriptor(serviceDescriptor: Descriptors.ServiceDescriptor): Descriptors.MethodDescriptor {
-    return serviceDescriptor.findMethodByName(methodName) ?: run {
+
+  protected fun getMethodDescriptor(serviceDescriptor: Descriptors.ServiceDescriptor): Descriptors.MethodDescriptor =
+    serviceDescriptor.findMethodByName(methodName) ?: run {
       System.err.println("Service $serviceName has no method $methodName. Try >proto services --methods $serviceName")
       throw ProgramResult(1)
     }
-  }
 
   protected val inputEncoding by inputEncodingArgument()
   protected val outputEncoding by outputEncodingArgument()
   protected val inputBinaryPrefix by inputBinaryPrefixOption()
   protected val outputBinaryPrefix by outputBinaryPrefixOption()
 
-  protected val hostsAndPorts by option("--host", "-h", help = "the host to connect to - can specify multiple times for round robin requests", metavar = "host:port").multiple(default = listOf("localhost:8082"))
+  protected val hostsAndPorts by option(
+    "--host",
+    "-h",
+    help = "the host to connect to - can specify multiple times for round robin requests",
+    metavar = "host:port",
+  ).multiple(default = listOf("localhost:8082"))
   protected val defaultPort by option("--port", "-p", help = "the port to connect on (if not specified in host)").int().default(8082)
-  protected val deadline by option("--deadline", "-d", help = "the deadline for GRPC requests (default 60). In seconds unless changed with --deadline-units").long().default(60L)
-  protected val deadlineUnits by option("--deadline-units").choice(
-    mapOf(
-      "s" to TimeUnit.SECONDS,
-      "m" to TimeUnit.MINUTES,
-      "h" to TimeUnit.HOURS,
-    )
-  ).default(TimeUnit.SECONDS)
+  protected val deadline by option(
+    "--deadline",
+    "-d",
+    help = "the deadline for GRPC requests (default 60). In seconds unless changed with --deadline-units",
+  ).long().default(60L)
+  protected val deadlineUnits by option("--deadline-units")
+    .choice(
+      mapOf(
+        "s" to TimeUnit.SECONDS,
+        "m" to TimeUnit.MINUTES,
+        "h" to TimeUnit.HOURS,
+      ),
+    ).default(TimeUnit.SECONDS)
 }

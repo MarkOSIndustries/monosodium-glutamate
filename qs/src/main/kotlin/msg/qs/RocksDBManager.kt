@@ -12,19 +12,23 @@ import java.util.ArrayList
 import java.util.Arrays
 import java.util.concurrent.ConcurrentHashMap
 
-class RocksDBManager(private val path: String) {
+class RocksDBManager(
+  private val path: String,
+) {
   var cfDefaultOpts = ColumnFamilyOptions()
   var cfCountOpts = ColumnFamilyOptions().setMergeOperator(UInt64AddOperator())
 
-  val cfDescriptors = Arrays.asList(
-    ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfDefaultOpts),
-    ColumnFamilyDescriptor("counts".toByteArray(), cfCountOpts)
-  )
+  val cfDescriptors =
+    Arrays.asList(
+      ColumnFamilyDescriptor(RocksDB.DEFAULT_COLUMN_FAMILY, cfDefaultOpts),
+      ColumnFamilyDescriptor("counts".toByteArray(), cfCountOpts),
+    )
 
-  private val options: DBOptions = DBOptions()
-    .setWalRecoveryMode(WALRecoveryMode.AbsoluteConsistency)
-    .setCreateIfMissing(true)
-    .setCreateMissingColumnFamilies(true)
+  private val options: DBOptions =
+    DBOptions()
+      .setWalRecoveryMode(WALRecoveryMode.AbsoluteConsistency)
+      .setCreateIfMissing(true)
+      .setCreateMissingColumnFamilies(true)
 
   public val columnFamilyHandleList = ArrayList<ColumnFamilyHandle>()
   public val rocksdb: RocksDB by lazy {
@@ -38,6 +42,7 @@ class RocksDBManager(private val path: String) {
     private val dbsByPath: ConcurrentHashMap<String, RocksDBManager> = ConcurrentHashMap()
 
     fun get(path: String): RocksDBManager = dbsByPath.computeIfAbsent(path) { RocksDBManager(path) }
+
     fun closeAll() {
       dbsByPath.forEach { _, db -> db.rocksdb.close() }
       dbsByPath.clear()

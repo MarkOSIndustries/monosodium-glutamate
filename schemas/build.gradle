@@ -54,6 +54,6 @@ idea {
     // proto files and generated Java files are automatically added as
     // source dirs.
     // If you have additional sources, add them here:
-//    sourceDirs += file("$projectDir/something/else/");
+    //    sourceDirs += file("$projectDir/something/else/");
   }
 }

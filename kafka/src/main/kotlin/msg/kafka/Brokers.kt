@@ -10,8 +10,7 @@ object Brokers {
         } else {
           Broker(hostAndPort[0], hostAndPort[1].toInt())
         }
-      }
-      .flatMap { broker ->
+      }.flatMap { broker ->
         val addresses = java.net.InetAddress.getAllByName(broker.host)
         if (addresses.isEmpty()) {
           listOf(broker)

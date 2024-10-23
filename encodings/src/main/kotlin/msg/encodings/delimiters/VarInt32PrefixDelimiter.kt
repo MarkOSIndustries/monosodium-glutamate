@@ -7,9 +7,7 @@ import java.io.InputStream
 import java.io.PrintStream
 
 class VarInt32PrefixDelimiter : Transport<ByteArray> {
-  override fun reader(input: InputStream): Iterator<ByteArray> {
-    return VarInt32PrefixedByteArrayIterator(input)
-  }
+  override fun reader(input: InputStream): Iterator<ByteArray> = VarInt32PrefixedByteArrayIterator(input)
 
   override fun writer(output: PrintStream): (ByteArray) -> Unit {
     val codedOutput: CodedOutputStream = CodedOutputStream.newInstance(output, 4096)

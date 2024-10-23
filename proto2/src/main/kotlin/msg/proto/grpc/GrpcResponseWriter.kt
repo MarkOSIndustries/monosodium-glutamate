@@ -6,7 +6,9 @@ import io.grpc.stub.StreamObserver
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 
-class GrpcResponseWriter(val writer: (Message) -> Unit) : StreamObserver<DynamicMessage> {
+class GrpcResponseWriter(
+  val writer: (Message) -> Unit,
+) : StreamObserver<DynamicMessage> {
   private val completed = CompletableFuture<Unit>()
 
   fun awaitStreamCompletion() {

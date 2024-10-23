@@ -1,10 +1,10 @@
 plugins {
-  id 'org.jetbrains.kotlin.jvm' version '1.9.23'
+  id 'org.jetbrains.kotlin.jvm'
   id 'java-library'
 }
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 dependencies {
@@ -14,11 +14,4 @@ dependencies {
 
   api group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
   api group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = targetJvmVersion
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = targetJvmVersion
 }

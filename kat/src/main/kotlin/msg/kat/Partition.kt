@@ -14,13 +14,14 @@ import java.io.EOFException
 import java.util.concurrent.atomic.AtomicLong
 
 class Partition : KafkaTopicDataCommand() {
-  override fun help(context: Context) = """
-  Apply the default Java Kafka key partitioning strategy
+  override fun help(context: Context) =
+    """
+    Apply the default Java Kafka key partitioning strategy
 
-  Reads keys from stdin and writes the topic partition they would be produced to by default to stdout.
-  For msg.KafkaRecord and msg.TypedKafkaRecord encodings, keys will be taken from the "key" fields.
-  For all other encodings, each record given will be interpreted as a key to be partitioned.
-  """.trimIndent()
+    Reads keys from stdin and writes the topic partition they would be produced to by default to stdout.
+    For msg.KafkaRecord and msg.TypedKafkaRecord encodings, keys will be taken from the "key" fields.
+    For all other encodings, each record given will be interpreted as a key to be partitioned.
+    """.trimIndent()
 
   private val limit by option("--limit", "-l", help = "the maximum number of keys to partition").long().default(Long.MAX_VALUE)
 

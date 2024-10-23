@@ -21,26 +21,32 @@ import com.google.protobuf.UInt64Value
 import com.google.protobuf.util.Timestamps
 import java.util.Base64
 
-class JsonPrinter(private val typeRegistry: TypeRegistry = TypeRegistry.getEmptyTypeRegistry()) {
-  private val specialTypes = mapOf(
-    BoolValue.getDescriptor().fullName to ::wrappedTypeToJSON,
-    Int32Value.getDescriptor().fullName to ::wrappedTypeToJSON,
-    UInt32Value.getDescriptor().fullName to ::wrappedTypeToJSON,
-    Int64Value.getDescriptor().fullName to ::wrappedTypeToJSON,
-    UInt64Value.getDescriptor().fullName to ::wrappedTypeToJSON,
-    StringValue.getDescriptor().fullName to ::wrappedTypeToJSON,
-    BytesValue.getDescriptor().fullName to ::wrappedTypeToJSON,
-    FloatValue.getDescriptor().fullName to ::wrappedTypeToJSON,
-    DoubleValue.getDescriptor().fullName to ::wrappedTypeToJSON,
-    Timestamp.getDescriptor().fullName to ::timestampToJSON,
-    com.google.protobuf.Any.getDescriptor().fullName to ::anyToJSON,
-  )
+class JsonPrinter(
+  private val typeRegistry: TypeRegistry = TypeRegistry.getEmptyTypeRegistry(),
+) {
+  private val specialTypes =
+    mapOf(
+      BoolValue.getDescriptor().fullName to ::wrappedTypeToJSON,
+      Int32Value.getDescriptor().fullName to ::wrappedTypeToJSON,
+      UInt32Value.getDescriptor().fullName to ::wrappedTypeToJSON,
+      Int64Value.getDescriptor().fullName to ::wrappedTypeToJSON,
+      UInt64Value.getDescriptor().fullName to ::wrappedTypeToJSON,
+      StringValue.getDescriptor().fullName to ::wrappedTypeToJSON,
+      BytesValue.getDescriptor().fullName to ::wrappedTypeToJSON,
+      FloatValue.getDescriptor().fullName to ::wrappedTypeToJSON,
+      DoubleValue.getDescriptor().fullName to ::wrappedTypeToJSON,
+      Timestamp.getDescriptor().fullName to ::timestampToJSON,
+      com.google.protobuf.Any
+        .getDescriptor()
+        .fullName to ::anyToJSON,
+    )
 
-  fun print(message: Message): String {
-    return messageToJSON(message).toString()
-  }
+  fun print(message: Message): String = messageToJSON(message).toString()
 
-  fun messageToJSON(message: Message, vararg bonusFields: Pair<String, Any>): JSONObject {
+  fun messageToJSON(
+    message: Message,
+    vararg bonusFields: Pair<String, Any>,
+  ): JSONObject {
     val jsonObject = JSONObject(message.descriptorForType.fields.size + bonusFields.size)
     for (bonusField in bonusFields) {
       jsonObject[bonusField.first] = bonusField.second
@@ -50,6 +56,8 @@ class JsonPrinter(private val typeRegistry: TypeRegistry = TypeRegistry.getEmpty
         field.isMapField -> {
           val keyType = field.messageType.findFieldByName("key")
           val valueType = field.messageType.findFieldByName("value")
+
+          @Suppress("UNCHECKED_CAST")
           val entries = message.getField(field) as List<Message>
           val map = JSONObject(entries.size)
           for (entry in entries) {
@@ -58,16 +66,20 @@ class JsonPrinter(private val typeRegistry: TypeRegistry = TypeRegistry.getEmpty
           jsonObject[field.name] = map
         }
         field.isRepeated -> jsonObject[field.name] = (message.getField(field) as List<*>).map { fieldToJSON(field, it!!) }
-        else -> if (message.hasField(field)) {
-          jsonObject[field.name] = fieldToJSON(field, message.getField(field))
-        }
+        else ->
+          if (message.hasField(field)) {
+            jsonObject[field.name] = fieldToJSON(field, message.getField(field))
+          }
       }
     }
     return jsonObject
   }
 
-  private fun fieldToJSON(field: Descriptors.FieldDescriptor, value: Any): Any {
-    return when (field.type!!) {
+  private fun fieldToJSON(
+    field: Descriptors.FieldDescriptor,
+    value: Any,
+  ): Any =
+    when (field.type!!) {
       Type.DOUBLE -> value
       Type.FLOAT -> value
       Type.INT64 -> value
@@ -87,27 +99,27 @@ class JsonPrinter(private val typeRegistry: TypeRegistry = TypeRegistry.getEmpty
       Type.SINT32 -> value
       Type.SINT64 -> value
     }
-  }
 
   private fun wrappedTypeToJSON(message: Message): Any {
     val valueFieldDescriptor = message.descriptorForType.findFieldByName("value")
     return fieldToJSON(valueFieldDescriptor, message.getField(valueFieldDescriptor))
   }
 
-  private fun timestampToJSON(message: Message): Any {
-    return Timestamps.toString(
+  private fun timestampToJSON(message: Message): Any =
+    Timestamps.toString(
       when (message) {
         is Timestamp -> message
-        else -> Timestamp.newBuilder()
-          .setSeconds(message.getField(message.descriptorForType.findFieldByNumber(googleProtobufTimestamp_SecondsField)) as Long)
-          .setNanos(message.getField(message.descriptorForType.findFieldByNumber(googleProtobufTimestamp_NanosField)) as Int)
-          .build()
-      }
+        else ->
+          Timestamp
+            .newBuilder()
+            .setSeconds(message.getField(message.descriptorForType.findFieldByNumber(googleProtobufTimestamp_SecondsField)) as Long)
+            .setNanos(message.getField(message.descriptorForType.findFieldByNumber(googleProtobufTimestamp_NanosField)) as Int)
+            .build()
+      },
     )
-  }
 
-  private fun anyToJSON(message: Message): Any {
-    return when {
+  private fun anyToJSON(message: Message): Any =
+    when {
       message.descriptorForType.fullName == "google.protobuf.Any" -> {
         val typeUrlField = message.descriptorForType.findFieldByNumber(googleProtobufAny_TypeUrlField)
         val valueField = message.descriptorForType.findFieldByNumber(googleProtobufAny_ValueField)
@@ -116,18 +128,28 @@ class JsonPrinter(private val typeRegistry: TypeRegistry = TypeRegistry.getEmpty
         when {
           descriptor == null -> messageToJSON(message)
           message.hasField(valueField) ->
-            messageToJSON(DynamicMessage.parseFrom(descriptor, message.getField(valueField) as ByteString), "@type" to "type/${descriptor.fullName}")
+            messageToJSON(
+              DynamicMessage.parseFrom(descriptor, message.getField(valueField) as ByteString),
+              "@type" to "type/${descriptor.fullName}",
+            )
           else -> JSONObject()
         }
       }
       else -> messageToJSON(message, "@type" to "type/${message.descriptorForType.fullName}")
     }
-  }
 
   companion object {
     private val googleProtobufTimestamp_SecondsField = Timestamp.getDescriptor().findFieldByName("seconds").number
     private val googleProtobufTimestamp_NanosField = Timestamp.getDescriptor().findFieldByName("nanos").number
-    private val googleProtobufAny_TypeUrlField = com.google.protobuf.Any.getDescriptor().findFieldByName("type_url").number
-    private val googleProtobufAny_ValueField = com.google.protobuf.Any.getDescriptor().findFieldByName("value").number
+    private val googleProtobufAny_TypeUrlField =
+      com.google.protobuf.Any
+        .getDescriptor()
+        .findFieldByName("type_url")
+        .number
+    private val googleProtobufAny_ValueField =
+      com.google.protobuf.Any
+        .getDescriptor()
+        .findFieldByName("value")
+        .number
   }
 }

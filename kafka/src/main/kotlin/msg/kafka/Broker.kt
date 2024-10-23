@@ -1,7 +1,8 @@
 package msg.kafka
 
-class Broker(val host: String, val port: Int) {
-  override fun toString(): String {
-    return "$host:$port"
-  }
+class Broker(
+  val host: String,
+  val port: Int,
+) {
+  override fun toString(): String = "$host:$port"
 }
