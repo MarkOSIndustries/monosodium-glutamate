@@ -8,15 +8,14 @@ class ProtobufRoots(
   protobufPaths: Collection<Path>,
 ) {
   val protobufRoots =
-    protobufPaths
-      .map {
-        try {
-          FileSystemProtobufRoot(it)
-        } catch (ex: Exception) {
-          System.err.println("Couldn't load protobuf root $it - ${ex.message}")
-          null
-        }
-      }.filterNotNull() + MSGProtobufRoot()
+    protobufPaths.mapNotNull {
+      try {
+        FileSystemProtobufRoot(it)
+      } catch (ex: Exception) {
+        System.err.println("Couldn't load protobuf root $it - ${ex.message}")
+        null
+      }
+    } + MSGProtobufRoot()
 
   val typeRegistry: TypeRegistry by lazy {
     val typeRegistry = TypeRegistry.newBuilder()
