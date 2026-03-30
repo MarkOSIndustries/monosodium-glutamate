@@ -63,11 +63,15 @@ class Transform : ProtobufDataCommand() {
     }
 
     val filterObject =
-      try {
-        JSONObject.parseObject(filterJson)
-      } catch (e: JSONException) {
-        System.err.println("Invalid filter JSON: ${e.message}")
-        throw ProgramResult(1)
+      if (filterJson == "{}") {
+        JSONObject.of()
+      } else {
+        try {
+          JSONObject.parseObject(filterJson)
+        } catch (e: JSONException) {
+          System.err.println("Invalid filter JSON: ${e.message}")
+          throw ProgramResult(1)
+        }
       }
 
     progressBar.use {
