@@ -18,8 +18,8 @@ class ProfileValueSource(
   ): List<ValueSource.Invocation> =
     values[option.valueSourceKey ?: getKey(context, option)]
       ?.let {
-        if (option is OptionWithValues<*, *, *> && option.valueSplit != null) {
-          listOf(ValueSource.Invocation(option.valueSplit!!.split(it)))
+        if (option is OptionWithValues<*, *, *>) {
+          listOf(ValueSource.Invocation(option.valueSplit(it)))
         } else {
           ValueSource.Invocation.just(it)
         }

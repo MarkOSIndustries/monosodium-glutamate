@@ -5,10 +5,6 @@ plugins {
 
 repositories {
   mavenCentral()
-  maven {
-    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
-    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-  }
 }
 
 dependencies {
