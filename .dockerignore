@@ -1,4 +1,7 @@
 .git
-release.sh
 .idea
 build
+
+release.sh
+README.md
+docker/Dockerfile

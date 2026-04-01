@@ -1,5 +1,5 @@
-FROM eclipse-temurin:21.0.3_9-jdk AS builder
-RUN apt update && apt install -y nodejs npm
+FROM eclipse-temurin:25.0.2_10-jdk AS builder
+RUN apt update && apt upgrade -y && apt install -y nodejs npm
 
 WORKDIR /home/msg
 
@@ -21,8 +21,8 @@ RUN (cd proto && npm install)
 RUN (cd p2p && npm install)
 RUN (cd reduce && npm install)
 
-FROM eclipse-temurin:21.0.3_9-jre AS runtime
-RUN apt update && apt install -y nodejs netcat nano jq
+FROM eclipse-temurin:25.0.2_10-jre AS runtime
+RUN apt update && apt upgrade -y && apt install -y nodejs netcat-openbsd nano jq
 
 ARG MSG_VERSION
 
@@ -55,6 +55,19 @@ COPY docker/bin/legacy-proto.sh /usr/local/bin/legacy-proto
 COPY docker/bin/p2p.sh /usr/local/bin/p2p
 COPY docker/bin/reduce.sh /usr/local/bin/reduce
 COPY docker/bin/version.sh /usr/local/bin/version
+
+ARG MSG_JAVA_OPTS
+ENV MSG_JAVA_OPTS=${MSG_JAVA_OPTS}
+
+# Perform simplistic Java Ahead Of Time compilation
+# While this doesn't simulate real usage, it does help avoid all the JIT
+# that typically happens at startup
+RUN mkdir -p ./aot
+RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kat topics > /dev/null || true
+RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kgb > /dev/null
+RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/proto aot > /dev/null
+RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/qs > /dev/null
+ENV MSG_JAVA_AOT_OPTS='-XX:AOTMode=on -XX:AOTCache=/opt/msg/aot'
 
 # KGB default port
 EXPOSE 8082
