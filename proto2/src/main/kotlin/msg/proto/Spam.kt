@@ -11,7 +11,9 @@ import com.google.protobuf.Descriptors
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
 import com.google.protobuf.Timestamp
-import msg.proto.encodings.MessageTransport
+import msg.clikt.protobuf.ProtobufDataCommand
+import msg.clikt.protobuf.outputBinaryPrefixOption
+import msg.clikt.protobuf.outputEncodingArgument
 import java.io.IOException
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicInteger
@@ -46,8 +48,7 @@ class Spam : ProtobufDataCommand() {
     )
 
     try {
-      val transport = MessageTransport(messageDescriptor)
-      val writer = transport.writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
+      val writer = outputEncoding(messageDescriptor, protobufRoots, outputBinaryPrefix).getTransport().writer(System.out)
       while (outputCount.get() < limit) {
         val message = spamMessage(messageDescriptor)
 

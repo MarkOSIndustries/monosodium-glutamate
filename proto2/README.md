@@ -7,7 +7,7 @@ Can generate and translate protobuf records between several formats:
 - string-encoded binary with delimiters (eg: `base64` or `hex` encoding, with line delimiters)
 
 ## To Use
-To clone and run this you'll need [Git](https://git-scm.com), [Java 11](http://openjdk.java.net/install/), and [Gradle](https://gradle.org/install/) installed on your computer.
+To clone and run this you'll need [Git](https://git-scm.com), [Java 25](http://openjdk.java.net/install/), and [Gradle](https://gradle.org/install/) installed on your computer.
 
 ```bash
 # Clone this repository
@@ -17,7 +17,7 @@ cd monosodium-glutamate/proto
 # Install dependencies
 gradle build
 # Run the app
-java -jar build/install/proto/proto*.jar
+java -jar build/install/proto2/proto2*.jar
 ```
 
 Example usage:

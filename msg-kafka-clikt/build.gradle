@@ -1,0 +1,14 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+  id 'java-library'
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+  api group: 'com.github.ajalt.clikt', name: 'clikt', version: cliktVersion
+  api project(':msg-kafka')
+}

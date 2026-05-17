@@ -18,7 +18,6 @@ RUN ./gradlew clean build --parallel
 
 # npm install MSG javascript components
 RUN (cd proto && npm install)
-RUN (cd p2p && npm install)
 RUN (cd reduce && npm install)
 
 FROM eclipse-temurin:25.0.2_10-jre AS runtime
@@ -30,11 +29,13 @@ WORKDIR /opt/msg
 ENV MSG_HOME=/opt/msg
 ENV MSG_VERSION=${MSG_VERSION}
 
-COPY --from=builder /home/msg/schemas ./bin/schemas
+COPY --from=builder /home/msg/msg-schemas ./bin/msg-schemas
 COPY --from=builder /home/msg/kat/build/install/kat/*.jar ./bin/kat.jar
 COPY --from=builder /home/msg/kat/build/install/kat/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/kgb/build/install/kgb/*.jar ./bin/kgb.jar
 COPY --from=builder /home/msg/kgb/build/install/kgb/dependencies ./bin/dependencies
+COPY --from=builder /home/msg/pqt/build/install/pqt/*.jar ./bin/pqt.jar
+COPY --from=builder /home/msg/pqt/build/install/pqt/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/proto2/build/install/proto2/*.jar ./bin/proto2.jar
 COPY --from=builder /home/msg/proto2/build/install/proto2/dependencies ./bin/dependencies
 COPY --from=builder /home/msg/qs/build/install/qs/*.jar ./bin/qs.jar
@@ -42,17 +43,15 @@ COPY --from=builder /home/msg/qs/build/install/qs/dependencies ./bin/dependencie
 COPY --from=builder /home/msg/*.js ./bin/
 COPY --from=builder /home/msg/proto/*.js ./bin/proto/
 COPY --from=builder /home/msg/proto/node_modules ./bin/proto/node_modules
-COPY --from=builder /home/msg/p2p/*.js ./bin/p2p/
-COPY --from=builder /home/msg/p2p/node_modules ./bin/p2p/node_modules
 COPY --from=builder /home/msg/reduce/*.js ./bin/reduce/
 COPY --from=builder /home/msg/reduce/node_modules ./bin/reduce/node_modules
 
 COPY docker/bin/kat.sh /usr/local/bin/kat
 COPY docker/bin/kgb.sh /usr/local/bin/kgb
 COPY docker/bin/qs.sh /usr/local/bin/qs
+COPY docker/bin/pqt.sh /usr/local/bin/pqt
 COPY docker/bin/proto.sh /usr/local/bin/proto
 COPY docker/bin/legacy-proto.sh /usr/local/bin/legacy-proto
-COPY docker/bin/p2p.sh /usr/local/bin/p2p
 COPY docker/bin/reduce.sh /usr/local/bin/reduce
 COPY docker/bin/version.sh /usr/local/bin/version
 
@@ -65,6 +64,7 @@ ENV MSG_JAVA_OPTS=${MSG_JAVA_OPTS}
 RUN mkdir -p ./aot
 RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kat topics > /dev/null || true
 RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kgb > /dev/null
+RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/pqt aot > /dev/null
 RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/proto aot > /dev/null
 RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/qs > /dev/null
 ENV MSG_JAVA_AOT_OPTS='-XX:AOTMode=on -XX:AOTCache=/opt/msg/aot'
@@ -82,6 +82,7 @@ WORKDIR /home/root
 
 RUN echo 'export COMPLETIONS_KAFKA_TOPICS=${MSG_HOME}/topics.txt; (kat topics > $COMPLETIONS_KAFKA_TOPICS 2> /dev/null &);' >> /root/.bashrc
 RUN (cd $MSG_HOME/bin/ && _KAT_COMPLETE=bash java -jar ./kat.jar >> /root/.bashrc)
+RUN (cd $MSG_HOME/bin/ && _PQT_COMPLETE=bash java -jar ./pqt.jar >> /root/.bashrc)
 RUN echo 'export COMPLETIONS_PROTO_SERVICES=${MSG_HOME}/services.txt; (proto services > $COMPLETIONS_PROTO_SERVICES 2> /dev/null &);' >> /root/.bashrc
 RUN echo 'export COMPLETIONS_PROTO_MESSAGES=${MSG_HOME}/messages.txt; (proto schemas > $COMPLETIONS_PROTO_MESSAGES 2> /dev/null &);' >> /root/.bashrc
 RUN (cd $MSG_HOME/bin/ && _PROTO_COMPLETE=bash java -jar ./proto2.jar >> /root/.bashrc)

@@ -3,14 +3,14 @@ package msg.proto
 import com.alibaba.fastjson2.JSONObject
 import com.github.ajalt.clikt.core.Context
 import com.google.protobuf.DescriptorProtos
-import com.google.protobuf.Descriptors
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.Message
+import msg.clikt.protobuf.ProtobufCommand
 import msg.encodings.delimiters.Delimiters
-import msg.proto.encodings.ProtobufEncoding
-import msg.proto.encodings.ProtobufEncodings
-import msg.proto.protobuf.JsonParser
-import msg.proto.protobuf.JsonPrinter
+import msg.encodings.protobuf.ProtobufEncoding
+import msg.encodings.protobuf.ProtobufEncodings
+import msg.protobuf.JsonParser
+import msg.protobuf.JsonPrinter
 import msg.schemas.MSG
 import java.nio.file.Files
 import kotlin.io.path.deleteIfExists
@@ -44,17 +44,16 @@ class AOT : ProtobufCommand() {
     val jsonFile = Files.createTempFile("proto_aot_exercise", ".json")
     jsonFile.writeText(someJSONObject.toString())
     jsonFile.deleteIfExists()
-    val someEncoding = ProtobufEncodings.byName["binary"]!!(protobufRoots, Delimiters.lengthPrefixedBinary["varint"]!!)
-    exerciseEncoding(someEncoding, messageDescriptor, someMessage)
+    val someEncoding = ProtobufEncodings.byName["binary"]!!(messageDescriptor, protobufRoots, Delimiters.lengthPrefixedBinary["varint"]!!)
+    exerciseEncoding(someEncoding, someMessage)
 
     jsonParser.parse(jsonPrinter.print(someMessage), messageDescriptor)
   }
 
   private fun <T> exerciseEncoding(
     encoding: ProtobufEncoding<T>,
-    messageDescriptor: Descriptors.Descriptor,
     message: Message,
   ) {
-    encoding.toMessage(messageDescriptor, encoding.fromMessage(message))
+    encoding.toMessage(encoding.fromMessage(message))
   }
 }

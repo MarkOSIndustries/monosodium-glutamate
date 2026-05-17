@@ -10,6 +10,11 @@ import com.github.ajalt.clikt.parameters.types.choice
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
 import com.google.protobuf.Descriptors
+import msg.clikt.protobuf.ProtobufCommand
+import msg.clikt.protobuf.inputBinaryPrefixOption
+import msg.clikt.protobuf.inputEncodingArgument
+import msg.clikt.protobuf.outputBinaryPrefixOption
+import msg.clikt.protobuf.outputEncodingArgument
 import java.util.concurrent.TimeUnit
 
 abstract class GrpcMethodDataCommand : ProtobufCommand() {

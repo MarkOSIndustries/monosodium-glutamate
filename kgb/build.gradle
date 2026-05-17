@@ -5,10 +5,6 @@ plugins {
 
 repositories {
   mavenCentral()
-  maven {
-    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
-    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-  }
 }
 
 dependencies {
@@ -19,11 +15,11 @@ dependencies {
   implementation group: 'org.apache.kafka', name: 'kafka-clients', version: kafkaVersion
   implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.25'
   implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.5.1'
-  implementation project(':clikt')
-  implementation project(':grpc')
-  implementation project(':kafka')
-  implementation project(':kafka-clikt')
-  implementation project(':schemas')
+  implementation project(':msg-clikt')
+  implementation project(':msg-grpc')
+  implementation project(':msg-kafka')
+  implementation project(':msg-kafka-clikt')
+  implementation project(':msg-schemas')
   implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
 }
 

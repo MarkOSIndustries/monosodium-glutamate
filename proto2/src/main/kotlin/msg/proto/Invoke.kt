@@ -9,7 +9,6 @@ import com.github.ajalt.clikt.parameters.types.int
 import io.grpc.CallOptions
 import io.grpc.StatusRuntimeException
 import io.grpc.stub.ClientCalls
-import msg.proto.encodings.MessageTransport
 import msg.proto.grpc.GrpcHosts
 import msg.proto.grpc.GrpcMethod
 import msg.proto.grpc.GrpcResponseWriter
@@ -48,8 +47,8 @@ class Invoke : GrpcMethodDataCommand() {
     val exitCode = AtomicInteger(0)
     val inFlightSemaphore = Semaphore(inFlightLimit, true)
     try {
-      val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
-      val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
+      val reader = inputEncoding(methodDescriptor.inputType, protobufRoots, inputBinaryPrefix).getTransport().reader(System.`in`)
+      val writer = outputEncoding(methodDescriptor.outputType, protobufRoots, outputBinaryPrefix).getTransport().writer(System.out)
       while (reader.hasNext() && exitCode.get() == 0) {
         val request = reader.next()
 

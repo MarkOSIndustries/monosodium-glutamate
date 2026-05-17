@@ -1,0 +1,53 @@
+plugins {
+  id 'org.jetbrains.kotlin.jvm'
+  id 'distribution'
+}
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib'
+  testImplementation 'junit:junit:4.11'
+  testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+
+  implementation platform("com.markosindustries.parquito:parquito-bom:${parquitoVersion}")
+  implementation "com.markosindustries.parquito:parquito-core"
+  implementation "com.markosindustries.parquito:parquito-protobuf"
+  implementation "com.markosindustries.parquito:parquito-json"
+
+  implementation project(':msg-clikt')
+  implementation project(':msg-encodings')
+  implementation project(':msg-protobuf-clikt')
+  implementation project(':msg-schemas')
+}
+
+build {
+  dependsOn("installDist")
+}
+
+jar {
+  manifest {
+    attributes(
+        'Class-Path': configurations.runtimeClasspath.collect { 'dependencies/' + it.getName() }.join(' '),
+        'Implementation-Title': project.name,
+        'Implementation-Version': project.version,
+        'Main-Class': 'msg.pqt.MainKt',
+        )
+  }
+}
+
+distributions {
+  main {
+    distributionBaseName = project.name
+    contents {
+      into("") {
+        from jar.archiveFile
+      }
+      into("dependencies") {
+        from configurations.runtimeClasspath
+      }
+    }
+  }
+}

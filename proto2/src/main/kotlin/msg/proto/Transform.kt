@@ -13,12 +13,16 @@ import com.google.protobuf.Descriptors
 import com.google.protobuf.Descriptors.EnumValueDescriptor
 import com.google.protobuf.Message
 import com.google.protobuf.util.Timestamps
+import msg.clikt.protobuf.ProtobufDataCommand
+import msg.clikt.protobuf.inputBinaryPrefixOption
+import msg.clikt.protobuf.inputEncodingArgument
+import msg.clikt.protobuf.outputBinaryPrefixOption
+import msg.clikt.protobuf.outputEncodingArgument
 import msg.progressbar.NoopProgressBar
 import msg.progressbar.StderrProgressBar
-import msg.proto.encodings.MessageTransport
-import msg.proto.protobuf.JsonParser
-import msg.proto.protobuf.JsonPrinter
-import msg.proto.protobuf.ProtobufMessage
+import msg.protobuf.JsonParser
+import msg.protobuf.JsonPrinter
+import msg.protobuf.ProtobufMessage
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
 
@@ -76,9 +80,8 @@ class Transform : ProtobufDataCommand() {
 
     progressBar.use {
       try {
-        val transport = MessageTransport(messageDescriptor)
-        val reader = transport.reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
-        val writer = transport.writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
+        val reader = inputEncoding(messageDescriptor, protobufRoots, inputBinaryPrefix).getTransport().reader(System.`in`)
+        val writer = outputEncoding(messageDescriptor, protobufRoots, outputBinaryPrefix).getTransport().writer(System.out)
         while (reader.hasNext() && outputCount.get() < limit) {
           val message = reader.next()
           inputCount.incrementAndGet()

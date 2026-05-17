@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.mordant.terminal.Terminal
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.MESSAGE
+import msg.clikt.protobuf.ProtobufCommand
 import msg.proto.terminal.Colours
 
 class Schemas : ProtobufCommand() {

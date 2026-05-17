@@ -5,7 +5,6 @@ import com.github.ajalt.clikt.core.ProgramResult
 import io.grpc.CallOptions
 import io.grpc.StatusRuntimeException
 import io.grpc.stub.ClientCalls
-import msg.proto.encodings.MessageTransport
 import msg.proto.grpc.GrpcHosts
 import msg.proto.grpc.GrpcMethod
 import msg.proto.grpc.GrpcResponseWriter
@@ -32,8 +31,8 @@ class InvokeStream : GrpcMethodDataCommand() {
         CallOptions.DEFAULT.withDeadlineAfter(deadline, deadlineUnits),
       )
 
-    val reader = MessageTransport(methodDescriptor.inputType).reader(inputEncoding(protobufRoots, inputBinaryPrefix), System.`in`)
-    val writer = MessageTransport(methodDescriptor.outputType).writer(outputEncoding(protobufRoots, outputBinaryPrefix), System.out)
+    val reader = inputEncoding(methodDescriptor.inputType, protobufRoots, inputBinaryPrefix).getTransport().reader(System.`in`)
+    val writer = outputEncoding(methodDescriptor.outputType, protobufRoots, outputBinaryPrefix).getTransport().writer(System.out)
     val grpcResponseWriter = GrpcResponseWriter(writer)
     val requestObserver = ClientCalls.asyncBidiStreamingCall(clientCall, grpcResponseWriter)
     try {

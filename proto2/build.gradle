@@ -4,25 +4,21 @@ plugins {
 }
 repositories {
   mavenCentral()
-  maven {
-    // Needed while clikt hasn't released https://github.com/ajalt/clikt/pull/508
-    url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-  }
 }
 
 dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
   testImplementation group: 'junit', name: 'junit', version: '4.11'
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
-  implementation project(':clikt')
-  implementation project(':encodings')
-  implementation project(':progressbar')
-  implementation project(':schemas')
+  implementation project(':msg-clikt')
+  implementation project(':msg-encodings')
+  implementation project(':msg-progressbar')
+  implementation project(':msg-protobuf-clikt')
+  implementation project(':msg-schemas')
 
   implementation group: 'com.squareup.wire', name: 'wire-compiler', version: '6.2.0'
   implementation group: 'com.google.protobuf', name: 'protobuf-java-util', version: protobufVersion
   implementation group: 'io.grpc', name: 'grpc-netty', version: grpcVersion
-  implementation group: 'com.alibaba.fastjson2', name: 'fastjson2', version: '2.0.51'
 }
 
 build {
