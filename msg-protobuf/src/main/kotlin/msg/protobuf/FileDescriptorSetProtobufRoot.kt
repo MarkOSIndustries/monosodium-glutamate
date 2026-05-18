@@ -26,7 +26,19 @@ class FileDescriptorSetProtobufRoot(
 
   private fun getFileDescriptor(path: String): Descriptors.FileDescriptor = fileDescriptorCache[path]!!.fileDescriptor
 
-  override fun getMessageDescriptors(): List<Descriptors.Descriptor> = fileDescriptorCache.values.flatMap { it.fileDescriptor.messageTypes }
+  override fun getMessageDescriptors(): List<Descriptors.Descriptor> =
+    fileDescriptorCache.values.flatMap {
+      it.fileDescriptor.messageTypes.flatMap { getMessageDescriptorsRecursive(it) }
+    }
+
+  private fun getMessageDescriptorsRecursive(messageType: Descriptors.Descriptor): List<Descriptors.Descriptor> {
+    val result = ArrayList<Descriptors.Descriptor>()
+    result.add(messageType)
+    for (descriptor in messageType.nestedTypes) {
+      result.addAll(getMessageDescriptorsRecursive(descriptor))
+    }
+    return result
+  }
 
   override fun findMessageDescriptor(message: String): Descriptors.Descriptor? = getMessageDescriptors().find { it.fullName == message }
 
