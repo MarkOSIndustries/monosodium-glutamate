@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.mordant.terminal.Terminal
+import com.google.protobuf.Descriptors
 import com.google.protobuf.Descriptors.FieldDescriptor.Type.MESSAGE
 import msg.clikt.protobuf.ProtobufCommand
 import msg.proto.terminal.Colours
@@ -39,8 +40,13 @@ class Schemas : ProtobufCommand() {
         terminal.println(Colours.message(messageDescriptor.fullName))
         if (fields) {
           for (field in messageDescriptor.fields) {
-            val type = if (field.type == MESSAGE) field.messageType.fullName else field.type.name.lowercase()
-            terminal.println("  ${Colours.field(field.name)}: ${Colours.type(type)}")
+            val type =
+              when (field.type) {
+                Descriptors.FieldDescriptor.Type.MESSAGE -> field.messageType.fullName
+                Descriptors.FieldDescriptor.Type.ENUM -> field.enumType.fullName
+                else -> field.type.name.lowercase()
+              }
+            terminal.println("  ${Colours.field(field.name)}: ${Colours.type(type)}${if (field.isRepeated) "[]" else ""}")
           }
         }
       }
