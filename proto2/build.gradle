@@ -12,6 +12,7 @@ dependencies {
   testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
   implementation project(':msg-clikt')
   implementation project(':msg-encodings')
+  implementation project(':msg-predicates')
   implementation project(':msg-progressbar')
   implementation project(':msg-protobuf-clikt')
   implementation project(':msg-schemas')

@@ -11,6 +11,8 @@ import com.github.ajalt.clikt.parameters.types.long
 import com.google.protobuf.ByteString
 import com.google.protobuf.Descriptors
 import com.google.protobuf.Descriptors.EnumValueDescriptor
+import com.google.protobuf.Descriptors.FieldDescriptor.Type
+import com.google.protobuf.InvalidProtocolBufferException
 import com.google.protobuf.Message
 import com.google.protobuf.util.Timestamps
 import msg.clikt.protobuf.ProtobufDataCommand
@@ -18,13 +20,16 @@ import msg.clikt.protobuf.inputBinaryPrefixOption
 import msg.clikt.protobuf.inputEncodingArgument
 import msg.clikt.protobuf.outputBinaryPrefixOption
 import msg.clikt.protobuf.outputEncodingArgument
+import msg.predicates.PredicateLanguage
 import msg.progressbar.NoopProgressBar
 import msg.progressbar.StderrProgressBar
+import msg.proto.predicates.ProtobufPredicate
 import msg.protobuf.JsonParser
 import msg.protobuf.JsonPrinter
 import msg.protobuf.ProtobufMessage
 import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.collections.set
 
 class Transform : ProtobufDataCommand() {
   private val inputEncoding by inputEncodingArgument()
@@ -34,6 +39,7 @@ class Transform : ProtobufDataCommand() {
 
   private val limit by option("--limit", "-l", help = "the maximum number of messages to transform").long().default(Long.MAX_VALUE)
   private val filterJson by option("--filter", "-f", help = "a JSON object specifying fields and values which must match").default("{}")
+  private val predicateSpec by option("--predicate", "-r", help = "a predicate specifying which records to keep").default("")
   private val progress by option("--progress", help = "show a progress bar").flag()
 
   override fun help(context: Context) =
@@ -66,16 +72,23 @@ class Transform : ProtobufDataCommand() {
       progressBar.setTotal(limit)
     }
 
-    val filterObject =
-      if (filterJson == "{}") {
-        JSONObject.of()
+    val predicate =
+      if (predicateSpec.isNotEmpty()) {
+        val predicateAst = PredicateLanguage.parse(predicateSpec)
+        ProtobufPredicate.build(messageDescriptor, predicateAst)
       } else {
-        try {
-          JSONObject.parseObject(filterJson)
-        } catch (e: JSONException) {
-          System.err.println("Invalid filter JSON: ${e.message}")
-          throw ProgramResult(1)
-        }
+        val filterObject =
+          if (filterJson == "{}") {
+            JSONObject.of()
+          } else {
+            try {
+              JSONObject.parseObject(filterJson)
+            } catch (e: JSONException) {
+              System.err.println("Invalid filter JSON: ${e.message}")
+              throw ProgramResult(1)
+            }
+          }
+        { message -> filter(messageDescriptor, message, filterObject) }
       }
 
     progressBar.use {
@@ -85,12 +98,12 @@ class Transform : ProtobufDataCommand() {
         while (reader.hasNext() && outputCount.get() < limit) {
           val message = reader.next()
           inputCount.incrementAndGet()
-          if (filter(messageDescriptor, message, filterObject)) {
+          if (predicate(message)) {
             writer(message)
             progressBar.setProgress(outputCount.incrementAndGet())
           }
         }
-      } catch (ex: com.google.protobuf.InvalidProtocolBufferException) {
+      } catch (ex: InvalidProtocolBufferException) {
         System.err.println("Invalid message: ${ex.message}")
         throw ProgramResult(1)
       } catch (_: IOException) {
