@@ -6,11 +6,13 @@ import com.markosindustries.parquito.ParquetSchemaNode
 import com.markosindustries.parquito.RowGroupReader
 import com.markosindustries.parquito.predicates.ParquetPredicate
 import msg.predicates.And
-import msg.predicates.Comparison
 import msg.predicates.ComparisonOp
 import msg.predicates.Not
 import msg.predicates.Or
 import msg.predicates.Predicate
+import msg.predicates.SetComparison
+import msg.predicates.SetComparisonOp
+import msg.predicates.SingleComparison
 import org.apache.parquet.format.ConvertedType
 import org.apache.parquet.format.LogicalType
 import org.apache.parquet.format.Type
@@ -31,7 +33,9 @@ object ParquitoPredicate {
         )
       is Or -> ParquetPredicates.union(build(rowGroupReader, schema, predicateAst.left), build(rowGroupReader, schema, predicateAst.right))
       is Not -> ParquetPredicates.not(build(rowGroupReader, schema, predicateAst.predicate))
-      is Comparison -> {
+      is SingleComparison,
+      is SetComparison,
+      -> {
         val schemaPath = schema.parsePathElements(predicateAst.dataPath.pathElements)
         val schemaNode = schema.getChild(schemaPath)
         val columnIndex =
@@ -49,16 +53,28 @@ object ParquitoPredicate {
             .rowGroupHeader()
             .columns[columnIndex]
             .meta_data.type!!
-        val typedComparator = parseFromString(columnType, schemaNode.logicalType, predicateAst.comparator)
-        when (predicateAst.op) {
-          ComparisonOp.AnyEquals -> ParquetPredicates.anyEquals(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.AllEquals -> ParquetPredicates.allEquals(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.AnyNotEquals -> ParquetPredicates.anyNotEquals(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.AllNotEquals -> ParquetPredicates.noneEquals(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.LessThan -> ParquetPredicates.anyLessThan(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.GreaterThan -> ParquetPredicates.anyGreaterThan(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.LessThanOrEqual -> ParquetPredicates.anyLessThanOrEqual(rowGroupReader, typedComparator, schemaPath)
-          ComparisonOp.GreaterThanOrEqual -> ParquetPredicates.anyGreaterThanOrEqual(rowGroupReader, typedComparator, schemaPath)
+
+        when (predicateAst) {
+          is SingleComparison -> {
+            val typedReferenceValue = parseFromString(columnType, schemaNode.logicalType, predicateAst.referenceValue)
+            when (predicateAst.op) {
+              ComparisonOp.AnyEquals -> ParquetPredicates.anyEquals(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.AllEquals -> ParquetPredicates.allEquals(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.AnyNotEquals -> ParquetPredicates.anyNotEquals(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.AllNotEquals -> ParquetPredicates.noneEquals(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.LessThan -> ParquetPredicates.anyLessThan(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.GreaterThan -> ParquetPredicates.anyGreaterThan(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.LessThanOrEqual -> ParquetPredicates.anyLessThanOrEqual(rowGroupReader, typedReferenceValue, schemaPath)
+              ComparisonOp.GreaterThanOrEqual -> ParquetPredicates.anyGreaterThanOrEqual(rowGroupReader, typedReferenceValue, schemaPath)
+            }
+          }
+          is SetComparison -> {
+            val typedReferenceValues = predicateAst.referenceValues.map { parseFromString(columnType, schemaNode.logicalType, it) }.toSet()
+            when (predicateAst.op) {
+              SetComparisonOp.AnyIn -> ParquetPredicates.anyInSet(rowGroupReader, typedReferenceValues, schemaPath)
+              SetComparisonOp.AllIn -> ParquetPredicates.allInSet(rowGroupReader, typedReferenceValues, schemaPath)
+            }
+          }
         }
       }
     }

@@ -26,11 +26,17 @@ object PredicateGrammar : Grammar<Predicate>() {
   val lte by literalToken(ComparisonOp.LessThanOrEqual.literal)
   val gt by literalToken(ComparisonOp.GreaterThan.literal)
   val lt by literalToken(ComparisonOp.LessThan.literal)
+  val anyinset by literalToken(SetComparisonOp.AnyIn.literal)
+  val allinset by literalToken(SetComparisonOp.AllIn.literal)
   val pathElement by regexToken("[a-zA-Z_][a-zA-Z0-9_]*")
   val dot by literalToken(".")
+  val comma by literalToken(",")
 
   val openParen by literalToken("(")
   val closeParen by literalToken(")")
+
+  val openSet by literalToken("[")
+  val closeSet by literalToken("]")
 
   val stringLiteral by delimitedToken('"')
   val numericLiteral by regexToken("[0-9]*[.]?[0-9]+")
@@ -42,7 +48,7 @@ object PredicateGrammar : Grammar<Predicate>() {
   val operator by (anyeq or alleq or anyneq or allneq or gte or lte or gt or lt).map { op ->
     ComparisonOp.entries.find { it.literal.equals(op.text) }!!
   }
-  val comparator by (stringLiteral or numericLiteral).map {
+  val referenceValue by (stringLiteral or numericLiteral).map {
     when (it.type) {
       stringLiteral -> it.text.substring(1, it.text.length - 1)
       numericLiteral -> it.text
@@ -50,17 +56,29 @@ object PredicateGrammar : Grammar<Predicate>() {
     }
   }
 
-  val comparison by
-    (dataPath and operator and comparator).map { (path, op, comp) ->
-      Comparison(
+  val singleValueSingleComparison by
+    (dataPath and operator and referenceValue).map { (path, op, refValue) ->
+      SingleComparison(
         path,
         op,
-        comp,
+        refValue,
       )
     }
 
+  val setOperator =
+    (anyinset or allinset).map { op ->
+      SetComparisonOp.entries.find { it.literal.equals(op.text) }!!
+    }
+
+  val setValueComparison by (
+    dataPath and setOperator and skip(openSet) and separatedTerms(referenceValue, comma) and skip(closeSet)
+  ).map { (path, op, refValues) ->
+    SetComparison(path, op, refValues.toSet())
+  }
+
   val term: Parser<Predicate> by
-    comparison or
+    singleValueSingleComparison or
+      setValueComparison or
       (skip(not) and parser(this::term) map { Not(it) }) or
       (skip(openParen) and parser(this::rootParser) and skip(closeParen))
 

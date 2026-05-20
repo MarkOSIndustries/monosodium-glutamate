@@ -13,6 +13,9 @@ import msg.predicates.ComparisonOp
 import msg.predicates.Not
 import msg.predicates.Or
 import msg.predicates.Predicate
+import msg.predicates.SetComparison
+import msg.predicates.SetComparisonOp
+import msg.predicates.SingleComparison
 
 object ProtobufPredicate {
   fun build(
@@ -53,30 +56,40 @@ object ProtobufPredicate {
               (fieldDesc to messageDescriptor)
             }
           }
-        val typedComparator: Any = parseFromString(fieldDesc!!, predicateAst.comparator)
-        val comparisonCheck: (Int) -> Boolean =
-          when (predicateAst.op) {
-            ComparisonOp.AnyEquals,
-            ComparisonOp.AllEquals,
-            -> { it -> it == 0 }
-            ComparisonOp.AnyNotEquals,
-            ComparisonOp.AllNotEquals,
-            -> { it -> it != 0 }
-            ComparisonOp.LessThan -> { it -> it < 0 }
-            ComparisonOp.GreaterThan -> { it -> it > 0 }
-            ComparisonOp.LessThanOrEqual -> { it -> it <= 0 }
-            ComparisonOp.GreaterThanOrEqual -> { it -> it >= 0 }
-          }
 
         val compare: (List<*>) -> Boolean =
-          when (predicateAst.op) {
-            ComparisonOp.AllEquals,
-            ComparisonOp.AllNotEquals,
-            -> { values -> values.all { comparisonCheck(compareSingle(fieldDesc, it, typedComparator)) } }
-            ComparisonOp.AnyEquals,
-            ComparisonOp.AnyNotEquals,
-            -> { values -> values.any { comparisonCheck(compareSingle(fieldDesc, it, typedComparator)) } }
-            else -> { values -> values.any { comparisonCheck(compareSingle(fieldDesc, it, typedComparator)) } }
+          when (predicateAst) {
+            is SingleComparison -> {
+              val comparisonCheck: (Int) -> Boolean =
+                when (predicateAst.op) {
+                  ComparisonOp.AnyEquals,
+                  ComparisonOp.AllEquals,
+                  -> { it -> it == 0 }
+                  ComparisonOp.AnyNotEquals,
+                  ComparisonOp.AllNotEquals,
+                  -> { it -> it != 0 }
+                  ComparisonOp.LessThan -> { it -> it < 0 }
+                  ComparisonOp.GreaterThan -> { it -> it > 0 }
+                  ComparisonOp.LessThanOrEqual -> { it -> it <= 0 }
+                  ComparisonOp.GreaterThanOrEqual -> { it -> it >= 0 }
+                }
+
+              when (predicateAst.op) {
+                ComparisonOp.AllEquals,
+                ComparisonOp.AllNotEquals,
+                -> singleMatchChecker(fieldDesc!!, predicateAst.referenceValue, comparisonCheck, Iterable<*>::all)
+                ComparisonOp.AnyEquals,
+                ComparisonOp.AnyNotEquals,
+                -> singleMatchChecker(fieldDesc!!, predicateAst.referenceValue, comparisonCheck, Iterable<*>::any)
+                else -> singleMatchChecker(fieldDesc!!, predicateAst.referenceValue, comparisonCheck, Iterable<*>::any)
+              }
+            }
+            is SetComparison -> {
+              when (predicateAst.op) {
+                SetComparisonOp.AnyIn -> setMatchChecker(fieldDesc!!, predicateAst.referenceValues, Iterable<*>::any)
+                SetComparisonOp.AllIn -> setMatchChecker(fieldDesc!!, predicateAst.referenceValues, Iterable<*>::all)
+              }
+            }
           }
 
         { message: Message ->
@@ -100,30 +113,49 @@ object ProtobufPredicate {
   private fun <T> compareSingle(
     fieldDescriptor: Descriptors.FieldDescriptor,
     value: T,
-    comparator: T,
+    referenceValue: T,
   ): Int =
     when (fieldDescriptor.type) {
-      Type.DOUBLE -> (value as Double).compareTo(comparator as Double)
-      Type.FLOAT -> (value as Float).compareTo(comparator as Float)
+      Type.DOUBLE -> (value as Double).compareTo(referenceValue as Double)
+      Type.FLOAT -> (value as Float).compareTo(referenceValue as Float)
       Type.INT64,
       Type.SINT64,
       Type.FIXED64,
       Type.SFIXED64,
       Type.UINT64,
-      -> (value as Long).compareTo(comparator as Long)
+      -> (value as Long).compareTo(referenceValue as Long)
       Type.INT32,
       Type.SINT32,
       Type.FIXED32,
       Type.SFIXED32,
       Type.UINT32,
-      -> (value as Int).compareTo(comparator as Int)
-      Type.BOOL -> (value as Boolean).compareTo(comparator as Boolean)
-      Type.STRING -> (value as String).compareTo(comparator as String)
+      -> (value as Int).compareTo(referenceValue as Int)
+      Type.BOOL -> (value as Boolean).compareTo(referenceValue as Boolean)
+      Type.STRING -> (value as String).compareTo(referenceValue as String)
       Type.GROUP -> TODO()
       Type.MESSAGE -> TODO()
-      Type.BYTES -> if ((value as ByteString).equals(comparator as ByteString)) 0 else 1
-      Type.ENUM -> if ((value as EnumValueDescriptor).equals(comparator as EnumValueDescriptor)) 0 else 1
+      Type.BYTES -> if ((value as ByteString).equals(referenceValue as ByteString)) 0 else 1
+      Type.ENUM -> if ((value as EnumValueDescriptor).equals(referenceValue as EnumValueDescriptor)) 0 else 1
     }
+
+  private fun <T> singleMatchChecker(
+    fieldDescriptor: Descriptors.FieldDescriptor,
+    valueAsString: String,
+    comparisonCheck: (Int) -> Boolean,
+    matchType: (Iterable<T>, (T) -> Boolean) -> Boolean,
+  ): (List<T>) -> Boolean {
+    val typedValue = parseFromString<T>(fieldDescriptor, valueAsString)
+    return { values -> matchType(values, { comparisonCheck(compareSingle(fieldDescriptor, it, typedValue)) }) }
+  }
+
+  private fun <T> setMatchChecker(
+    fieldDescriptor: Descriptors.FieldDescriptor,
+    valuesAsStrings: Set<String>,
+    matchType: (Iterable<T>, (T) -> Boolean) -> Boolean,
+  ): (List<T>) -> Boolean {
+    val typedValuesSet = valuesAsStrings.map { parseFromString<T>(fieldDescriptor, it) }.toSet()
+    return { values -> matchType(values, typedValuesSet::contains) }
+  }
 
   private fun <T> parseFromString(
     fieldDescriptor: Descriptors.FieldDescriptor,
