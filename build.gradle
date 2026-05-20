@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
   id 'org.jetbrains.kotlin.jvm' version '2.3.20' apply false
   id 'com.diffplug.spotless' version '8.4.0'
@@ -21,7 +23,9 @@ allprojects {
     }
     groovyGradle {
       target '*.gradle'
-      greclipse()
+      if (!project.hasProperty("disableGrEclipse")) {
+        greclipse()
+      }
       trimTrailingWhitespace()
       leadingTabsToSpaces(2)
     }
@@ -36,9 +40,9 @@ def kotlinProjects() {
 
 configure(kotlinProjects()) {
   compileKotlin {
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.valueOf("JVM_$targetJvmVersion"))
+    compilerOptions.jvmTarget.set(JvmTarget.valueOf("JVM_$targetJvmVersion"))
   }
   compileTestKotlin {
-    compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.valueOf("JVM_$targetJvmVersion"))
+    compilerOptions.jvmTarget.set(JvmTarget.valueOf("JVM_$targetJvmVersion"))
   }
 }

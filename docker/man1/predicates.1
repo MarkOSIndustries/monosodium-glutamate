@@ -1,0 +1,57 @@
+./" Man page for your_function
+.TH predicates 1 "2026-05-20" "1.0" "predicates man page"
+.SH NAME
+predicates
+.SH DESCRIPTION
+monosodium glutamate bespoke predicate language
+.SH OPERATORS
+.TP
+\fB==\fR \fIvalue\fR
+match if any value in the record for the given field exactly equals the given value
+.TP
+\fB[==]\fR \fIvalue\fR
+match if all values in the record for the given field exactly equals the given value
+.TP
+\fB!=\fR \fIvalue\fR
+match if any value in the record for the given field does not equal the given value
+.TP
+\fB[!=]\fR \fIvalue\fR
+match if all values in the record for the given field does not equal the given value
+.TP
+\fB>\fR \fIvalue\fR
+match if any value in the record for the given field is greater than the given value
+.TP
+\fB[>]\fR \fIvalue\fR
+match if all values in the record for the given field is greater than the given value
+.TP
+\fB>=\fR \fIvalue\fR
+match if any value in the record for the given field is greater than or equals the given value
+.TP
+\fB[>=]\fR \fIvalue\fR
+match if all values in the record for the given field is greater than or equals the given value
+.TP
+\fB<\fR \fIvalue\fR
+match if any value in the record for the given field is less than the given value
+.TP
+\fB[<]\fR \fIvalue\fR
+match if all values in the record for the given field is less than the given value
+.TP
+\fB<=\fR \fIvalue\fR
+match if any value in the record for the given field is less than or equals the given value
+.TP
+\fB[<=]\fR \fIvalue\fR
+match if all values in the record for the given field is less than or equals the given value
+.TP
+\fBin\fR [\fIvalue1, value2, ...\fR]
+match if any value in the record for the given field exactly equals one of the given values
+.TP
+\fB[in]\fR [\fIvalue1, value2, ...\fR]
+match if all values in the record for the given field exactly equal one of the given values
+
+.SH EXAMPLE
+not(some_field.some_child.value >= 3) or something_else [!=] 9 and another_thing == "fridge magnet"
+
+.SH AUTHOR
+MarkOSIndustries
+.SH REPORTING BUGS
+https://www.github.com/MarkOSIndustries/monosodium-glutamate

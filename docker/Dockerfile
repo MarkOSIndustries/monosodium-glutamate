@@ -14,13 +14,18 @@ RUN ./gradlew
 COPY . .
 
 # gradle build MSG kotlin components
-RUN ./gradlew clean build --parallel
+RUN ./gradlew clean build --parallel -PdisableGrEclipse=true
 
 # npm install MSG javascript components
 RUN (cd proto && npm install)
 RUN (cd reduce && npm install)
 
 FROM eclipse-temurin:25.0.2_10-jre AS runtime
+# Fix up the "minimised" man setup that comes inside ubuntu docker
+RUN rm /etc/dpkg/dpkg.cfg.d/excludes
+RUN apt update && apt upgrade -y && apt install -y man-db manpages manpages-posix && apt reinstall -y coreutils
+RUN rm /usr/bin/man && ln -s /usr/bin/man.REAL /usr/bin/man
+
 RUN apt update && apt upgrade -y && apt install -y nodejs netcat-openbsd nano jq
 
 ARG MSG_VERSION
@@ -62,12 +67,16 @@ ENV MSG_JAVA_OPTS=${MSG_JAVA_OPTS}
 # While this doesn't simulate real usage, it does help avoid all the JIT
 # that typically happens at startup
 RUN mkdir -p ./aot
-RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kat topics > /dev/null || true
-RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/kgb > /dev/null
-RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/pqt aot > /dev/null
-RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/proto aot > /dev/null
-RUN MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/qs > /dev/null
+RUN for i in "kat topics -t1" "kgb" "pqt aot" "proto aot" "qs"; do \
+      MSG_JAVA_OPTS="${MSG_JAVA_OPTS}" MSG_JAVA_AOT_OPTS='-XX:AOTMode=record -XX:AOTCacheOutput=./aot' /usr/local/bin/$i > /dev/null || true; \
+    done
 ENV MSG_JAVA_AOT_OPTS='-XX:AOTMode=on -XX:AOTCache=/opt/msg/aot'
+
+# Generate man pages
+COPY docker/man1/predicates.1 /usr/share/man/man1
+RUN for i in kat kgb pqt proto qs; do \
+      /usr/local/bin/$i --generate-man-pages-in=/usr/share/man/man1; \
+    done
 
 # KGB default port
 EXPOSE 8082

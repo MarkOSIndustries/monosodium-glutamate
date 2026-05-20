@@ -22,7 +22,11 @@ import java.util.concurrent.atomic.AtomicInteger
 class ReadProtobuf : ProtobufReadFileCommand() {
   private val outputEncoding by outputEncodingArgument()
   private val outputBinaryPrefix by outputBinaryPrefixOption()
-  private val predicateSpec by option("--predicate", "-r", help = "a predicate specifying which records to keep").default("")
+  private val predicateSpec by option(
+    "--predicate",
+    "-r",
+    help = "a predicate specifying which records to keep. See man predicates",
+  ).default("")
   private val limit by option("--limit", "-l", help = "the maximum number of messages to output").long().default(Long.MAX_VALUE)
 
   override fun help(context: Context) =
